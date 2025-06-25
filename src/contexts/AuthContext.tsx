@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { setCustomAuthToken, clearCustomAuthToken } from '@/integrations/supabase/client';
+import { createAuthenticatedClient } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -15,12 +15,14 @@ interface AuthContextType {
   login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  authenticatedClient: any; // Supabase client with auth headers
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('siplan-user');
@@ -28,9 +30,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = JSON.parse(savedUser);
       setUser(userData);
       
-      // Set the custom auth token for cartorio users
+      // Create authenticated client for cartorio users
       if (userData.type === 'cartorio' && userData.token) {
-        setCustomAuthToken(userData.token);
+        const authClient = createAuthenticatedClient(userData.token);
+        setAuthenticatedClient(authClient);
       }
     }
   }, []);
@@ -47,22 +50,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     localStorage.setItem('siplan-user', JSON.stringify(newUser));
     
-    // Set the custom auth token for API requests
+    // Create authenticated client for API requests
     if (type === 'cartorio') {
-      setCustomAuthToken(token);
+      const authClient = createAuthenticatedClient(token);
+      setAuthenticatedClient(authClient);
     }
   };
 
   const logout = () => {
     setUser(null);
+    setAuthenticatedClient(null);
     localStorage.removeItem('siplan-user');
-    clearCustomAuthToken();
   };
 
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, authenticatedClient }}>
       {children}
     </AuthContext.Provider>
   );

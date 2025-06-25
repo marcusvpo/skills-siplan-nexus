@@ -21,10 +21,29 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Function to set custom JWT token for cartorio authentication
 export const setCustomAuthToken = (token: string) => {
-  supabase.rest.headers['authorization'] = `Bearer ${token}`;
+  // Use the from method to create a new instance with custom headers
+  const clientWithAuth = supabase.from('sistemas').select().limit(0);
+  // Store the token for use in requests
+  supabase.functions.setAuth(token);
 };
 
 // Function to clear custom auth token
 export const clearCustomAuthToken = () => {
-  delete supabase.rest.headers['authorization'];
+  // Clear the auth for functions
+  supabase.functions.setAuth(null);
+};
+
+// Helper function to create authenticated supabase instance
+export const createAuthenticatedClient = (token: string) => {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    },
+  });
 };
