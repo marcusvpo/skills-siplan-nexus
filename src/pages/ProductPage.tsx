@@ -8,15 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { systems } from '@/data/mockData';
-import { Play, Star, Clock, CheckCircle } from 'lucide-react';
+import { Clock, ArrowRight } from 'lucide-react';
+import { useSistemas, useVisualizacoes } from '@/hooks/useSupabaseData';
 
 const ProductPage = () => {
   const { systemId, productId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [sortBy, setSortBy] = React.useState('recent');
+  const [sortBy, setSortBy] = React.useState('ordem-asc');
+
+  const { data: sistemas } = useSistemas();
+  const { data: visualizacoes } = useVisualizacoes(user?.cartorio_id || '');
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -24,13 +26,13 @@ const ProductPage = () => {
     }
   }, [user, navigate]);
 
-  const system = systems.find(s => s.id === systemId);
-  const product = system?.products.find(p => p.id === productId);
+  const system = sistemas?.find(s => s.id === systemId);
+  const product = system?.produtos?.find(p => p.id === productId);
 
   if (!system || !product) {
     return (
       <Layout>
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-8 bg-black min-h-screen">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-400">Produto não encontrado</h1>
           </div>
@@ -39,147 +41,164 @@ const ProductPage = () => {
     );
   }
 
-  const sortedLessons = [...product.lessons].sort((a, b) => {
+  const sortedModules = [...(product.modulos || [])].sort((a, b) => {
     switch (sortBy) {
-      case 'name-asc':
-        return a.title.localeCompare(b.title);
-      case 'name-desc':
-        return b.title.localeCompare(a.title);
-      case 'status':
-        if (a.completed && !b.completed) return -1;
-        if (!a.completed && b.completed) return 1;
-        return 0;
+      case 'ordem-asc':
+        return (a.ordem || 0) - (b.ordem || 0);
+      case 'nome-asc':
+        return a.titulo.localeCompare(b.titulo);
+      case 'nome-desc':
+        return b.titulo.localeCompare(a.titulo);
       default:
         return 0;
     }
   });
 
-  const toggleFavorite = (lessonId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Lógica para toggle de favorito seria implementada aqui
-    console.log('Toggle favorite for lesson:', lessonId);
+  const calculateModuleProgress = (modulo: any) => {
+    if (!visualizacoes || !modulo.video_aulas) return 0;
+    
+    const totalAulas = modulo.video_aulas.length;
+    if (totalAulas === 0) return 0;
+    
+    const aulasCompletas = visualizacoes.filter(v => 
+      v.completo && modulo.video_aulas.some((aula: any) => aula.id === v.video_aula_id)
+    ).length;
+    
+    return Math.round((aulasCompletas / totalAulas) * 100);
+  };
+
+  const calculateOverallProgress = () => {
+    if (!product.modulos || product.modulos.length === 0) return 0;
+    
+    const totalAulas = product.modulos.reduce((acc: number, modulo: any) => 
+      acc + (modulo.video_aulas?.length || 0), 0);
+    
+    if (totalAulas === 0) return 0;
+    
+    const aulasCompletas = visualizacoes?.filter(v => 
+      v.completo && product.modulos.some((modulo: any) => 
+        modulo.video_aulas?.some((aula: any) => aula.id === v.video_aula_id)
+      )
+    ).length || 0;
+    
+    return Math.round((aulasCompletas / totalAulas) * 100);
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-8 bg-black min-h-screen">
         <Breadcrumbs items={[
-          { label: system.name, href: `/system/${systemId}` },
-          { label: product.name }
+          { label: system.nome, href: `/system/${systemId}` },
+          { label: product.nome }
         ]} />
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-          <p className="text-gray-400 mb-4">{product.description}</p>
+          <h1 className="text-3xl font-bold mb-2 text-white">{product.nome}</h1>
+          <p className="text-gray-400 mb-4">{product.descricao}</p>
           
           {/* Overall Progress */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Progresso Geral do Produto</h3>
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-4 text-white">Progresso Geral do Produto</h3>
             <div className="flex items-center space-x-4">
               <div className="flex-1">
-                <Progress value={product.progress} className="h-3" />
+                <Progress value={calculateOverallProgress()} className="h-3" />
               </div>
-              <span className="font-semibold text-lg">{product.progress}%</span>
+              <span className="font-semibold text-lg text-white">{calculateOverallProgress()}%</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
-              {product.lessons.filter(l => l.completed).length} de {product.lessons.length} aulas concluídas
+              {product.modulos?.reduce((acc: number, modulo: any) => 
+                acc + (visualizacoes?.filter(v => v.completo && modulo.video_aulas?.some((aula: any) => aula.id === v.video_aula_id)).length || 0), 0
+              )} de {product.modulos?.reduce((acc: number, modulo: any) => acc + (modulo.video_aulas?.length || 0), 0)} aulas concluídas
             </p>
           </div>
         </div>
 
         {/* Filter Section */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold">Videoaulas</h2>
+          <h2 className="text-2xl font-semibold text-white">Módulos de Treinamento</h2>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-400">Ordenar por:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-56 bg-gray-800 border-gray-700">
+              <SelectTrigger className="w-56 bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Selecione a ordenação" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="recent">Mais Recentes</SelectItem>
-                <SelectItem value="name-asc">Ordem Alfabética (A-Z)</SelectItem>
-                <SelectItem value="name-desc">Ordem Alfabética (Z-A)</SelectItem>
-                <SelectItem value="status">Status (Concluídas/Não Concluídas)</SelectItem>
+                <SelectItem value="ordem-asc">Ordem Padrão</SelectItem>
+                <SelectItem value="nome-asc">Nome (A-Z)</SelectItem>
+                <SelectItem value="nome-desc">Nome (Z-A)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Lessons List */}
-        <div className="space-y-4">
-          {sortedLessons.map((lesson) => (
-            <Card 
-              key={lesson.id} 
-              className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all cursor-pointer"
-              onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${lesson.id}`)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="bg-red-600 rounded-full p-3">
-                      <Play className="h-6 w-6 text-white" />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold">{lesson.title}</h3>
-                        {lesson.completed && (
-                          <Badge variant="secondary" className="bg-green-600 text-green-100">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Concluída
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <p className="text-gray-400 text-sm mb-3">
-                        {lesson.description}
-                      </p>
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {lesson.duration}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        {/* Modules Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sortedModules.map((modulo) => {
+            const progress = calculateModuleProgress(modulo);
+            const totalLessons = modulo.video_aulas?.length || 0;
+            const completedLessons = visualizacoes?.filter(v => 
+              v.completo && modulo.video_aulas?.some((aula: any) => aula.id === v.video_aula_id)
+            ).length || 0;
+            
+            return (
+              <Card 
+                key={modulo.id} 
+                className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 cursor-pointer group hover:shadow-xl"
+                onClick={() => navigate(`/system/${systemId}/product/${productId}/module/${modulo.id}`)}
+              >
+                <CardHeader>
+                  <CardTitle className="group-hover:text-red-400 transition-colors text-white">
+                    {modulo.titulo}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-400 text-sm mb-4">
+                    {modulo.descricao}
+                  </p>
                   
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => toggleFavorite(lesson.id, e)}
-                      className="text-gray-400 hover:text-yellow-500"
-                    >
-                      <Star 
-                        className={`h-5 w-5 ${lesson.favorite ? 'fill-current text-yellow-500' : ''}`} 
-                      />
-                    </Button>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-2 text-gray-300">
+                        <span>Progresso</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
                     
-                    <Button
-                      className="bg-red-600 hover:bg-red-700"
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {modulo.tempo_estimado_min ? `${modulo.tempo_estimado_min}min` : 'N/A'}
+                      </div>
+                      <span>
+                        {completedLessons}/{totalLessons} aulas
+                      </span>
+                    </div>
+                    
+                    <Button 
+                      className="w-full bg-red-600 hover:bg-red-700 group-hover:scale-105 transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/system/${systemId}/product/${productId}/lesson/${lesson.id}`);
+                        navigate(`/system/${systemId}/product/${productId}/module/${modulo.id}`);
                       }}
                     >
-                      {lesson.completed ? 'Revisar Aula' : 'Iniciar Aula'}
+                      {progress > 0 ? 'Continuar Módulo' : 'Iniciar Módulo'}
+                      <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        {sortedLessons.length === 0 && (
+        {sortedModules.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">
-              Nenhuma videoaula encontrada para este produto.
+              Nenhum módulo encontrado para este produto.
             </p>
             <p className="text-gray-500 text-sm mt-2">
-              Novas aulas serão adicionadas em breve.
+              Novos módulos serão adicionados em breve.
             </p>
           </div>
         )}

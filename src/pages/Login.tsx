@@ -46,8 +46,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-gray-900 border-gray-700 shadow-2xl">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <BookOpen className="h-12 w-12 text-red-500" />
@@ -67,7 +67,7 @@ const Login = () => {
                   placeholder="Insira seu Token de Acesso"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500"
                   required
                 />
                 <Button
@@ -84,7 +84,7 @@ const Login = () => {
             
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg"
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg"
               disabled={isLoading}
             >
               {isLoading ? 'Entrando...' : 'Entrar na Plataforma'}
@@ -94,7 +94,7 @@ const Login = () => {
           <div className="space-y-3">
             <Button
               variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
               onClick={handleDemo}
             >
               Acessar Demonstração

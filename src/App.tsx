@@ -11,6 +11,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Dashboard from "./pages/Dashboard";
 import SystemPage from "./pages/SystemPage";
 import ProductPage from "./pages/ProductPage";
+import ModulePage from "./pages/ModulePage";
 import VideoLesson from "./pages/VideoLesson";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/system/:systemId" element={<SystemPage />} />
             <Route path="/system/:systemId/product/:productId" element={<ProductPage />} />
+            <Route path="/system/:systemId/product/:productId/module/:moduleId" element={<ModulePage />} />
             <Route path="/system/:systemId/product/:productId/lesson/:lessonId" element={<VideoLesson />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />

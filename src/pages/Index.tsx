@@ -9,7 +9,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
@@ -27,7 +27,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg"
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg"
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg transition-all duration-200 hover:shadow-lg"
               onClick={() => navigate('/login')}
             >
               Acessar Plataforma
@@ -36,7 +36,7 @@ const Index = () => {
             <Button 
               size="lg"
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 px-8 py-4 text-lg"
+              className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-4 text-lg transition-all duration-200"
               onClick={() => navigate('/admin-login')}
             >
               Acesso Administrativo
@@ -46,30 +46,30 @@ const Index = () => {
 
         {/* Features Section */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
             <CardContent className="p-6 text-center">
               <Video className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Videoaulas Interativas</h3>
+              <h3 className="text-xl font-semibold mb-2 text-white">Videoaulas Interativas</h3>
               <p className="text-gray-400">
                 Aprenda com conteúdo em vídeo de alta qualidade sobre todos os sistemas Siplan.
               </p>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
             <CardContent className="p-6 text-center">
               <Users className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Chat com IA</h3>
+              <h3 className="text-xl font-semibold mb-2 text-white">Chat com IA</h3>
               <p className="text-gray-400">
                 Tire dúvidas em tempo real com nossa assistente virtual especializada.
               </p>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
             <CardContent className="p-6 text-center">
               <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Acesso Seguro</h3>
+              <h3 className="text-xl font-semibold mb-2 text-white">Acesso Seguro</h3>
               <p className="text-gray-400">
                 Ambiente controlado e seguro, exclusivo para cartórios clientes da Siplan.
               </p>
@@ -79,7 +79,7 @@ const Index = () => {
 
         {/* CTA Section */}
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
+          <h2 className="text-3xl font-bold mb-4 text-white">Pronto para começar?</h2>
           <p className="text-gray-400 mb-8">
             Entre em contato com seu representante Siplan para obter seu token de acesso.
           </p>
