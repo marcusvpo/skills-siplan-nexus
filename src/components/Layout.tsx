@@ -11,13 +11,21 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -35,6 +43,8 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
             <div className="flex items-center space-x-4">
               <span className="text-gray-300">
                 Bem-vindo(a), {user.name}!
+                {user.type === 'cartorio' && ' (Cartório)'}
+                {user.type === 'admin' && ' (Admin)'}
               </span>
               <Button
                 variant="outline"

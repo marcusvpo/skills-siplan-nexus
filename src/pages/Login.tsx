@@ -16,34 +16,58 @@ const Login = () => {
   const { login } = useAuth();
 
   const handleDemo = () => {
-    setToken('DEMO-SIPLANSKILLS');
+    setToken('DEMO-SIPLANSKILLS-CARTORIO');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simular validação do token
-    setTimeout(() => {
-      if (token === 'DEMO-SIPLANSKILLS' || token.startsWith('CART-')) {
-        login(token, 'cartorio', { 
-          name: token === 'DEMO-SIPLANSKILLS' ? 'Cartório Demonstração' : 'Cartório Cliente',
-          cartorio_id: '00000000-0000-0000-0000-000000000001'
+    try {
+      console.log('Attempting cartorio login with token:', token);
+      
+      // Call the login-cartorio edge function
+      const response = await fetch('/functions/v1/login-cartorio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ login_token: token }),
+      });
+
+      const data = await response.json();
+      console.log('Login response:', data);
+
+      if (response.ok && data.success) {
+        login(data.token, 'cartorio', {
+          id: data.cartorio.id,
+          name: data.cartorio.nome,
+          cartorio_id: data.cartorio.id
         });
+        
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo à plataforma Siplan Skills.",
+          description: `Bem-vindo(a), ${data.cartorio.nome}!`,
         });
+        
         navigate('/dashboard');
       } else {
         toast({
           title: "Token inválido",
-          description: "Verifique seu token de acesso e tente novamente.",
+          description: data.error || "Verifique seu token de acesso e tente novamente.",
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

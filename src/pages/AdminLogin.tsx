@@ -7,6 +7,7 @@ import { BookOpen, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -14,33 +15,66 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simular validação de login administrativo
-    setTimeout(() => {
-      if (email === 'admin@siplan.com' && password === 'admin123') {
-        login('admin-token', 'admin', { 
-          name: 'Administrador Siplan',
-          id: 'admin-1'
-        });
-        toast({
-          title: "Login administrativo realizado!",
-          description: "Bem-vindo ao painel administrativo.",
-        });
-        navigate('/admin');
-      } else {
+    try {
+      console.log('Attempting admin login with email:', email);
+      
+      // First, try to sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Supabase auth error:', error);
         toast({
           title: "Credenciais inválidas",
-          description: "Email ou senha incorretos.",
+          description: error.message || "Email ou senha incorretos.",
           variant: "destructive",
         });
+        return;
       }
+
+      if (data.user) {
+        // Check if user is an admin
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('email', data.user.email)
+          .single();
+
+        if (adminError || !adminData) {
+          console.error('User is not an admin:', adminError);
+          await supabase.auth.signOut();
+          toast({
+            title: "Acesso negado",
+            description: "Usuário não tem permissões administrativas.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Login administrativo realizado!",
+          description: `Bem-vindo(a), ${adminData.nome}!`,
+        });
+        
+        navigate('/admin');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

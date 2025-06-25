@@ -1,12 +1,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useSistemas = () => {
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+  
   return useQuery({
     queryKey: ['sistemas'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!client) return [];
+      
+      const { data, error } = await client
         .from('sistemas')
         .select(`
           *,
@@ -24,16 +30,22 @@ export const useSistemas = () => {
         console.error('Error fetching sistemas:', error);
         throw error;
       }
-      return data;
-    }
+      return data || [];
+    },
+    enabled: !!client
   });
 };
 
 export const useVideoAulas = (moduloId: string) => {
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+  
   return useQuery({
     queryKey: ['video_aulas', moduloId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!client) return [];
+      
+      const { data, error } = await client
         .from('video_aulas')
         .select('*')
         .eq('modulo_id', moduloId)
@@ -43,18 +55,22 @@ export const useVideoAulas = (moduloId: string) => {
         console.error('Error fetching video aulas:', error);
         throw error;
       }
-      return data;
-    }
+      return data || [];
+    },
+    enabled: !!client && !!moduloId
   });
 };
 
 export const useVisualizacoes = (cartorioId: string) => {
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+  
   return useQuery({
     queryKey: ['visualizacoes', cartorioId],
     queryFn: async () => {
-      if (!cartorioId) return [];
+      if (!client || !cartorioId) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('visualizacoes_cartorio')
         .select(`
           *,
@@ -74,21 +90,24 @@ export const useVisualizacoes = (cartorioId: string) => {
       
       if (error) {
         console.error('Error fetching visualizacoes:', error);
-        // Return empty array instead of throwing to prevent blocking the UI
         return [];
       }
       return data || [];
-    }
+    },
+    enabled: !!client && !!cartorioId
   });
 };
 
 export const useFavoritos = (cartorioId: string) => {
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+  
   return useQuery({
     queryKey: ['favoritos', cartorioId],
     queryFn: async () => {
-      if (!cartorioId) return [];
+      if (!client || !cartorioId) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('favoritos_cartorio')
         .select(`
           *,
@@ -108,10 +127,10 @@ export const useFavoritos = (cartorioId: string) => {
       
       if (error) {
         console.error('Error fetching favoritos:', error);
-        // Return empty array instead of throwing to prevent blocking the UI
         return [];
       }
       return data || [];
-    }
+    },
+    enabled: !!client && !!cartorioId
   });
 };
