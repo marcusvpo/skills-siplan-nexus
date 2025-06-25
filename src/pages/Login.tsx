@@ -26,14 +26,18 @@ const Login = () => {
     try {
       console.log('Attempting cartorio login with token:', token);
       
-      // Call the login-cartorio edge function
-      const response = await fetch('/functions/v1/login-cartorio', {
+      // Call the login-cartorio edge function with correct full URL
+      const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
         },
         body: JSON.stringify({ login_token: token }),
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       const data = await response.json();
       console.log('Login response:', data);
@@ -52,6 +56,7 @@ const Login = () => {
         
         navigate('/dashboard');
       } else {
+        console.error('Login failed:', data);
         toast({
           title: "Token inválido",
           description: data.error || "Verifique seu token de acesso e tente novamente.",

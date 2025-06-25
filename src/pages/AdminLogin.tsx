@@ -29,6 +29,8 @@ const AdminLogin = () => {
         password,
       });
 
+      console.log('Supabase auth result:', { data, error });
+
       if (error) {
         console.error('Supabase auth error:', error);
         toast({
@@ -40,12 +42,16 @@ const AdminLogin = () => {
       }
 
       if (data.user) {
+        console.log('User authenticated, checking admin status for:', data.user.email);
+        
         // Check if user is an admin
         const { data: adminData, error: adminError } = await supabase
           .from('admins')
           .select('*')
           .eq('email', data.user.email)
           .single();
+
+        console.log('Admin check result:', { adminData, adminError });
 
         if (adminError || !adminData) {
           console.error('User is not an admin:', adminError);
@@ -58,6 +64,7 @@ const AdminLogin = () => {
           return;
         }
 
+        console.log('Admin login successful for:', adminData.nome);
         toast({
           title: "Login administrativo realizado!",
           description: `Bem-vindo(a), ${adminData.nome}!`,
