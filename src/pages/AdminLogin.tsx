@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,7 +22,6 @@ const AdminLogin = () => {
     try {
       console.log('Attempting admin login with email:', email);
       
-      // First, try to sign in with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -44,7 +42,6 @@ const AdminLogin = () => {
       if (data.user) {
         console.log('User authenticated, checking admin status for:', data.user.email);
         
-        // Check if user is an admin
         const { data: adminData, error: adminError } = await supabase
           .from('admins')
           .select('*')
@@ -85,14 +82,14 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-gray-800/80 border-gray-600 shadow-modern backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <BookOpen className="h-12 w-12 text-red-500" />
           </div>
           <CardTitle className="text-3xl font-bold text-white">Painel Administrativo</CardTitle>
-          <p className="text-gray-400 mt-2">
+          <p className="text-gray-300 mt-2">
             Acesso restrito a administradores
           </p>
         </CardHeader>
@@ -105,7 +102,7 @@ const AdminLogin = () => {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all"
                 required
               />
             </div>
@@ -117,14 +114,14 @@ const AdminLogin = () => {
                   placeholder="Senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -134,7 +131,7 @@ const AdminLogin = () => {
             
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg"
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg"
               disabled={isLoading}
             >
               {isLoading ? 'Entrando...' : 'Entrar no Painel'}

@@ -46,9 +46,9 @@ export const useAdminStats = () => {
   });
 };
 
-export const useCartoriosList = () => {
+export const useCartoriosList = (shouldRefetch: boolean = false) => {
   return useQuery({
-    queryKey: ['cartoriosList'],
+    queryKey: ['cartoriosList', shouldRefetch],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cartorios')
@@ -66,5 +66,6 @@ export const useCartoriosList = () => {
       if (error) throw error;
       return data || [];
     },
+    refetchInterval: shouldRefetch ? 5000 : false, // Refetch a cada 5 segundos se solicitado
   });
 };

@@ -8,15 +8,36 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('Login cartorio function called with method:', req.method)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { login_token } = await req.json()
+    const body = await req.text()
+    console.log('Request body received:', body)
+    
+    let requestData
+    try {
+      requestData = JSON.parse(body)
+    } catch (parseError) {
+      console.error('Failed to parse JSON:', parseError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON format' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const { login_token } = requestData
+    console.log('Login token received:', login_token)
 
     if (!login_token) {
+      console.log('No login token provided')
       return new Response(
         JSON.stringify({ error: 'Token de login é obrigatório' }),
         { 
@@ -27,8 +48,23 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    console.log('Supabase URL:', supabaseUrl)
+    console.log('Service key available:', !!supabaseServiceKey)
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration')
+      return new Response(
+        JSON.stringify({ error: 'Configuração do servidor inválida' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     console.log('Validating token:', login_token)
@@ -49,6 +85,8 @@ serve(async (req) => {
       .gt('data_expiracao', new Date().toISOString())
       .single()
 
+    console.log('Query result:', { acesso, acessoError })
+
     if (acessoError || !acesso) {
       console.log('Token not found or error:', acessoError)
       return new Response(
@@ -62,7 +100,7 @@ serve(async (req) => {
 
     console.log('Token validated successfully for cartorio:', acesso.cartorio_id)
 
-    // Gerar JWT customizado usando algoritmo simples
+    // Gerar JWT customizado - versão simplificada
     const jwtSecret = Deno.env.get('JWT_SECRET')
     if (!jwtSecret) {
       console.error('JWT_SECRET not configured')
@@ -88,10 +126,17 @@ serve(async (req) => {
       iat: Math.floor(Date.now() / 1000)
     }
 
-    // Codificar em base64
+    // Codificar em base64 URL-safe
     const encoder = new TextEncoder()
-    const headerEncoded = btoa(JSON.stringify(header)).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-    const payloadEncoded = btoa(JSON.stringify(payload)).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+    const headerEncoded = btoa(JSON.stringify(header))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+    
+    const payloadEncoded = btoa(JSON.stringify(payload))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
 
     // Criar assinatura HMAC
     const key = await crypto.subtle.importKey(
@@ -109,7 +154,9 @@ serve(async (req) => {
     )
 
     const signatureEncoded = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
 
     const jwt = `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`
 
@@ -132,7 +179,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in login-cartorio:', error)
     return new Response(
-      JSON.stringify({ error: 'Erro interno do servidor' }),
+      JSON.stringify({ error: 'Erro interno do servidor', details: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
