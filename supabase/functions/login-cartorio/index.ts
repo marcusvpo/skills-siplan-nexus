@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
-import { sign } from "https://deno.land/x/djwt@v3.0.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,7 +62,7 @@ serve(async (req) => {
 
     console.log('Token validated successfully for cartorio:', acesso.cartorio_id)
 
-    // Gerar JWT customizado
+    // Gerar JWT customizado usando algoritmo simples
     const jwtSecret = Deno.env.get('JWT_SECRET')
     if (!jwtSecret) {
       console.error('JWT_SECRET not configured')
@@ -76,6 +75,12 @@ serve(async (req) => {
       )
     }
 
+    // Criar payload do JWT
+    const header = {
+      alg: "HS256",
+      typ: "JWT"
+    }
+
     const payload = {
       cartorio_id: acesso.cartorio_id,
       login_token: login_token,
@@ -83,15 +88,30 @@ serve(async (req) => {
       iat: Math.floor(Date.now() / 1000)
     }
 
+    // Codificar em base64
+    const encoder = new TextEncoder()
+    const headerEncoded = btoa(JSON.stringify(header)).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+    const payloadEncoded = btoa(JSON.stringify(payload)).replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+
+    // Criar assinatura HMAC
     const key = await crypto.subtle.importKey(
       "raw",
-      new TextEncoder().encode(jwtSecret),
+      encoder.encode(jwtSecret),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign", "verify"]
+      ["sign"]
     )
 
-    const jwt = await sign(payload, key, "HS256")
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(headerEncoded + "." + payloadEncoded)
+    )
+
+    const signatureEncoded = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/[=]/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+
+    const jwt = `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`
 
     console.log('JWT generated successfully')
 
