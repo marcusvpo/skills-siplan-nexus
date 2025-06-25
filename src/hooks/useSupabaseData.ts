@@ -20,7 +20,10 @@ export const useSistemas = () => {
         `)
         .order('ordem', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching sistemas:', error);
+        throw error;
+      }
       return data;
     }
   });
@@ -36,7 +39,10 @@ export const useVideoAulas = (moduloId: string) => {
         .eq('modulo_id', moduloId)
         .order('ordem', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching video aulas:', error);
+        throw error;
+      }
       return data;
     }
   });
@@ -46,6 +52,8 @@ export const useVisualizacoes = (cartorioId: string) => {
   return useQuery({
     queryKey: ['visualizacoes', cartorioId],
     queryFn: async () => {
+      if (!cartorioId) return [];
+      
       const { data, error } = await supabase
         .from('visualizacoes_cartorio')
         .select(`
@@ -64,8 +72,12 @@ export const useVisualizacoes = (cartorioId: string) => {
         .eq('cartorio_id', cartorioId)
         .order('ultima_visualizacao', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching visualizacoes:', error);
+        // Return empty array instead of throwing to prevent blocking the UI
+        return [];
+      }
+      return data || [];
     }
   });
 };
@@ -74,6 +86,8 @@ export const useFavoritos = (cartorioId: string) => {
   return useQuery({
     queryKey: ['favoritos', cartorioId],
     queryFn: async () => {
+      if (!cartorioId) return [];
+      
       const { data, error } = await supabase
         .from('favoritos_cartorio')
         .select(`
@@ -92,8 +106,12 @@ export const useFavoritos = (cartorioId: string) => {
         .eq('cartorio_id', cartorioId)
         .order('data_favoritado', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching favoritos:', error);
+        // Return empty array instead of throwing to prevent blocking the UI
+        return [];
+      }
+      return data || [];
     }
   });
 };

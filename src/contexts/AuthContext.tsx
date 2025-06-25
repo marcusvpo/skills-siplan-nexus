@@ -1,12 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { setCustomAuthToken, clearCustomAuthToken } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
   name: string;
   type: 'cartorio' | 'admin';
   token?: string;
-  cartorio_id?: string; // Add cartorio_id property
+  cartorio_id?: string;
 }
 
 interface AuthContextType {
@@ -24,7 +25,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      
+      // Set the custom auth token for cartorio users
+      if (userData.type === 'cartorio' && userData.token) {
+        setCustomAuthToken(userData.token);
+      }
     }
   }, []);
 
@@ -34,16 +41,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: userData?.name || (type === 'cartorio' ? 'Cartório Exemplo' : 'Administrador'),
       type,
       token,
-      cartorio_id: userData?.cartorio_id || (type === 'cartorio' ? '1' : undefined) // Set cartorio_id for cartorio users
+      cartorio_id: userData?.cartorio_id || (type === 'cartorio' ? '00000000-0000-0000-0000-000000000001' : undefined)
     };
     
     setUser(newUser);
     localStorage.setItem('siplan-user', JSON.stringify(newUser));
+    
+    // Set the custom auth token for API requests
+    if (type === 'cartorio') {
+      setCustomAuthToken(token);
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('siplan-user');
+    clearCustomAuthToken();
   };
 
   const isAuthenticated = !!user;
