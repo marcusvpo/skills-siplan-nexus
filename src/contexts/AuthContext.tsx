@@ -6,6 +6,7 @@ interface User {
   name: string;
   type: 'cartorio' | 'admin';
   token?: string;
+  cartorio_id?: string; // Add cartorio_id property
 }
 
 interface AuthContextType {
@@ -32,7 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: userData?.id || '1',
       name: userData?.name || (type === 'cartorio' ? 'Cartório Exemplo' : 'Administrador'),
       type,
-      token
+      token,
+      cartorio_id: userData?.cartorio_id || (type === 'cartorio' ? '1' : undefined) // Set cartorio_id for cartorio users
     };
     
     setUser(newUser);
