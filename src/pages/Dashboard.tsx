@@ -6,14 +6,14 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, Play, Clock, BookOpen, ArrowRight, Trophy, TrendingUp } from 'lucide-react';
-import { useSistemas, useVisualizacoes, useFavoritos } from '@/hooks/useSupabaseData';
+import { useSistemasFixed, useVisualizacoes, useFavoritos } from '@/hooks/useSupabaseDataFixed';
 import ProgressDisplay from '@/components/ProgressDisplay';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const { data: sistemas, isLoading: sistemasLoading, error: sistemasError } = useSistemas();
+  const { data: sistemas, isLoading: sistemasLoading, error: sistemasError } = useSistemasFixed();
   const { data: visualizacoes } = useVisualizacoes();
   const { data: favoritos } = useFavoritos(user?.cartorio_id || '');
 
@@ -202,7 +202,7 @@ const Dashboard = () => {
                 <CardContent className="p-8 text-center">
                   <h3 className="text-xl font-semibold text-red-400 mb-2">Erro ao carregar sistemas</h3>
                   <p className="text-gray-400 mb-4">
-                    Não foi possível carregar os sistemas de treinamento.
+                    {sistemasError instanceof Error ? sistemasError.message : 'Não foi possível carregar os sistemas de treinamento.'}
                   </p>
                   <Button 
                     onClick={() => window.location.reload()} 

@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { ContentManager } from './admin/ContentManager';
+import { ContentManagerFixed } from './admin/ContentManagerFixed';
 
 const ContentManagement = () => {
-  return <ContentManager />;
+  return <ContentManagerFixed />;
 };
 
 export default ContentManagement;
