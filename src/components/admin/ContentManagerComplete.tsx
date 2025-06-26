@@ -44,7 +44,7 @@ export const ContentManagerComplete: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load sistemas
+  // Load sistemas with improved error handling
   const loadSistemas = async () => {
     setIsLoading(true);
     try {
@@ -86,18 +86,30 @@ export const ContentManagerComplete: React.FC = () => {
     }
   };
 
-  // Load produtos by sistema
+  // Load produtos by sistema with improved debugging
   const loadProdutos = async (sistemaId: string) => {
     setIsLoading(true);
     try {
       console.log('Loading produtos for sistema:', sistemaId);
+      
+      // First, let's verify if the sistema exists
+      const { data: sistemaCheck, error: sistemaError } = await supabase
+        .from('sistemas')
+        .select('id, nome')
+        .eq('id', sistemaId)
+        .single();
+      
+      console.log('Sistema verification:', { sistemaCheck, sistemaError });
+      
+      // Now load produtos with detailed logging
       const { data, error } = await supabase
         .from('produtos')
         .select('*')
         .eq('sistema_id', sistemaId)
         .order('ordem', { ascending: true });
       
-      console.log('Produtos query result:', { data, error });
+      console.log('Produtos query result:', { data, error, sistemaId });
+      console.log('Raw SQL would be: SELECT * FROM produtos WHERE sistema_id =', sistemaId);
       
       if (error) {
         console.error('Error loading produtos:', error);
@@ -109,7 +121,19 @@ export const ContentManagerComplete: React.FC = () => {
         return;
       }
       
+      // Log detailed information about the result
       console.log('Produtos loaded successfully:', data);
+      console.log('Number of produtos found:', data?.length || 0);
+      
+      if (data && data.length === 0) {
+        console.warn('No produtos found for sistema:', sistemaId);
+        toast({
+          title: "Nenhum produto encontrado",
+          description: `Não foram encontrados produtos para o sistema selecionado.`,
+          variant: "default",
+        });
+      }
+      
       setProdutos(data || []);
     } catch (error) {
       console.error('Exception loading produtos:', error);
