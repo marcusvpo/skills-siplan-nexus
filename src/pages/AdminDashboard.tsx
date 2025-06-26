@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, FileText, BarChart, Settings } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { ContentManagerRefactored } from '@/components/admin/ContentManagerRefactored';
-import CartorioManagementEnhanced from '@/components/admin/CartorioManagementEnhanced';
+import { CartorioList } from '@/components/admin/CartorioList';
 import { useAdminStats } from '@/hooks/useAdminStats';
 
 const AdminDashboard = () => {
@@ -119,7 +119,7 @@ const AdminDashboard = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <CartorioManagementEnhanced />
+                  <CartorioList />
                 </CardContent>
               </Card>
             </TabsContent>

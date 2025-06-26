@@ -80,7 +80,7 @@ export const ContentManagerFixed: React.FC = () => {
     return (
       <SystemsListFixed
         sistemas={sistemas || []}
-        onSelectSystem={handleSelectSistema}
+        onViewProdutos={handleSelectSistema}
       />
     );
   }
@@ -92,7 +92,7 @@ export const ContentManagerFixed: React.FC = () => {
         sistema={selectedSistema}
         produtos={produtos}
         onBack={handleBackToSistemas}
-        onSelectProduct={handleSelectProduto}
+        onViewVideoAulas={handleSelectProduto}
       />
     );
   }
