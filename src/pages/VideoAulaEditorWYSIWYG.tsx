@@ -142,31 +142,41 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
 
     try {
       console.log('Loading video aula:', id);
-      const { data, error } = await supabase
+      
+      // First get the video aula
+      const { data: videoAulaData, error: videoError } = await supabase
         .from('video_aulas')
-        .select(`
-          *,
-          produtos!inner (
-            *,
-            sistemas!inner (*)
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
-      if (error) {
-        console.error('Error loading video aula:', error);
-        throw error;
+      if (videoError) {
+        console.error('Error loading video aula:', videoError);
+        throw videoError;
       }
 
-      if (data) {
-        console.log('Video aula loaded:', data);
-        setVideoAula(data);
-        const produto = data.produtos;
-        const sistema = produto?.sistemas;
+      if (videoAulaData) {
+        console.log('Video aula loaded:', videoAulaData);
+        setVideoAula(videoAulaData);
         
-        if (sistema) setSelectedSistema(sistema.id);
-        if (produto) setSelectedProduto(produto.id);
+        // Then get the produto and sistema separately
+        if (videoAulaData.produto_id) {
+          const { data: produtoData, error: produtoError } = await supabase
+            .from('produtos')
+            .select('*, sistemas(*)')
+            .eq('id', videoAulaData.produto_id)
+            .single();
+
+          if (produtoError) {
+            console.error('Error loading produto:', produtoError);
+            return;
+          }
+
+          if (produtoData && produtoData.sistemas) {
+            setSelectedSistema(produtoData.sistemas.id);
+            setSelectedProduto(produtoData.id);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading video aula:', error);

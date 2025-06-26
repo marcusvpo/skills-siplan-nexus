@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -110,35 +109,53 @@ const VideoAulaEditor: React.FC = () => {
   const loadVideoAula = async () => {
     if (!id) return;
 
-    const { data, error } = await supabase
-      .from('video_aulas')
-      .select(`
-        *,
-        produtos!inner (
-          *,
-          sistemas!inner (*)
-        )
-      `)
-      .eq('id', id)
-      .single();
+    try {
+      // First get the video aula
+      const { data: videoAulaData, error: videoError } = await supabase
+        .from('video_aulas')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (error) {
-      console.error('Error loading video aula:', error);
+      if (videoError) {
+        console.error('Error loading video aula:', videoError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a videoaula.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (videoAulaData) {
+        setVideoAula(videoAulaData);
+        
+        // Then get the produto
+        if (videoAulaData.produto_id) {
+          const { data: produtoData, error: produtoError } = await supabase
+            .from('produtos')
+            .select('*, sistemas(*)')
+            .eq('id', videoAulaData.produto_id)
+            .single();
+
+          if (produtoError) {
+            console.error('Error loading produto:', produtoError);
+            return;
+          }
+
+          if (produtoData && produtoData.sistemas) {
+            setSelectedSistema(produtoData.sistemas.id);
+            setSelectedProduto(produtoData.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in loadVideoAula:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar a videoaula.",
         variant: "destructive",
       });
-      return;
-    }
-
-    if (data) {
-      setVideoAula(data);
-      const produto = data.produtos;
-      const sistema = produto?.sistemas;
-      
-      if (sistema) setSelectedSistema(sistema.id);
-      if (produto) setSelectedProduto(produto.id);
     }
   };
 
