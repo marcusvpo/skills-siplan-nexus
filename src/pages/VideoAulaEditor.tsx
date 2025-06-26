@@ -134,7 +134,7 @@ const VideoAulaEditor: React.FC = () => {
         if (videoAulaData.produto_id) {
           const { data: produtoData, error: produtoError } = await supabase
             .from('produtos')
-            .select('*, sistemas(*)')
+            .select('*')
             .eq('id', videoAulaData.produto_id)
             .single();
 
@@ -143,9 +143,24 @@ const VideoAulaEditor: React.FC = () => {
             return;
           }
 
-          if (produtoData && produtoData.sistemas) {
-            setSelectedSistema(produtoData.sistemas.id);
+          if (produtoData) {
             setSelectedProduto(produtoData.id);
+            
+            // Then get the sistema
+            const { data: sistemaData, error: sistemaError } = await supabase
+              .from('sistemas')
+              .select('*')
+              .eq('id', produtoData.sistema_id)
+              .single();
+
+            if (sistemaError) {
+              console.error('Error loading sistema:', sistemaError);
+              return;
+            }
+
+            if (sistemaData) {
+              setSelectedSistema(sistemaData.id);
+            }
           }
         }
       }
