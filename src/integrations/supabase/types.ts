@@ -106,21 +106,27 @@ export type Database = {
           data_cadastro: string
           estado: string | null
           id: string
+          is_active: boolean | null
           nome: string
+          observacoes: string | null
         }
         Insert: {
           cidade?: string | null
           data_cadastro?: string
           estado?: string | null
           id?: string
+          is_active?: boolean | null
           nome: string
+          observacoes?: string | null
         }
         Update: {
           cidade?: string | null
           data_cadastro?: string
           estado?: string | null
           id?: string
+          is_active?: boolean | null
           nome?: string
+          observacoes?: string | null
         }
         Relationships: []
       }
@@ -339,6 +345,7 @@ export type Database = {
       visualizacoes_cartorio: {
         Row: {
           cartorio_id: string
+          cartorio_usuario_id: string | null
           completo: boolean
           id: string
           progresso_segundos: number
@@ -347,6 +354,7 @@ export type Database = {
         }
         Insert: {
           cartorio_id: string
+          cartorio_usuario_id?: string | null
           completo?: boolean
           id?: string
           progresso_segundos?: number
@@ -355,6 +363,7 @@ export type Database = {
         }
         Update: {
           cartorio_id?: string
+          cartorio_usuario_id?: string | null
           completo?: boolean
           id?: string
           progresso_segundos?: number
@@ -367,6 +376,13 @@ export type Database = {
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visualizacoes_cartorio_cartorio_usuario_id_fkey"
+            columns: ["cartorio_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_usuarios"
             referencedColumns: ["id"]
           },
           {
@@ -384,6 +400,10 @@ export type Database = {
     }
     Functions: {
       get_current_cartorio_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_cartorio_usuario_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

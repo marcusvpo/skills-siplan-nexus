@@ -6,10 +6,11 @@ export const useAdminStats = () => {
   return useQuery({
     queryKey: ['adminStats'],
     queryFn: async () => {
-      // Cartórios ativos
+      // Cartórios ativos (considerando o novo campo is_active)
       const { count: cartoriosAtivos } = await supabase
         .from('cartorios')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
 
       // Total de videoaulas
       const { count: totalVideoaulas } = await supabase
@@ -66,6 +67,28 @@ export const useCartoriosList = (shouldRefetch: boolean = false) => {
       if (error) throw error;
       return data || [];
     },
-    refetchInterval: shouldRefetch ? 5000 : false, // Refetch a cada 5 segundos se solicitado
+    refetchInterval: shouldRefetch ? 5000 : false,
   });
+};
+
+export const useUpdateCartorio = () => {
+  return async (cartorioId: string, updates: any) => {
+    const { error } = await supabase
+      .from('cartorios')
+      .update(updates)
+      .eq('id', cartorioId);
+    
+    if (error) throw error;
+  };
+};
+
+export const useUpdateTokenExpiration = () => {
+  return async (cartorioId: string, newDate: string) => {
+    const { error } = await supabase
+      .from('acessos_cartorio')
+      .update({ data_expiracao: newDate })
+      .eq('cartorio_id', cartorioId);
+    
+    if (error) throw error;
+  };
 };

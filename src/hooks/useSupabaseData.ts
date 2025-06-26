@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -61,16 +61,16 @@ export const useVideoAulas = (moduloId: string) => {
   });
 };
 
-export const useVisualizacoes = (cartorioId: string) => {
+export const useVisualizacoes = (cartorioUsuarioId?: string) => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
   
   return useQuery({
-    queryKey: ['visualizacoes', cartorioId],
+    queryKey: ['visualizacoes', cartorioUsuarioId],
     queryFn: async () => {
-      if (!client || !cartorioId) return [];
+      if (!client) return [];
       
-      const { data, error } = await client
+      let query = client
         .from('visualizacoes_cartorio')
         .select(`
           *,
@@ -85,8 +85,13 @@ export const useVisualizacoes = (cartorioId: string) => {
             )
           )
         `)
-        .eq('cartorio_id', cartorioId)
         .order('ultima_visualizacao', { ascending: false });
+
+      if (cartorioUsuarioId && user?.type === 'admin') {
+        query = query.eq('cartorio_usuario_id', cartorioUsuarioId);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching visualizacoes:', error);
@@ -94,7 +99,7 @@ export const useVisualizacoes = (cartorioId: string) => {
       }
       return data || [];
     },
-    enabled: !!client && !!cartorioId
+    enabled: !!client
   });
 };
 
@@ -132,5 +137,41 @@ export const useFavoritos = (cartorioId: string) => {
       return data || [];
     },
     enabled: !!client && !!cartorioId
+  });
+};
+
+export const useUpdateProgress = () => {
+  const queryClient = useQueryClient();
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+
+  return useMutation({
+    mutationFn: async ({ videoAulaId, progressoSegundos, completo, cartorioUsuarioId }: {
+      videoAulaId: string;
+      progressoSegundos: number;
+      completo: boolean;
+      cartorioUsuarioId: string;
+    }) => {
+      if (!client) throw new Error('Client not available');
+
+      const { data, error } = await client
+        .from('visualizacoes_cartorio')
+        .upsert({
+          video_aula_id: videoAulaId,
+          cartorio_usuario_id: cartorioUsuarioId,
+          progresso_segundos: progressoSegundos,
+          completo,
+          ultima_visualizacao: new Date().toISOString()
+        }, {
+          onConflict: 'video_aula_id,cartorio_usuario_id'
+        })
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['visualizacoes'] });
+    }
   });
 };

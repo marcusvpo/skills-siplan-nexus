@@ -5,16 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Star, Play, Clock, BookOpen } from 'lucide-react';
 import { useSistemas, useVisualizacoes, useFavoritos } from '@/hooks/useSupabaseData';
+import ProgressDisplay from '@/components/ProgressDisplay';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
   const { data: sistemas, isLoading: sistemasLoading } = useSistemas();
-  const { data: visualizacoes } = useVisualizacoes(user?.cartorio_id || '');
+  const { data: visualizacoes } = useVisualizacoes();
   const { data: favoritos } = useFavoritos(user?.cartorio_id || '');
 
   useEffect(() => {
@@ -30,6 +30,28 @@ const Dashboard = () => {
   
   // Process recent history
   const recentHistory = visualizacoes?.slice(0, 5) || [];
+
+  // Calculate overall progress
+  const calculateSystemProgress = (sistema: any) => {
+    if (!visualizacoes || !sistema.produtos) return 0;
+    
+    let totalAulas = 0;
+    let aulasCompletas = 0;
+    
+    sistema.produtos.forEach((produto: any) => {
+      produto.modulos?.forEach((modulo: any) => {
+        modulo.video_aulas?.forEach((aula: any) => {
+          totalAulas++;
+          const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id);
+          if (visualizacao?.completo) {
+            aulasCompletas++;
+          }
+        });
+      });
+    });
+    
+    return totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
+  };
 
   const getSystemIcon = (systemName: string) => {
     const iconMap: { [key: string]: string } = {
@@ -47,9 +69,14 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-white">
-            Bem-vindo(a), {user.name}!
+            Bem-vindo(a) ao Siplan Skills!
           </h1>
-          <p className="text-gray-300">
+          {user.cartorio_name && (
+            <p className="text-lg text-gray-300 mb-2">
+              Você está acessando como usuário de: <span className="font-semibold text-white">{user.cartorio_name}</span>
+            </p>
+          )}
+          <p className="text-gray-400">
             Continue seu aprendizado ou explore novos conteúdos sobre os sistemas Siplan.
           </p>
         </div>
@@ -73,13 +100,12 @@ const Dashboard = () => {
                   <CardContent>
                     <p className="text-gray-300 mb-4 text-sm">{vis.video_aulas?.descricao}</p>
                     <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1 text-gray-300">
-                          <span>Progresso</span>
-                          <span>{Math.round((vis.progresso_segundos / (vis.video_aulas?.duracao_segundos || 1)) * 100)}%</span>
-                        </div>
-                        <Progress value={Math.round((vis.progresso_segundos / (vis.video_aulas?.duracao_segundos || 1)) * 100)} className="h-2" />
-                      </div>
+                      <ProgressDisplay
+                        progressSegundos={vis.progresso_segundos}
+                        duracaoSegundos={vis.video_aulas?.duracao_segundos || 0}
+                        completo={vis.completo}
+                        size="sm"
+                      />
                       <Button className="w-full bg-red-600 hover:bg-red-700 transition-colors duration-200">
                         Continuar
                       </Button>
@@ -146,13 +172,14 @@ const Dashboard = () => {
                         </p>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          hist.completo 
-                            ? 'bg-green-600 text-green-100' 
-                            : 'bg-yellow-600 text-yellow-100'
-                        }`}>
-                          {hist.completo ? 'Concluído' : 'Em Progresso'}
-                        </span>
+                        <div className="w-32">
+                          <ProgressDisplay
+                            progressSegundos={hist.progresso_segundos}
+                            duracaoSegundos={hist.video_aulas?.duracao_segundos || 0}
+                            completo={hist.completo}
+                            size="sm"
+                          />
+                        </div>
                         <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
                           Ver Aula
                         </Button>
@@ -187,33 +214,59 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {sistemas?.map((sistema) => (
-                <Card 
-                  key={sistema.id} 
-                  className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 cursor-pointer group hover:shadow-xl"
-                  onClick={() => navigate(`/system/${sistema.id}`)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-4">{getSystemIcon(sistema.nome)}</div>
-                    <h3 className="text-xl font-semibold mb-2 group-hover:text-red-400 transition-colors text-white">
-                      {sistema.nome}
-                    </h3>
-                    <p className="text-gray-400 text-sm mb-4">
-                      {sistema.descricao}
-                    </p>
-                    <Button 
-                      className="w-full bg-red-600 hover:bg-red-700 group-hover:scale-105 transition-all duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/system/${sistema.id}`);
-                      }}
-                    >
-                      Acessar Treinamento
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {sistemas?.map((sistema) => {
+                const progress = calculateSystemProgress(sistema);
+                return (
+                  <Card 
+                    key={sistema.id} 
+                    className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 cursor-pointer group hover:shadow-xl"
+                    onClick={() => navigate(`/system/${sistema.id}`)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="text-4xl mb-4">{getSystemIcon(sistema.nome)}</div>
+                      <h3 className="text-xl font-semibold mb-2 group-hover:text-red-400 transition-colors text-white">
+                        {sistema.nome}
+                      </h3>
+                      <p className="text-gray-400 text-sm mb-4">
+                        {sistema.descricao}
+                      </p>
+                      
+                      {progress > 0 && (
+                        <div className="mb-4">
+                          <ProgressDisplay
+                            progressSegundos={progress}
+                            duracaoSegundos={100}
+                            completo={progress === 100}
+                            size="sm"
+                          />
+                        </div>
+                      )}
+                      
+                      <Button 
+                        className="w-full bg-red-600 hover:bg-red-700 group-hover:scale-105 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/system/${sistema.id}`);
+                        }}
+                      >
+                        Acessar Treinamento
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
+          )}
+          
+          {!sistemasLoading && (!sistemas || sistemas.length === 0) && (
+            <Card className="bg-gray-900 border-gray-700">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-xl font-semibold text-gray-400 mb-2">Nenhum sistema disponível</h3>
+                <p className="text-gray-500">
+                  Os sistemas de treinamento serão disponibilizados em breve.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </section>
       </div>
