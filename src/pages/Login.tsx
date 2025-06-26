@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, AlertCircle, User } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 const Login = () => {
+  const [username, setUsername] = useState('');
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +18,7 @@ const Login = () => {
   const { login } = useAuth();
 
   const handleDemo = () => {
+    setUsername('demo');
     setToken('DEMO-SIPLANSKILLS-CARTORIO');
     setError('');
   };
@@ -27,7 +29,7 @@ const Login = () => {
     setError('');
 
     try {
-      console.log('Attempting cartorio login with token:', token);
+      console.log('Attempting cartorio login with username:', username, 'and token:', token);
       
       const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
         method: 'POST',
@@ -35,7 +37,7 @@ const Login = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
         },
-        body: JSON.stringify({ login_token: token }),
+        body: JSON.stringify({ username, login_token: token }),
       });
 
       console.log('Response status:', response.status);
@@ -48,16 +50,18 @@ const Login = () => {
       const data = await response.json();
       console.log('Login response:', data);
 
-      if (data.success && data.token && data.cartorio) {
+      if (data.success && data.token && data.cartorio && data.usuario) {
         login(data.token, 'cartorio', {
-          id: data.cartorio.id,
-          name: data.cartorio.nome,
-          cartorio_id: data.cartorio.id
+          id: data.usuario.id,
+          name: data.usuario.username,
+          cartorio_id: data.cartorio.id,
+          cartorio_name: data.cartorio.nome,
+          username: data.usuario.username
         });
         
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${data.cartorio.nome}!`,
+          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
         navigate('/dashboard');
@@ -88,7 +92,7 @@ const Login = () => {
           </div>
           <CardTitle className="text-3xl font-bold text-white">Siplan Skills</CardTitle>
           <p className="text-gray-300 mt-2">
-            Insira seu token de acesso para continuar
+            Insira suas credenciais para acessar a plataforma
           </p>
         </CardHeader>
         
@@ -104,8 +108,25 @@ const Login = () => {
             <div className="space-y-2">
               <div className="relative">
                 <Input
+                  type="text"
+                  placeholder="Nome de Usuário"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setError('');
+                  }}
+                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                  required
+                />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
                   type={showToken ? "text" : "password"}
-                  placeholder="Insira seu Token de Acesso"
+                  placeholder="Token do Cartório"
                   value={token}
                   onChange={(e) => {
                     setToken(e.target.value);

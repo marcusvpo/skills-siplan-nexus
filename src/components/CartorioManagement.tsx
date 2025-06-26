@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Plus, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CartorioForm {
   nome: string;
-  cnpj: string;
+  cidade: string;
+  estado: string;
   email_contato: string;
   data_expiracao: string;
 }
@@ -22,14 +23,15 @@ interface CartorioManagementProps {
 const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerated }) => {
   const [cartorioForm, setCartorioForm] = useState<CartorioForm>({
     nome: '',
-    cnpj: '',
+    cidade: '',
+    estado: '',
     email_contato: '',
     data_expiracao: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const generateCartorioToken = async () => {
-    if (!cartorioForm.nome || !cartorioForm.cnpj || !cartorioForm.email_contato || !cartorioForm.data_expiracao) {
+    if (!cartorioForm.nome || !cartorioForm.cidade || !cartorioForm.estado || !cartorioForm.email_contato || !cartorioForm.data_expiracao) {
       toast({
         title: "Dados incompletos",
         description: "Preencha todos os campos obrigatórios.",
@@ -45,7 +47,8 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
         .from('cartorios')
         .insert({
           nome: cartorioForm.nome,
-          cnpj: cartorioForm.cnpj
+          cidade: cartorioForm.cidade,
+          estado: cartorioForm.estado
         })
         .select()
         .single();
@@ -77,7 +80,8 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
       // Reset form
       setCartorioForm({
         nome: '',
-        cnpj: '',
+        cidade: '',
+        estado: '',
         email_contato: '',
         data_expiracao: ''
       });
@@ -127,13 +131,24 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
             />
           </div>
           <div>
-            <Label htmlFor="cnpj" className="text-gray-300">CNPJ</Label>
+            <Label htmlFor="cidade" className="text-gray-300">Cidade</Label>
             <Input
-              id="cnpj"
-              value={cartorioForm.cnpj}
-              onChange={(e) => setCartorioForm({...cartorioForm, cnpj: e.target.value})}
+              id="cidade"
+              value={cartorioForm.cidade}
+              onChange={(e) => setCartorioForm({...cartorioForm, cidade: e.target.value})}
               className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
-              placeholder="00.000.000/0001-00"
+              placeholder="Ex: São Paulo"
+            />
+          </div>
+          <div>
+            <Label htmlFor="estado" className="text-gray-300">Estado</Label>
+            <Input
+              id="estado"
+              value={cartorioForm.estado}
+              onChange={(e) => setCartorioForm({...cartorioForm, estado: e.target.value})}
+              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
+              placeholder="Ex: SP"
+              maxLength={2}
             />
           </div>
           <div>
@@ -147,7 +162,7 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
               placeholder="contato@cartorio.com.br"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <Label htmlFor="expiracao" className="text-gray-300">Data de Expiração</Label>
             <Input
               id="expiracao"

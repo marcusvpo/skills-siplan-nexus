@@ -65,22 +65,60 @@ export type Database = {
         }
         Relationships: []
       }
+      cartorio_usuarios: {
+        Row: {
+          cartorio_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          username: string
+        }
+        Insert: {
+          cartorio_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          username: string
+        }
+        Update: {
+          cartorio_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_usuarios_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartorios: {
         Row: {
-          cnpj: string
+          cidade: string | null
           data_cadastro: string
+          estado: string | null
           id: string
           nome: string
         }
         Insert: {
-          cnpj: string
+          cidade?: string | null
           data_cadastro?: string
+          estado?: string | null
           id?: string
           nome: string
         }
         Update: {
-          cnpj?: string
+          cidade?: string | null
           data_cadastro?: string
+          estado?: string | null
           id?: string
           nome?: string
         }

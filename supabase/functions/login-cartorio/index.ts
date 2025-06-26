@@ -33,13 +33,13 @@ serve(async (req) => {
       )
     }
 
-    const { login_token } = requestData
-    console.log('Login token received:', login_token)
+    const { username, login_token } = requestData
+    console.log('Login data received:', { username, login_token })
 
-    if (!login_token) {
-      console.log('No login token provided')
+    if (!username || !login_token) {
+      console.log('Missing username or login token')
       return new Response(
-        JSON.stringify({ error: 'Token de login é obrigatório' }),
+        JSON.stringify({ error: 'Nome de usuário e token de login são obrigatórios' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -69,7 +69,7 @@ serve(async (req) => {
 
     console.log('Validating token:', login_token)
 
-    // Buscar o token na tabela acessos_cartorio
+    // Primeiro, validar o token na tabela acessos_cartorio
     const { data: acesso, error: acessoError } = await supabase
       .from('acessos_cartorio')
       .select(`
@@ -77,7 +77,8 @@ serve(async (req) => {
         cartorios (
           id,
           nome,
-          cnpj
+          cidade,
+          estado
         )
       `)
       .eq('login_token', login_token)
@@ -85,7 +86,7 @@ serve(async (req) => {
       .gt('data_expiracao', new Date().toISOString())
       .single()
 
-    console.log('Query result:', { acesso, acessoError })
+    console.log('Token validation result:', { acesso, acessoError })
 
     if (acessoError || !acesso) {
       console.log('Token not found or error:', acessoError)
@@ -98,9 +99,33 @@ serve(async (req) => {
       )
     }
 
-    console.log('Token validated successfully for cartorio:', acesso.cartorio_id)
+    console.log('Token validated, now validating username for cartorio:', acesso.cartorio_id)
 
-    // Gerar JWT customizado - versão simplificada
+    // Segundo, validar o username na tabela cartorio_usuarios
+    const { data: usuario, error: usuarioError } = await supabase
+      .from('cartorio_usuarios')
+      .select('*')
+      .eq('cartorio_id', acesso.cartorio_id)
+      .eq('username', username)
+      .eq('is_active', true)
+      .single()
+
+    console.log('Username validation result:', { usuario, usuarioError })
+
+    if (usuarioError || !usuario) {
+      console.log('Username not found or error:', usuarioError)
+      return new Response(
+        JSON.stringify({ error: 'Nome de usuário inválido para este cartório' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    console.log('Username validated successfully for user:', usuario.id)
+
+    // Gerar JWT customizado com cartorio_id e user_id
     const jwtSecret = Deno.env.get('JWT_SECRET')
     if (!jwtSecret) {
       console.error('JWT_SECRET not configured')
@@ -121,6 +146,8 @@ serve(async (req) => {
 
     const payload = {
       cartorio_id: acesso.cartorio_id,
+      user_id: usuario.id,
+      username: usuario.username,
       login_token: login_token,
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 horas
       iat: Math.floor(Date.now() / 1000)
@@ -168,6 +195,11 @@ serve(async (req) => {
         success: true,
         token: jwt,
         cartorio: acesso.cartorios,
+        usuario: {
+          id: usuario.id,
+          username: usuario.username,
+          email: usuario.email
+        },
         message: 'Login realizado com sucesso'
       }),
       { 

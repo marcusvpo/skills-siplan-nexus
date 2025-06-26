@@ -9,14 +9,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { 
   Users, 
   Video, 
   AlertCircle, 
   UserPlus,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { useAdminStats, useCartoriosList } from '@/hooks/useAdminStats';
+import { CartorioUsersManagement } from '@/components/admin/CartorioUsersManagement';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -24,6 +31,7 @@ const AdminDashboard = () => {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { data: cartorios, isLoading: cartoriosLoading } = useCartoriosList(refreshTrigger > 0);
+  const [expandedCartorios, setExpandedCartorios] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user || user.type !== 'admin') {
@@ -34,6 +42,16 @@ const AdminDashboard = () => {
   const handleTokenGenerated = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
+
+  const toggleCartorioExpansion = (cartorioId: string) => {
+    const newExpanded = new Set(expandedCartorios);
+    if (newExpanded.has(cartorioId)) {
+      newExpanded.delete(cartorioId);
+    } else {
+      newExpanded.add(cartorioId);
+    }
+    setExpandedCartorios(newExpanded);
+  };
 
   if (!user) return null;
 
@@ -119,13 +137,13 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="access" className="mt-6 space-y-6">
-            {/* Gerar Token - Movido para aba de Acessos */}
+            {/* Gerar Token */}
             <CartorioManagement onTokenGenerated={handleTokenGenerated} />
 
-            {/* Lista de Cartórios */}
+            {/* Lista de Cartórios com Usuários Expandíveis */}
             <Card className="bg-gray-800/50 border-gray-600 shadow-modern">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-white">Cartórios Cadastrados</CardTitle>
+                <CardTitle className="text-white">Cartórios e Usuários Cadastrados</CardTitle>
                 {refreshTrigger > 0 && (
                   <RefreshCw className="h-4 w-4 text-green-400 animate-spin" />
                 )}
@@ -134,43 +152,62 @@ const AdminDashboard = () => {
                 {cartoriosLoading ? (
                   <p className="text-gray-400">Carregando...</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-600">
-                          <TableHead className="text-gray-300">Nome</TableHead>
-                          <TableHead className="text-gray-300">CNPJ</TableHead>
-                          <TableHead className="text-gray-300">Token</TableHead>
-                          <TableHead className="text-gray-300">Status</TableHead>
-                          <TableHead className="text-gray-300">Expira</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {cartorios?.map((cartorio) => (
-                          <TableRow key={cartorio.id} className="border-gray-700 hover:bg-gray-700/30">
-                            <TableCell className="font-medium text-white">{cartorio.nome}</TableCell>
-                            <TableCell className="text-gray-300">{cartorio.cnpj}</TableCell>
-                            <TableCell className="font-mono text-sm text-gray-300">
-                              {cartorio.acessos_cartorio?.[0]?.login_token || 'N/A'}
-                            </TableCell>
-                            <TableCell>
+                  <div className="space-y-4">
+                    {cartorios?.map((cartorio) => (
+                      <div key={cartorio.id} className="border border-gray-700 rounded-lg overflow-hidden">
+                        {/* Header do Cartório */}
+                        <div className="bg-gray-700/30 p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleCartorioExpansion(cartorio.id)}
+                                className="text-gray-300 hover:text-white p-1"
+                              >
+                                {expandedCartorios.has(cartorio.id) ? 
+                                  <ChevronDown className="h-4 w-4" /> : 
+                                  <ChevronRight className="h-4 w-4" />
+                                }
+                              </Button>
+                              <div>
+                                <h3 className="font-semibold text-white">{cartorio.nome}</h3>
+                                <p className="text-sm text-gray-400">
+                                  {cartorio.cidade}, {cartorio.estado}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <div className="text-right">
+                                <p className="text-xs text-gray-400">Token:</p>
+                                <p className="font-mono text-sm text-gray-300">
+                                  {cartorio.acessos_cartorio?.[0]?.login_token || 'N/A'}
+                                </p>
+                              </div>
                               <Badge 
                                 variant={cartorio.acessos_cartorio?.[0]?.ativo ? 'secondary' : 'destructive'}
                                 className={cartorio.acessos_cartorio?.[0]?.ativo ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}
                               >
                                 {cartorio.acessos_cartorio?.[0]?.ativo ? 'Ativo' : 'Inativo'}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-gray-300">
-                              {cartorio.acessos_cartorio?.[0]?.data_expiracao 
-                                ? new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')
-                                : 'N/A'
-                              }
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                              <p className="text-sm text-gray-300">
+                                Expira: {cartorio.acessos_cartorio?.[0]?.data_expiracao 
+                                  ? new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')
+                                  : 'N/A'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Seção Expandível de Usuários */}
+                        {expandedCartorios.has(cartorio.id) && (
+                          <div className="p-4 border-t border-gray-700">
+                            <CartorioUsersManagement cartorioId={cartorio.id} cartorioName={cartorio.nome} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
