@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, FileText, BarChart, Settings } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { ContentManagerRefactored } from '@/components/admin/ContentManagerRefactored';
-import { CartorioList } from '@/components/admin/CartorioList';
+import { ContentManagerComplete } from '@/components/admin/ContentManagerComplete';
+import { CartorioManagementComplete } from '@/components/admin/CartorioManagementComplete';
 import { useAdminStats } from '@/hooks/useAdminStats';
 
 const AdminDashboard = () => {
@@ -105,7 +105,7 @@ const AdminDashboard = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <ContentManagerRefactored />
+                  <ContentManagerComplete />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -115,11 +115,11 @@ const AdminDashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-white">Gerenciamento de Cartórios</CardTitle>
                   <p className="text-gray-300">
-                    Gerencie cartórios e seus acessos ao sistema
+                    Gerencie cartórios, tokens de acesso e usuários do sistema
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <CartorioList />
+                  <CartorioManagementComplete />
                 </CardContent>
               </Card>
             </TabsContent>
