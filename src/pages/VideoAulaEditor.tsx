@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Save, Upload, X, Play, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
+import { useSupabaseWithLogging } from '@/hooks/useSupabaseWithLogging';
 import Layout from '@/components/Layout';
 
 interface VideoAula {
@@ -37,6 +40,7 @@ const VideoAulaEditor: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isEditing = !!id;
+  const { fetchSistemas, fetchProdutos, fetchVideoAulaById, fetchProdutoById, fetchSistemaById } = useSupabaseWithLogging();
   
   const [videoAula, setVideoAula] = useState<VideoAula>({
     id: '',
@@ -58,6 +62,7 @@ const VideoAulaEditor: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
+    logger.info('VideoAulaEditor mounted', { isEditing, videoAulaId: id });
     loadSistemas();
     if (isEditing) {
       loadVideoAula();
@@ -80,45 +85,51 @@ const VideoAulaEditor: React.FC = () => {
   }, [selectedSistema]);
 
   const loadSistemas = async () => {
-    const { data, error } = await supabase
-      .from('sistemas')
-      .select('id, nome')
-      .order('ordem');
-    
-    if (error) {
-      console.error('Error loading sistemas:', error);
-      return;
+    try {
+      logger.debug('Loading sistemas for video aula editor');
+      const result = await fetchSistemas();
+      
+      if (result.error) {
+        logger.error('Error loading sistemas', result.error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os sistemas.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSistemas(result.data || []);
+    } catch (error) {
+      logger.error('Exception loading sistemas', error);
     }
-    setSistemas(data || []);
   };
 
   const loadProdutos = async (sistemaId: string) => {
-    const { data, error } = await supabase
-      .from('produtos')
-      .select('id, nome, sistema_id')
-      .eq('sistema_id', sistemaId)
-      .order('ordem');
-    
-    if (error) {
-      console.error('Error loading produtos:', error);
-      return;
+    try {
+      logger.debug('Loading produtos for sistema', { sistemaId });
+      const result = await fetchProdutos(sistemaId);
+      
+      if (result.error) {
+        logger.error('Error loading produtos', result.error);
+        return;
+      }
+      setProdutos(result.data || []);
+    } catch (error) {
+      logger.error('Exception loading produtos', error);
     }
-    setProdutos(data || []);
   };
 
   const loadVideoAula = async () => {
     if (!id) return;
 
     try {
+      logger.info('Loading video aula for editing', { id });
+      
       // First get the video aula
-      const { data: videoAulaData, error: videoError } = await supabase
-        .from('video_aulas')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const videoAulaResult = await fetchVideoAulaById(id);
 
-      if (videoError) {
-        console.error('Error loading video aula:', videoError);
+      if (videoAulaResult.error) {
+        logger.error('Error loading video aula', videoAulaResult.error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar a videoaula.",
@@ -127,45 +138,42 @@ const VideoAulaEditor: React.FC = () => {
         return;
       }
 
-      if (videoAulaData) {
-        setVideoAula(videoAulaData);
+      if (videoAulaResult.data) {
+        setVideoAula(videoAulaResult.data);
         
         // Then get the produto
-        if (videoAulaData.produto_id) {
-          const { data: produtoData, error: produtoError } = await supabase
-            .from('produtos')
-            .select('*')
-            .eq('id', videoAulaData.produto_id)
-            .single();
+        if (videoAulaResult.data.produto_id) {
+          const produtoResult = await fetchProdutoById(videoAulaResult.data.produto_id);
 
-          if (produtoError) {
-            console.error('Error loading produto:', produtoError);
+          if (produtoResult.error) {
+            logger.error('Error loading produto', produtoResult.error);
             return;
           }
 
-          if (produtoData) {
-            setSelectedProduto(produtoData.id);
+          if (produtoResult.data) {
+            setSelectedProduto(produtoResult.data.id);
             
             // Then get the sistema
-            const { data: sistemaData, error: sistemaError } = await supabase
-              .from('sistemas')
-              .select('*')
-              .eq('id', produtoData.sistema_id)
-              .single();
+            const sistemaResult = await fetchSistemaById(produtoResult.data.sistema_id);
 
-            if (sistemaError) {
-              console.error('Error loading sistema:', sistemaError);
+            if (sistemaResult.error) {
+              logger.error('Error loading sistema', sistemaResult.error);
               return;
             }
 
-            if (sistemaData) {
-              setSelectedSistema(sistemaData.id);
+            if (sistemaResult.data) {
+              setSelectedSistema(sistemaResult.data.id);
+              logger.debug('Successfully loaded video aula hierarchy', {
+                videoAula: videoAulaResult.data.titulo,
+                produto: produtoResult.data.nome,
+                sistema: sistemaResult.data.nome
+              });
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error in loadVideoAula:', error);
+      logger.error('Exception in loadVideoAula', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar a videoaula.",
@@ -177,6 +185,7 @@ const VideoAulaEditor: React.FC = () => {
   const handleVideoUpload = async (file: File) => {
     if (!file) return;
 
+    logger.userAction('Video upload started', { fileName: file.name, fileSize: file.size });
     setIsUploading(true);
     setUploadProgress(0);
     
@@ -197,7 +206,10 @@ const VideoAulaEditor: React.FC = () => {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Video upload failed', error);
+        throw error;
+      }
 
       if (data?.videoId && data?.playbackUrl) {
         setVideoAula(prev => ({
@@ -207,13 +219,18 @@ const VideoAulaEditor: React.FC = () => {
           url_thumbnail: data.thumbnailUrl || ''
         }));
 
+        logger.userAction('Video upload completed successfully', {
+          videoId: data.videoId,
+          fileName: file.name
+        });
+
         toast({
           title: "Upload concluído",
           description: "Vídeo enviado com sucesso para o Bunny.net!",
         });
       }
     } catch (error) {
-      console.error('Error uploading video:', error);
+      logger.error('Video upload error', error);
       setUploadProgress(0);
       toast({
         title: "Erro no upload",
@@ -246,6 +263,11 @@ const VideoAulaEditor: React.FC = () => {
     }
 
     setIsLoading(true);
+    logger.userAction(isEditing ? 'Updating video aula' : 'Creating video aula', {
+      title: videoAula.titulo,
+      produto_id: videoAula.produto_id
+    });
+
     try {
       const videoData = {
         titulo: videoAula.titulo.trim(),
@@ -263,8 +285,13 @@ const VideoAulaEditor: React.FC = () => {
           .update(videoData)
           .eq('id', videoAula.id);
 
-        if (error) throw error;
+        if (error) {
+          logger.error('Error updating video aula', error);
+          throw error;
+        }
 
+        logger.info('Video aula updated successfully', { id: videoAula.id, title: videoAula.titulo });
+        
         toast({
           title: "Videoaula atualizada",
           description: `"${videoAula.titulo}" foi atualizada com sucesso.`,
@@ -274,7 +301,12 @@ const VideoAulaEditor: React.FC = () => {
           .from('video_aulas')
           .insert(videoData);
 
-        if (error) throw error;
+        if (error) {
+          logger.error('Error creating video aula', error);
+          throw error;
+        }
+
+        logger.info('Video aula created successfully', { title: videoAula.titulo });
 
         toast({
           title: "Videoaula criada",
@@ -284,7 +316,7 @@ const VideoAulaEditor: React.FC = () => {
 
       navigate('/admin');
     } catch (error) {
-      console.error('Error saving video aula:', error);
+      logger.error('Error saving video aula', error);
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar a videoaula.",
@@ -454,7 +486,6 @@ const VideoAulaEditor: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Description - WYSIWYG */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -472,7 +503,6 @@ const VideoAulaEditor: React.FC = () => {
 
             {/* Sidebar - Settings & AI Chat Preview */}
             <div className="space-y-6">
-              {/* Configuration */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold text-white mb-4">Configurações</h3>
@@ -542,7 +572,6 @@ const VideoAulaEditor: React.FC = () => {
                   <h3 className="text-lg font-semibold text-white mb-4">Chat com IA (Preview)</h3>
                   <div className="bg-gray-800 rounded-lg p-4 border border-gray-600 min-h-[300px]">
                     <div className="flex flex-col space-y-3">
-                      {/* Simulated Chat Messages */}
                       <div className="bg-gray-700 rounded-lg p-3 text-sm">
                         <div className="font-semibold text-blue-400 mb-1">IA Assistant</div>
                         <div className="text-gray-300">
@@ -566,7 +595,6 @@ const VideoAulaEditor: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Chat Input Preview */}
                     <div className="mt-4 pt-4 border-t border-gray-600">
                       <div className="flex space-x-2">
                         <input 

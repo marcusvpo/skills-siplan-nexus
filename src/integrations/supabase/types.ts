@@ -39,14 +39,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "acessos_cartorio_cartorio_id_fkey"
-            columns: ["cartorio_id"]
-            isOneToOne: false
-            referencedRelation: "cartorios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_acessos_cartorio"
+            foreignKeyName: "acessos_cartorio_fk"
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorios"
@@ -99,14 +92,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cartorio_usuarios_cartorio_id_fkey"
-            columns: ["cartorio_id"]
-            isOneToOne: false
-            referencedRelation: "cartorios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_cartorio_usuarios_cartorio"
+            foreignKeyName: "cartorio_usuarios_fk"
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorios"
@@ -165,28 +151,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "favoritos_cartorio_cartorio_id_fkey"
+            foreignKeyName: "favoritos_cartorio_fk"
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorios"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "favoritos_cartorio_video_aula_id_fkey"
-            columns: ["video_aula_id"]
-            isOneToOne: false
-            referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_favoritos_cartorio"
-            columns: ["cartorio_id"]
-            isOneToOne: false
-            referencedRelation: "cartorios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_favoritos_video_aula"
+            foreignKeyName: "favoritos_video_aula_fk"
             columns: ["video_aula_id"]
             isOneToOne: false
             referencedRelation: "video_aulas"
@@ -221,14 +193,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_modulos_produto"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "modulos_produto_id_fkey"
+            foreignKeyName: "modulos_produto_fk"
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
@@ -260,14 +225,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_produtos_sistema"
-            columns: ["sistema_id"]
-            isOneToOne: false
-            referencedRelation: "sistemas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "produtos_sistema_id_fkey"
+            foreignKeyName: "produtos_sistema_fk"
             columns: ["sistema_id"]
             isOneToOne: false
             referencedRelation: "sistemas"
@@ -329,14 +287,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_video_aulas_produto"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "video_aulas_produto_id_fkey"
+            foreignKeyName: "video_aulas_produto_fk"
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
@@ -374,14 +325,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_video_embeddings_video_aula"
-            columns: ["video_aula_id"]
-            isOneToOne: false
-            referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "video_embeddings_video_aula_id_fkey"
+            foreignKeyName: "video_embeddings_fk"
             columns: ["video_aula_id"]
             isOneToOne: false
             referencedRelation: "video_aulas"
@@ -419,27 +363,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_visualizacoes_cartorio"
-            columns: ["cartorio_id"]
-            isOneToOne: false
-            referencedRelation: "cartorios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_visualizacoes_video_aula"
-            columns: ["video_aula_id"]
-            isOneToOne: false
-            referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visualizacoes_cartorio_cartorio_id_fkey"
-            columns: ["cartorio_id"]
-            isOneToOne: false
-            referencedRelation: "cartorios"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "visualizacoes_cartorio_cartorio_usuario_id_fkey"
             columns: ["cartorio_usuario_id"]
             isOneToOne: false
@@ -447,7 +370,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "visualizacoes_cartorio_video_aula_id_fkey"
+            foreignKeyName: "visualizacoes_cartorio_fk"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visualizacoes_video_aula_fk"
             columns: ["video_aula_id"]
             isOneToOne: false
             referencedRelation: "video_aulas"
