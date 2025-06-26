@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -246,6 +245,49 @@ export const useDeleteProduto = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sistemas-fixed'] });
+    }
+  });
+};
+
+export const useUpdateProgress = () => {
+  const queryClient = useQueryClient();
+  const { authenticatedClient, user } = useAuth();
+  const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
+
+  return useMutation({
+    mutationFn: async ({ videoAulaId, progressoSegundos, completo, cartorioId }: {
+      videoAulaId: string;
+      progressoSegundos: number;
+      completo: boolean;
+      cartorioId: string;
+    }) => {
+      if (!client) throw new Error('Client not available');
+
+      console.log('Updating progress:', { videoAulaId, progressoSegundos, completo, cartorioId });
+
+      const { data, error } = await client
+        .from('visualizacoes_cartorio')
+        .upsert({
+          video_aula_id: videoAulaId,
+          cartorio_id: cartorioId,
+          progresso_segundos: progressoSegundos,
+          completo,
+          ultima_visualizacao: new Date().toISOString()
+        }, {
+          onConflict: 'video_aula_id,cartorio_id'
+        })
+        .select();
+
+      if (error) {
+        console.error('Error updating progress:', error);
+        throw error;
+      }
+      
+      console.log('Progress updated successfully:', data);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['visualizacoes'] });
     }
   });
 };

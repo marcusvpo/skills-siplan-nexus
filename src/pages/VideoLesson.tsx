@@ -103,6 +103,13 @@ const VideoLesson = () => {
     console.log('Toggle favorite for lesson:', lessonId);
   };
 
+  const markAsComplete = async () => {
+    if (!user?.cartorio_id) return;
+    
+    // This will be connected to the ProgressTracker component
+    console.log('Marking lesson as complete:', lessonId);
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
@@ -151,14 +158,22 @@ const VideoLesson = () => {
                       </div>
                     </div>
                     
-                    <Button
-                      variant="ghost"
-                      size="lg"
-                      onClick={toggleFavorite}
-                      className="text-gray-400 hover:text-yellow-500 transition-colors"
-                    >
-                      <Star className="h-8 w-8" />
-                    </Button>
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        variant="ghost"
+                        size="lg"
+                        onClick={toggleFavorite}
+                        className="text-gray-400 hover:text-yellow-500 transition-colors"
+                      >
+                        <Star className="h-8 w-8" />
+                      </Button>
+                      <Button
+                        onClick={markAsComplete}
+                        className="bg-green-600 hover:bg-green-700 px-6"
+                      >
+                        Marcar como Concluída
+                      </Button>
+                    </div>
                   </div>
                   
                   {/* Progress Section */}

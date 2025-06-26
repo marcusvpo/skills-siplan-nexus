@@ -4,21 +4,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowRight } from 'lucide-react';
-import { useSistemas, useVisualizacoes } from '@/hooks/useSupabaseData';
+import { BookOpen, ArrowRight, Clock, Star } from 'lucide-react';
+import { useSistemasFixed, useVisualizacoes } from '@/hooks/useSupabaseDataFixed';
 
 const SystemPage = () => {
   const { systemId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [sortBy, setSortBy] = React.useState('name-asc');
 
-  const { data: sistemas } = useSistemas();
-  const { data: visualizacoes } = useVisualizacoes(user?.cartorio_id || '');
+  const { data: sistemas } = useSistemasFixed();
+  const { data: visualizacoes } = useVisualizacoes();
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -26,148 +25,170 @@ const SystemPage = () => {
     }
   }, [user, navigate]);
 
-  const system = sistemas?.find(s => s.id === systemId);
+  // Find the current system
+  const currentSystem = sistemas?.find(system => system.id === systemId);
 
-  if (!system) {
+  if (!currentSystem) {
     return (
       <Layout>
-        <div className="container mx-auto px-6 py-8 bg-black min-h-screen">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-400">Sistema não encontrado</h1>
-          </div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+          <Card className="glass-effect border-gray-700 max-w-md">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-2xl font-bold text-red-400 mb-4">Sistema não encontrado</h1>
+              <p className="text-gray-400 mb-6">O sistema solicitado não foi encontrado ou você não tem permissão para acessá-lo.</p>
+              <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
+                Voltar ao Dashboard
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
   }
 
-  const sortedProducts = [...(system.produtos || [])].sort((a, b) => {
-    switch (sortBy) {
-      case 'name-asc':
-        return a.nome.localeCompare(b.nome);
-      case 'name-desc':
-        return b.nome.localeCompare(a.nome);
-      default:
-        return 0;
-    }
-  });
+  const produtos = currentSystem.produtos || [];
 
-  const getSystemIcon = (systemName: string) => {
-    const iconMap: { [key: string]: string } = {
-      'Orion': '🌟',
-      'Siplan': '📋',
-      'Control-M': '🎮',
-      'Global': '🌍'
-    };
-    return iconMap[systemName] || '📚';
-  };
-
-  const calculateProgress = (produto: any) => {
-    if (!visualizacoes) return 0;
+  // Calculate progress for each product
+  const calculateProductProgress = (produto: any) => {
+    if (!visualizacoes || !produto.modulos) return 0;
     
-    const totalAulas = produto.modulos?.reduce((acc: number, modulo: any) => 
-      acc + (modulo.video_aulas?.length || 0), 0) || 0;
+    let totalAulas = 0;
+    let aulasCompletas = 0;
     
-    if (totalAulas === 0) return 0;
+    produto.modulos.forEach((modulo: any) => {
+      modulo.video_aulas?.forEach((aula: any) => {
+        totalAulas++;
+        const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id && v.completo);
+        if (visualizacao) {
+          aulasCompletas++;
+        }
+      });
+    });
     
-    const aulasCompletas = visualizacoes.filter(v => 
-      v.completo && produto.modulos?.some((modulo: any) => 
-        modulo.video_aulas?.some((aula: any) => aula.id === v.video_aula_id)
-      )
-    ).length;
-    
-    return Math.round((aulasCompletas / totalAulas) * 100);
+    return totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-6 py-8 bg-black min-h-screen">
-        <Breadcrumbs items={[{ label: system.nome }]} />
-        
-        <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <span className="text-4xl mr-4">{getSystemIcon(system.nome)}</span>
-            <div>
-              <h1 className="text-3xl font-bold text-white">{system.nome}</h1>
-              <p className="text-gray-400">{system.descricao}</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="container mx-auto px-6 py-8">
+          <Breadcrumbs items={[
+            { label: currentSystem.nome }
+          ]} />
+          
+          <div className="mt-6 mb-8">
+            <div className="glass-effect rounded-2xl p-8 shadow-modern">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">
+                    {currentSystem.nome.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">{currentSystem.nome}</h1>
+                  <Badge variant="secondary" className="bg-blue-600/20 text-blue-300 border-0 mt-2">
+                    <BookOpen className="h-3 w-3 mr-1" />
+                    Sistema de Treinamento
+                  </Badge>
+                </div>
+              </div>
+              
+              {currentSystem.descricao && (
+                <p className="text-gray-300 text-lg leading-relaxed">
+                  {currentSystem.descricao}
+                </p>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Filter Section */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-white">Produtos do Sistema</h2>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-400">Ordenar por:</span>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48 bg-gray-800 border-gray-700 text-white">
-                <SelectValue placeholder="Selecione a ordenação" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
-                <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedProducts.map((product) => {
-            const progress = calculateProgress(product);
-            const totalLessons = product.modulos?.reduce((acc: number, modulo: any) => 
-              acc + (modulo.video_aulas?.length || 0), 0) || 0;
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+              <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
+              Produtos de Treinamento
+            </h2>
             
-            return (
-              <Card 
-                key={product.id} 
-                className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 cursor-pointer group hover:shadow-xl"
-                onClick={() => navigate(`/system/${systemId}/product/${product.id}`)}
-              >
-                <CardHeader>
-                  <CardTitle className="group-hover:text-red-400 transition-colors text-white">
-                    {product.nome}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-400 text-sm mb-4">
-                    {product.descricao}
-                  </p>
+            {produtos.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {produtos.map((produto) => {
+                  const progress = calculateProductProgress(produto);
+                  const totalAulas = produto.modulos?.reduce((total: number, modulo: any) => 
+                    total + (modulo.video_aulas?.length || 0), 0) || 0;
                   
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-2 text-gray-300">
-                        <span>Progresso Geral</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <Progress value={progress} className="h-2" />
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">
-                        {totalLessons} aulas disponíveis
-                      </span>
-                      <Button 
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700 group-hover:scale-105 transition-all duration-200"
-                      >
-                        Acessar
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
+                  return (
+                    <Card 
+                      key={produto.id} 
+                      className="glass-effect border-gray-700 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:shadow-modern hover:scale-105"
+                      onClick={() => navigate(`/system/${systemId}/product/${produto.id}`)}
+                    >
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-xl text-white group-hover:text-red-400 transition-colors">
+                          {produto.nome}
+                        </CardTitle>
+                        {produto.descricao && (
+                          <p className="text-gray-400 text-sm leading-relaxed">
+                            {produto.descricao}
+                          </p>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between text-sm text-gray-400">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span>{totalAulas} videoaulas</span>
+                          </div>
+                          {progress > 0 && (
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 mr-1 text-yellow-500" />
+                              <span>{progress}% concluído</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {progress > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>Progresso</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                          </div>
+                        )}
+                        
+                        <Button 
+                          className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 group-hover:scale-105"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/system/${systemId}/product/${produto.id}`);
+                          }}
+                        >
+                          {progress > 0 ? 'Continuar' : 'Iniciar'} Treinamento
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="glass-effect border-gray-700">
+                <CardContent className="p-12 text-center">
+                  <div className="text-6xl mb-6">📚</div>
+                  <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhum produto disponível</h3>
+                  <p className="text-gray-400 mb-6">
+                    Os produtos de treinamento para este sistema serão disponibilizados em breve.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/dashboard')} 
+                    variant="outline" 
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Voltar ao Dashboard
+                  </Button>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
-
-        {sortedProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">
-              Nenhum produto encontrado para este sistema.
-            </p>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

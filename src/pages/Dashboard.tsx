@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -61,13 +60,8 @@ const Dashboard = () => {
   };
 
   const getSystemIcon = (systemName: string) => {
-    const iconMap: { [key: string]: string } = {
-      'Orion': '🌟',
-      'Siplan': '📋',
-      'Control-M': '🎮',
-      'Global': '🌍'
-    };
-    return iconMap[systemName] || '📚';
+    // Return the first letter of the system name for the circular icon
+    return systemName.charAt(0).toUpperCase();
   };
 
   return (
@@ -223,8 +217,10 @@ const Dashboard = () => {
                       onClick={() => navigate(`/system/${sistema.id}`)}
                     >
                       <CardContent className="p-8 text-center space-y-4">
-                        <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                          {getSystemIcon(sistema.nome)}
+                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                          <span className="text-2xl font-bold text-white">
+                            {getSystemIcon(sistema.nome)}
+                          </span>
                         </div>
                         <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">
                           {sistema.nome}
