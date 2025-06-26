@@ -4,6 +4,7 @@ import { SystemsList } from './SystemsList';
 import { ProductsList } from './ProductsList';
 import { VideoAulasListFixed } from './VideoAulasListFixed';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface Sistema {
   id: string;
@@ -47,20 +48,39 @@ export const ContentManagerComplete: React.FC = () => {
   const loadSistemas = async () => {
     setIsLoading(true);
     try {
-      console.log('Loading sistemas for admin...');
+      console.log('Loading sistemas for content manager...');
       const { data, error } = await supabase
         .from('sistemas')
         .select('*')
         .order('ordem', { ascending: true });
       
-      console.log('Sistemas loaded:', data, 'Error:', error);
-      if (!error && data) {
-        setSistemas(data);
-      } else {
+      console.log('Sistemas query result:', { data, error });
+      
+      if (error) {
         console.error('Error loading sistemas:', error);
+        toast({
+          title: "Erro ao carregar sistemas",
+          description: `Erro: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
       }
+      
+      if (!data) {
+        console.log('No sistemas data returned');
+        setSistemas([]);
+        return;
+      }
+      
+      console.log('Sistemas loaded successfully:', data);
+      setSistemas(data);
     } catch (error) {
-      console.error('Error loading sistemas:', error);
+      console.error('Exception loading sistemas:', error);
+      toast({
+        title: "Erro ao carregar sistemas",
+        description: "Ocorreu um erro inesperado ao carregar os sistemas.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -77,14 +97,27 @@ export const ContentManagerComplete: React.FC = () => {
         .eq('sistema_id', sistemaId)
         .order('ordem', { ascending: true });
       
-      console.log('Produtos loaded:', data, 'Error:', error);
-      if (!error && data) {
-        setProdutos(data);
-      } else {
+      console.log('Produtos query result:', { data, error });
+      
+      if (error) {
         console.error('Error loading produtos:', error);
+        toast({
+          title: "Erro ao carregar produtos",
+          description: `Erro: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
       }
+      
+      console.log('Produtos loaded successfully:', data);
+      setProdutos(data || []);
     } catch (error) {
-      console.error('Error loading produtos:', error);
+      console.error('Exception loading produtos:', error);
+      toast({
+        title: "Erro ao carregar produtos",
+        description: "Ocorreu um erro inesperado ao carregar os produtos.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -102,41 +135,65 @@ export const ContentManagerComplete: React.FC = () => {
         .eq('produto_id', produtoId)
         .order('ordem', { ascending: true });
       
-      console.log('Video aulas loaded:', data, 'Error:', error);
-      if (!error && data) {
-        // Map the data to ensure id_video_bunny is never null
-        const mappedVideoAulas = data.map(videoAula => ({
-          ...videoAula,
-          id_video_bunny: videoAula.id_video_bunny || ''
-        }));
-        setVideoAulas(mappedVideoAulas);
-      } else {
+      console.log('Video aulas query result:', { data, error });
+      
+      if (error) {
         console.error('Error loading video aulas:', error);
+        toast({
+          title: "Erro ao carregar videoaulas",
+          description: `Erro: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
       }
+      
+      if (!data) {
+        console.log('No video aulas data returned');
+        setVideoAulas([]);
+        return;
+      }
+      
+      // Map the data to ensure id_video_bunny is never null
+      const mappedVideoAulas = data.map(videoAula => ({
+        ...videoAula,
+        id_video_bunny: videoAula.id_video_bunny || ''
+      }));
+      
+      console.log('Video aulas loaded successfully:', mappedVideoAulas);
+      setVideoAulas(mappedVideoAulas);
     } catch (error) {
-      console.error('Error loading video aulas:', error);
+      console.error('Exception loading video aulas:', error);
+      toast({
+        title: "Erro ao carregar videoaulas",
+        description: "Ocorreu um erro inesperado ao carregar as videoaulas.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('ContentManagerComplete mounted, loading sistemas...');
     loadSistemas();
   }, []);
 
   const handleSelectSistema = (sistema: Sistema) => {
+    console.log('Selected sistema:', sistema);
     setSelectedSistema(sistema);
     setViewMode('produtos');
     loadProdutos(sistema.id);
   };
 
   const handleSelectProduto = (produto: Produto) => {
+    console.log('Selected produto:', produto);
     setSelectedProduto(produto);
     setViewMode('videoaulas');
     loadVideoAulas(produto.id);
   };
 
   const handleBackToSistemas = () => {
+    console.log('Going back to sistemas');
     setViewMode('sistemas');
     setSelectedSistema(null);
     setSelectedProduto(null);
@@ -144,6 +201,7 @@ export const ContentManagerComplete: React.FC = () => {
   };
 
   const handleBackToProdutos = () => {
+    console.log('Going back to produtos');
     setViewMode('produtos');
     setSelectedProduto(null);
     if (selectedSistema) {

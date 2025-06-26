@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash2, ArrowLeft, Play } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft, Play, Palette } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { VideoAulaFormFixed } from './VideoAulaFormFixed';
+import { useNavigate } from 'react-router-dom';
 
 interface Sistema {
   id: string;
@@ -47,6 +48,7 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
   onVideoAulasChange,
   onBack
 }) => {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [editingVideoAula, setEditingVideoAula] = useState<VideoAula | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +95,14 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
     setShowForm(true);
   };
 
+  const handleCreateNewWYSIWYG = () => {
+    navigate(`/admin/videoaula-editor?sistema_id=${sistema.id}&produto_id=${produto.id}`);
+  };
+
+  const handleEditWYSIWYG = (videoAula: VideoAula) => {
+    navigate(`/admin/videoaula-editor/${videoAula.id}`);
+  };
+
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingVideoAula(null);
@@ -135,13 +145,23 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleCreateNew}
-          className="bg-orange-600 hover:bg-orange-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Videoaula
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            onClick={handleCreateNew}
+            variant="outline"
+            className="border-orange-600 text-orange-400 hover:bg-orange-700/20"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Formulário Simples
+          </Button>
+          <Button
+            onClick={handleCreateNewWYSIWYG}
+            className="bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            <Palette className="h-4 w-4 mr-2" />
+            Editor WYSIWYG
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -177,8 +197,18 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
                     size="sm"
                     onClick={() => handleEdit(videoAula)}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                    title="Editar com formulário simples"
                   >
                     <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditWYSIWYG(videoAula)}
+                    className="border-orange-600 text-orange-400 hover:bg-orange-700/20"
+                    title="Editar com editor WYSIWYG"
+                  >
+                    <Palette className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -199,9 +229,26 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
       {videoAulas.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-400 text-lg">Nenhuma videoaula cadastrada neste produto</p>
-          <p className="text-gray-500 text-sm mt-2">
-            Clique em "Nova Videoaula" para começar
+          <p className="text-gray-500 text-sm mt-2 mb-4">
+            Escolha uma das opções para começar:
           </p>
+          <div className="flex justify-center space-x-4">
+            <Button
+              onClick={handleCreateNew}
+              variant="outline"
+              className="border-orange-600 text-orange-400 hover:bg-orange-700/20"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Formulário Simples
+            </Button>
+            <Button
+              onClick={handleCreateNewWYSIWYG}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <Palette className="h-4 w-4 mr-2" />
+              Editor WYSIWYG
+            </Button>
+          </div>
         </div>
       )}
     </div>
