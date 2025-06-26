@@ -25,10 +25,10 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   url_video: string;
-  id_video_bunny: string;
-  duracao_segundos: number;
+  id_video_bunny?: string;
+  url_thumbnail?: string;
   ordem: number;
-  modulo_id: string;
+  produto_id: string;
 }
 
 type ViewMode = 'sistemas' | 'produtos' | 'videoaulas';
@@ -44,7 +44,7 @@ export const ContentManager: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load sistemas - usando client admin diretamente
+  // Load sistemas
   const loadSistemas = async () => {
     setIsLoading(true);
     try {
@@ -67,7 +67,7 @@ export const ContentManager: React.FC = () => {
     }
   };
 
-  // Load produtos by sistema - usando client admin diretamente
+  // Load produtos by sistema
   const loadProdutos = async (sistemaId: string) => {
     setIsLoading(true);
     try {
@@ -91,41 +91,23 @@ export const ContentManager: React.FC = () => {
     }
   };
 
-  // Load video aulas by produto - usando client admin diretamente
+  // Load video aulas by produto - agora diretamente
   const loadVideoAulas = async (produtoId: string) => {
     setIsLoading(true);
     try {
       console.log('Loading video aulas for produto:', produtoId);
-      // First get the modulo for this product
-      const { data: modulos, error: modulosError } = await supabase
-        .from('modulos')
-        .select('id')
-        .eq('produto_id', produtoId);
-
-      if (modulosError) {
-        console.error('Error loading modulos:', modulosError);
-        throw modulosError;
-      }
-
-      if (modulos && modulos.length > 0) {
-        const moduloIds = modulos.map(m => m.id);
-        console.log('Found modulos:', moduloIds);
-        
-        const { data, error } = await supabase
-          .from('video_aulas')
-          .select('*')
-          .in('modulo_id', moduloIds)
-          .order('ordem', { ascending: true });
-        
-        console.log('Video aulas loaded:', data, 'Error:', error);
-        if (!error && data) {
-          setVideoAulas(data);
-        } else {
-          console.error('Error loading video aulas:', error);
-        }
+      
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .select('*')
+        .eq('produto_id', produtoId)
+        .order('ordem', { ascending: true });
+      
+      console.log('Video aulas loaded:', data, 'Error:', error);
+      if (!error && data) {
+        setVideoAulas(data);
       } else {
-        console.log('No modulos found for produto:', produtoId);
-        setVideoAulas([]);
+        console.error('Error loading video aulas:', error);
       }
     } catch (error) {
       console.error('Error loading video aulas:', error);

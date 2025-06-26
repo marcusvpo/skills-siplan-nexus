@@ -71,9 +71,15 @@ export const useCreateVideoAula = () => {
       id_video_bunny?: string;
       url_thumbnail?: string;
     }) => {
+      // Garantir que url_video tenha um valor padrão se não fornecido
+      const dataToInsert = {
+        ...videoAulaData,
+        url_video: videoAulaData.url_video || ''
+      };
+
       const { data, error } = await supabase
         .from('video_aulas')
-        .insert(videoAulaData)
+        .insert(dataToInsert)
         .select()
         .single();
 

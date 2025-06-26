@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, FileText, BarChart, Settings } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { ContentManagerRefactored } from '@/components/admin/ContentManagerRefactored';
-import { CartorioManagementEnhanced } from '@/components/admin/CartorioManagementEnhanced';
+import CartorioManagementEnhanced from '@/components/admin/CartorioManagementEnhanced';
 import { useAdminStats } from '@/hooks/useAdminStats';
 
 const AdminDashboard = () => {
@@ -25,13 +25,13 @@ const AdminDashboard = () => {
             <Card className="bg-gray-900 border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-300">
-                  Total de Cartórios
+                  Cartórios Ativos
                 </CardTitle>
                 <Users className="h-4 w-4 text-blue-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {isLoading ? '-' : stats?.totalCartorios || 0}
+                  {isLoading ? '-' : stats?.cartoriosAtivos || 0}
                 </div>
               </CardContent>
             </Card>
@@ -45,7 +45,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {isLoading ? '-' : stats?.totalVideoAulas || 0}
+                  {isLoading ? '-' : stats?.totalVideoaulas || 0}
                 </div>
               </CardContent>
             </Card>
@@ -53,13 +53,13 @@ const AdminDashboard = () => {
             <Card className="bg-gray-900 border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-300">
-                  Visualizações
+                  Acessos Expirando
                 </CardTitle>
                 <BarChart className="h-4 w-4 text-yellow-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {isLoading ? '-' : stats?.totalVisualizacoes || 0}
+                  {isLoading ? '-' : stats?.acessosExpirando || 0}
                 </div>
               </CardContent>
             </Card>
@@ -67,13 +67,13 @@ const AdminDashboard = () => {
             <Card className="bg-gray-900 border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-300">
-                  Sistemas
+                  Novos Cadastros
                 </CardTitle>
                 <Settings className="h-4 w-4 text-red-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {isLoading ? '-' : stats?.totalSistemas || 0}
+                  {isLoading ? '-' : stats?.novosCadastros || 0}
                 </div>
               </CardContent>
             </Card>

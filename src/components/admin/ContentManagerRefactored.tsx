@@ -27,7 +27,8 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   url_video: string;
-  id_video_bunny: string;
+  id_video_bunny?: string;
+  url_thumbnail?: string;
   ordem: number;
   produto_id: string;
 }
@@ -86,7 +87,6 @@ export const ContentManagerRefactored: React.FC = () => {
       {currentView === 'sistemas' && (
         <SystemsListFixed 
           sistemas={sistemas}
-          onSystemsChange={handleSistemasChange}
           onViewProdutos={handleViewProdutos}
         />
       )}
@@ -95,7 +95,6 @@ export const ContentManagerRefactored: React.FC = () => {
         <ProductsListFixed 
           sistema={selectedSistema}
           produtos={selectedSistema.produtos || []}
-          onProductsChange={handleSistemasChange}
           onBack={handleBackToSistemas}
           onViewVideoAulas={handleViewVideoAulas}
         />
