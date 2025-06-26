@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { CartorioListEnhanced } from './CartorioListEnhanced';
-import ContentManagerRefactored from './ContentManagerRefactored';
+import { ContentManagerRefactored } from './ContentManagerRefactored';
 
 const AdminDashboardFixed: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');

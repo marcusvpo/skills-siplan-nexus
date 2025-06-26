@@ -40,8 +40,8 @@ export const useSupabaseWithLogging = () => {
   }, []);
 
   const fetchSistemas = useCallback(() => {
-    return queryWithLogging('sistemas', 'SELECT all', () =>
-      supabase
+    return queryWithLogging('sistemas', 'SELECT all', async () =>
+      await supabase
         .from('sistemas')
         .select('id, nome, descricao, ordem')
         .order('ordem')
@@ -49,8 +49,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchProdutos = useCallback((sistemaId: string) => {
-    return queryWithLogging('produtos', `SELECT by sistema_id: ${sistemaId}`, () =>
-      supabase
+    return queryWithLogging('produtos', `SELECT by sistema_id: ${sistemaId}`, async () =>
+      await supabase
         .from('produtos')
         .select('id, nome, descricao, ordem, sistema_id')
         .eq('sistema_id', sistemaId)
@@ -59,8 +59,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchVideoAulas = useCallback((produtoId: string) => {
-    return queryWithLogging('video_aulas', `SELECT by produto_id: ${produtoId}`, () =>
-      supabase
+    return queryWithLogging('video_aulas', `SELECT by produto_id: ${produtoId}`, async () =>
+      await supabase
         .from('video_aulas')
         .select('id, titulo, descricao, url_video, url_thumbnail, ordem, produto_id')
         .eq('produto_id', produtoId)
@@ -69,8 +69,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchCartorios = useCallback(() => {
-    return queryWithLogging('cartorios', 'SELECT all with acessos', () =>
-      supabase
+    return queryWithLogging('cartorios', 'SELECT all with acessos', async () =>
+      await supabase
         .from('cartorios')
         .select(`
           *,
@@ -81,8 +81,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchVideoAulaById = useCallback((id: string) => {
-    return queryWithLogging('video_aulas', `SELECT by id: ${id}`, () =>
-      supabase
+    return queryWithLogging('video_aulas', `SELECT by id: ${id}`, async () =>
+      await supabase
         .from('video_aulas')
         .select('*')
         .eq('id', id)
@@ -91,8 +91,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchProdutoById = useCallback((id: string) => {
-    return queryWithLogging('produtos', `SELECT by id: ${id}`, () =>
-      supabase
+    return queryWithLogging('produtos', `SELECT by id: ${id}`, async () =>
+      await supabase
         .from('produtos')
         .select('*')
         .eq('id', id)
@@ -101,8 +101,8 @@ export const useSupabaseWithLogging = () => {
   }, [queryWithLogging]);
 
   const fetchSistemaById = useCallback((id: string) => {
-    return queryWithLogging('sistemas', `SELECT by id: ${id}`, () =>
-      supabase
+    return queryWithLogging('sistemas', `SELECT by id: ${id}`, async () =>
+      await supabase
         .from('sistemas')
         .select('*')
         .eq('id', id)
