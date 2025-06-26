@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SystemsList } from './SystemsList';
 import { ProductsList } from './ProductsList';
@@ -25,7 +24,7 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   url_video: string;
-  id_video_bunny?: string;
+  id_video_bunny?: string | null;
   url_thumbnail?: string;
   ordem: number;
   produto_id: string;
