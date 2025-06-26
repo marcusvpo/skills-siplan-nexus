@@ -36,19 +36,19 @@ interface VideoAula {
 }
 
 interface VideoAulaFormFixedProps {
+  sistema: Sistema;
+  produto: Produto;
   videoAula?: VideoAula | null;
   onSuccess: () => void;
   onCancel: () => void;
-  preSelectedSistema?: string;
-  preSelectedProduto?: string;
 }
 
 export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
+  sistema,
+  produto,
   videoAula,
   onSuccess,
-  onCancel,
-  preSelectedSistema,
-  preSelectedProduto
+  onCancel
 }) => {
   const [formData, setFormData] = useState({
     titulo: videoAula?.titulo || '',
@@ -56,105 +56,10 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     url_video: videoAula?.url_video || '',
     id_video_bunny: videoAula?.id_video_bunny || '',
     ordem: videoAula?.ordem || 1,
-    produto_id: videoAula?.produto_id || preSelectedProduto || ''
+    produto_id: videoAula?.produto_id || produto.id
   });
 
-  const [selectedSistema, setSelectedSistema] = useState(preSelectedSistema || '');
-  const [sistemas, setSistemas] = useState<Sistema[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingSistemas, setIsLoadingSistemas] = useState(true);
-  const [isLoadingProdutos, setIsLoadingProdutos] = useState(false);
-
-  // Load sistemas on component mount
-  useEffect(() => {
-    loadSistemas();
-  }, []);
-
-  // Load produtos when sistema is selected
-  useEffect(() => {
-    if (selectedSistema) {
-      loadProdutos(selectedSistema);
-    } else {
-      setProdutos([]);
-      setFormData(prev => ({ ...prev, produto_id: '' }));
-    }
-  }, [selectedSistema]);
-
-  // If editing existing videoaula, find and set the sistema
-  useEffect(() => {
-    if (videoAula?.produto_id && sistemas.length > 0 && !selectedSistema) {
-      const produto = produtos.find(p => p.id === videoAula.produto_id);
-      if (produto) {
-        setSelectedSistema(produto.sistema_id);
-      } else {
-        // If produto not loaded yet, we need to find it by loading all produtos
-        findSistemaByProduto(videoAula.produto_id);
-      }
-    }
-  }, [videoAula, sistemas, produtos, selectedSistema]);
-
-  const loadSistemas = async () => {
-    setIsLoadingSistemas(true);
-    try {
-      const { data, error } = await supabase
-        .from('sistemas')
-        .select('*')
-        .order('ordem', { ascending: true });
-      
-      if (error) throw error;
-      setSistemas(data || []);
-    } catch (error) {
-      console.error('Error loading sistemas:', error);
-      toast({
-        title: "Erro ao carregar sistemas",
-        description: "Não foi possível carregar a lista de sistemas.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingSistemas(false);
-    }
-  };
-
-  const loadProdutos = async (sistemaId: string) => {
-    setIsLoadingProdutos(true);
-    try {
-      const { data, error } = await supabase
-        .from('produtos')
-        .select('*')
-        .eq('sistema_id', sistemaId)
-        .order('ordem', { ascending: true });
-      
-      if (error) throw error;
-      setProdutos(data || []);
-    } catch (error) {
-      console.error('Error loading produtos:', error);
-      toast({
-        title: "Erro ao carregar produtos",
-        description: "Não foi possível carregar a lista de produtos.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingProdutos(false);
-    }
-  };
-
-  const findSistemaByProduto = async (produtoId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('produtos')
-        .select('sistema_id')
-        .eq('id', produtoId)
-        .single();
-      
-      if (error) throw error;
-      if (data) {
-        setSelectedSistema(data.sistema_id);
-      }
-    } catch (error) {
-      console.error('Error finding sistema by produto:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,15 +73,6 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       return;
     }
 
-    if (!formData.produto_id) {
-      toast({
-        title: "Produto obrigatório",
-        description: "Selecione um produto para a videoaula.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       const videoAulaData = {
@@ -185,7 +81,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
         url_video: formData.url_video.trim(),
         id_video_bunny: formData.id_video_bunny.trim(),
         ordem: formData.ordem,
-        produto_id: formData.produto_id
+        produto_id: produto.id
       };
 
       if (videoAula?.id) {
@@ -244,59 +140,13 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
         </Button>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 p-3 bg-gray-700/30 rounded border border-gray-600">
+          <p className="text-gray-300 text-sm">
+            <strong>Sistema:</strong> {sistema.nome} • <strong>Produto:</strong> {produto.nome}
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Sistema Selection */}
-          <div>
-            <Label htmlFor="sistema" className="text-gray-300">Sistema *</Label>
-            {isLoadingSistemas ? (
-              <div className="flex items-center p-2 text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Carregando sistemas...
-              </div>
-            ) : (
-              <Select value={selectedSistema} onValueChange={setSelectedSistema}>
-                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
-                  <SelectValue placeholder="Selecione o sistema" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {sistemas.map((sistema) => (
-                    <SelectItem key={sistema.id} value={sistema.id} className="text-white focus:bg-gray-700">
-                      {sistema.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {/* Produto Selection */}
-          <div>
-            <Label htmlFor="produto" className="text-gray-300">Produto *</Label>
-            {isLoadingProdutos ? (
-              <div className="flex items-center p-2 text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Carregando produtos...
-              </div>
-            ) : (
-              <Select 
-                value={formData.produto_id} 
-                onValueChange={(value) => setFormData({ ...formData, produto_id: value })}
-                disabled={!selectedSistema}
-              >
-                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
-                  <SelectValue placeholder={selectedSistema ? "Selecione o produto" : "Primeiro selecione um sistema"} />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {produtos.map((produto) => (
-                    <SelectItem key={produto.id} value={produto.id} className="text-white focus:bg-gray-700">
-                      {produto.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
           {/* Título */}
           <div>
             <Label htmlFor="titulo" className="text-gray-300">Título da Videoaula *</Label>
