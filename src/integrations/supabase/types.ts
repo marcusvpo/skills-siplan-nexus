@@ -45,6 +45,13 @@ export type Database = {
             referencedRelation: "cartorios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_acessos_cartorio"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admins: {
@@ -93,6 +100,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cartorio_usuarios_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cartorio_usuarios_cartorio"
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorios"
@@ -164,13 +178,27 @@ export type Database = {
             referencedRelation: "video_aulas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_favoritos_cartorio"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_favoritos_video_aula"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
         ]
       }
       modulos: {
         Row: {
           descricao: string | null
           id: string
-          ordem: number | null
+          ordem: number
           produto_id: string
           tempo_estimado_min: number | null
           titulo: string
@@ -178,7 +206,7 @@ export type Database = {
         Insert: {
           descricao?: string | null
           id?: string
-          ordem?: number | null
+          ordem?: number
           produto_id: string
           tempo_estimado_min?: number | null
           titulo: string
@@ -186,12 +214,19 @@ export type Database = {
         Update: {
           descricao?: string | null
           id?: string
-          ordem?: number | null
+          ordem?: number
           produto_id?: string
           tempo_estimado_min?: number | null
           titulo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_modulos_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "modulos_produto_id_fkey"
             columns: ["produto_id"]
@@ -206,24 +241,31 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
-          ordem: number | null
+          ordem: number
           sistema_id: string
         }
         Insert: {
           descricao?: string | null
           id?: string
           nome: string
-          ordem?: number | null
+          ordem?: number
           sistema_id: string
         }
         Update: {
           descricao?: string | null
           id?: string
           nome?: string
-          ordem?: number | null
+          ordem?: number
           sistema_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produtos_sistema"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produtos_sistema_id_fkey"
             columns: ["sistema_id"]
@@ -238,19 +280,19 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
-          ordem: number | null
+          ordem: number
         }
         Insert: {
           descricao?: string | null
           id?: string
           nome: string
-          ordem?: number | null
+          ordem?: number
         }
         Update: {
           descricao?: string | null
           id?: string
           nome?: string
-          ordem?: number | null
+          ordem?: number
         }
         Relationships: []
       }
@@ -259,7 +301,7 @@ export type Database = {
           descricao: string | null
           id: string
           id_video_bunny: string | null
-          ordem: number | null
+          ordem: number
           produto_id: string | null
           titulo: string
           url_thumbnail: string | null
@@ -269,23 +311,30 @@ export type Database = {
           descricao?: string | null
           id?: string
           id_video_bunny?: string | null
-          ordem?: number | null
+          ordem?: number
           produto_id?: string | null
           titulo: string
           url_thumbnail?: string | null
-          url_video: string
+          url_video?: string
         }
         Update: {
           descricao?: string | null
           id?: string
           id_video_bunny?: string | null
-          ordem?: number | null
+          ordem?: number
           produto_id?: string | null
           titulo?: string
           url_thumbnail?: string | null
           url_video?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_video_aulas_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "video_aulas_produto_id_fkey"
             columns: ["produto_id"]
@@ -325,6 +374,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_video_embeddings_video_aula"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "video_embeddings_video_aula_id_fkey"
             columns: ["video_aula_id"]
             isOneToOne: false
@@ -362,6 +418,20 @@ export type Database = {
           video_aula_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_visualizacoes_cartorio"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_visualizacoes_video_aula"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "visualizacoes_cartorio_cartorio_id_fkey"
             columns: ["cartorio_id"]
