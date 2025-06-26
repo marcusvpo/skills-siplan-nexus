@@ -104,14 +104,18 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        user: {
+        token: jwt,
+        usuario: {
           id: userData.id,
           username: userData.username,
-          email: userData.email,
-          cartorio_id: acessoData.cartorios.id,
-          cartorio_name: acessoData.cartorios.nome
+          email: userData.email
         },
-        token: jwt
+        cartorio: {
+          id: acessoData.cartorios.id,
+          nome: acessoData.cartorios.nome,
+          cidade: acessoData.cartorios.cidade,
+          estado: acessoData.cartorios.estado
+        }
       }),
       { 
         status: 200,

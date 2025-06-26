@@ -44,16 +44,22 @@ export const ContentManager: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load sistemas
+  // Load sistemas - usando client admin diretamente
   const loadSistemas = async () => {
     setIsLoading(true);
     try {
+      console.log('Loading sistemas for admin...');
       const { data, error } = await supabase
         .from('sistemas')
         .select('*')
         .order('ordem', { ascending: true });
       
-      if (!error && data) setSistemas(data);
+      console.log('Sistemas loaded:', data, 'Error:', error);
+      if (!error && data) {
+        setSistemas(data);
+      } else {
+        console.error('Error loading sistemas:', error);
+      }
     } catch (error) {
       console.error('Error loading sistemas:', error);
     } finally {
@@ -61,17 +67,23 @@ export const ContentManager: React.FC = () => {
     }
   };
 
-  // Load produtos by sistema
+  // Load produtos by sistema - usando client admin diretamente
   const loadProdutos = async (sistemaId: string) => {
     setIsLoading(true);
     try {
+      console.log('Loading produtos for sistema:', sistemaId);
       const { data, error } = await supabase
         .from('produtos')
         .select('*')
         .eq('sistema_id', sistemaId)
         .order('ordem', { ascending: true });
       
-      if (!error && data) setProdutos(data);
+      console.log('Produtos loaded:', data, 'Error:', error);
+      if (!error && data) {
+        setProdutos(data);
+      } else {
+        console.error('Error loading produtos:', error);
+      }
     } catch (error) {
       console.error('Error loading produtos:', error);
     } finally {
@@ -79,20 +91,25 @@ export const ContentManager: React.FC = () => {
     }
   };
 
-  // Load video aulas by produto
+  // Load video aulas by produto - usando client admin diretamente
   const loadVideoAulas = async (produtoId: string) => {
     setIsLoading(true);
     try {
+      console.log('Loading video aulas for produto:', produtoId);
       // First get the modulo for this product
       const { data: modulos, error: modulosError } = await supabase
         .from('modulos')
         .select('id')
         .eq('produto_id', produtoId);
 
-      if (modulosError) throw modulosError;
+      if (modulosError) {
+        console.error('Error loading modulos:', modulosError);
+        throw modulosError;
+      }
 
       if (modulos && modulos.length > 0) {
         const moduloIds = modulos.map(m => m.id);
+        console.log('Found modulos:', moduloIds);
         
         const { data, error } = await supabase
           .from('video_aulas')
@@ -100,8 +117,14 @@ export const ContentManager: React.FC = () => {
           .in('modulo_id', moduloIds)
           .order('ordem', { ascending: true });
         
-        if (!error && data) setVideoAulas(data);
+        console.log('Video aulas loaded:', data, 'Error:', error);
+        if (!error && data) {
+          setVideoAulas(data);
+        } else {
+          console.error('Error loading video aulas:', error);
+        }
       } else {
+        console.log('No modulos found for produto:', produtoId);
         setVideoAulas([]);
       }
     } catch (error) {

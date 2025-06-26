@@ -72,9 +72,14 @@ const Dashboard = () => {
             Bem-vindo(a) ao Siplan Skills!
           </h1>
           {user.cartorio_name && (
-            <p className="text-lg text-gray-300 mb-2">
-              Você está acessando como usuário de: <span className="font-semibold text-white">{user.cartorio_name}</span>
-            </p>
+            <div className="mb-4">
+              <p className="text-lg text-gray-300 mb-1">
+                Olá, <span className="font-semibold text-white">{user.username || user.name}</span>!
+              </p>
+              <p className="text-md text-gray-400">
+                Você está acessando como usuário de: <span className="font-semibold text-red-400">{user.cartorio_name}</span>
+              </p>
+            </div>
           )}
           <p className="text-gray-400">
             Continue seu aprendizado ou explore novos conteúdos sobre os sistemas Siplan.

@@ -1,23 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-
-interface CartorioUser {
-  id: string;
-  username: string;
-  email?: string;
-  is_active: boolean;
-  created_at: string;
-}
+import { useCartorioUsers } from '@/hooks/useCartorioUsers';
 
 interface CartorioUsersManagementProps {
   cartorioId: string;
@@ -28,108 +18,32 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
   cartorioId,
   cartorioName
 }) => {
-  const [users, setUsers] = useState<CartorioUser[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { users, isLoading, createUser, updateUser, deleteUser } = useCartorioUsers(cartorioId);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<CartorioUser | null>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [userForm, setUserForm] = useState({
     username: '',
     email: '',
     is_active: true
   });
 
-  const loadUsers = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('cartorio_usuarios')
-        .select('*')
-        .eq('cartorio_id', cartorioId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast({
-        title: "Erro ao carregar usuários",
-        description: "Não foi possível carregar a lista de usuários.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadUsers();
-  }, [cartorioId]);
-
   const handleSaveUser = async () => {
     if (!userForm.username.trim()) {
-      toast({
-        title: "Dados incompletos",
-        description: "O nome de usuário é obrigatório.",
-        variant: "destructive",
-      });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      if (editingUser) {
-        // Atualizar usuário existente
-        const { error } = await supabase
-          .from('cartorio_usuarios')
-          .update({
-            username: userForm.username.trim(),
-            email: userForm.email.trim() || null,
-            is_active: userForm.is_active
-          })
-          .eq('id', editingUser.id);
+    const success = editingUser 
+      ? await updateUser(editingUser.id, userForm)
+      : await createUser(userForm);
 
-        if (error) throw error;
-
-        toast({
-          title: "Usuário atualizado",
-          description: `O usuário "${userForm.username}" foi atualizado com sucesso.`,
-        });
-      } else {
-        // Criar novo usuário
-        const { error } = await supabase
-          .from('cartorio_usuarios')
-          .insert({
-            cartorio_id: cartorioId,
-            username: userForm.username.trim(),
-            email: userForm.email.trim() || null,
-            is_active: userForm.is_active
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: "Usuário criado",
-          description: `O usuário "${userForm.username}" foi criado com sucesso.`,
-        });
-      }
-
+    if (success) {
       setIsModalOpen(false);
       setEditingUser(null);
       setUserForm({ username: '', email: '', is_active: true });
-      loadUsers();
-    } catch (error) {
-      console.error('Error saving user:', error);
-      toast({
-        title: "Erro ao salvar usuário",
-        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleEditUser = (user: CartorioUser) => {
+  const handleEditUser = (user: any) => {
     setEditingUser(user);
     setUserForm({
       username: user.username,
@@ -137,38 +51,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
       is_active: user.is_active
     });
     setIsModalOpen(true);
-  };
-
-  const handleDeleteUser = async (user: CartorioUser) => {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${user.username}"?`)) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('cartorio_usuarios')
-        .delete()
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Usuário excluído",
-        description: `O usuário "${user.username}" foi excluído com sucesso.`,
-      });
-
-      loadUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: "Erro ao excluir usuário",
-        description: "Ocorreu um erro ao excluir o usuário.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const openNewUserModal = () => {
@@ -305,7 +187,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteUser(user)}
+                        onClick={() => deleteUser(user)}
                         className="border-red-600 text-red-400 hover:bg-red-700/20"
                       >
                         <Trash2 className="h-4 w-4" />
