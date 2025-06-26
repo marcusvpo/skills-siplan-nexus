@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Upload, X, Play } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Play, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -18,11 +18,8 @@ interface VideoAula {
   url_video: string;
   id_video_bunny: string;
   url_thumbnail?: string;
-  transcricao_texto?: string;
-  tags_ia?: string[];
-  duracao_segundos: number;
   ordem: number;
-  modulo_id: string;
+  produto_id: string;
 }
 
 interface Sistema {
@@ -34,12 +31,6 @@ interface Produto {
   id: string;
   nome: string;
   sistema_id: string;
-}
-
-interface Modulo {
-  id: string;
-  titulo: string;
-  produto_id: string;
 }
 
 const VideoAulaEditor: React.FC = () => {
@@ -55,20 +46,17 @@ const VideoAulaEditor: React.FC = () => {
     url_video: '',
     id_video_bunny: '',
     url_thumbnail: '',
-    transcricao_texto: '',
-    tags_ia: [],
-    duracao_segundos: 0,
     ordem: 1,
-    modulo_id: ''
+    produto_id: ''
   });
   
   const [sistemas, setSistemas] = useState<Sistema[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [modulos, setModulos] = useState<Modulo[]>([]);
   const [selectedSistema, setSelectedSistema] = useState<string>('');
   const [selectedProduto, setSelectedProduto] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     loadSistemas();
@@ -79,7 +67,10 @@ const VideoAulaEditor: React.FC = () => {
       const sistemaId = searchParams.get('sistema_id');
       const produtoId = searchParams.get('produto_id');
       if (sistemaId) setSelectedSistema(sistemaId);
-      if (produtoId) setSelectedProduto(produtoId);
+      if (produtoId) {
+        setSelectedProduto(produtoId);
+        setVideoAula(prev => ({ ...prev, produto_id: produtoId }));
+      }
     }
   }, [id, searchParams]);
 
@@ -88,12 +79,6 @@ const VideoAulaEditor: React.FC = () => {
       loadProdutos(selectedSistema);
     }
   }, [selectedSistema]);
-
-  useEffect(() => {
-    if (selectedProduto) {
-      loadModulos(selectedProduto);
-    }
-  }, [selectedProduto]);
 
   const loadSistemas = async () => {
     const { data, error } = await supabase
@@ -122,47 +107,6 @@ const VideoAulaEditor: React.FC = () => {
     setProdutos(data || []);
   };
 
-  const loadModulos = async (produtoId: string) => {
-    let { data, error } = await supabase
-      .from('modulos')
-      .select('id, titulo, produto_id')
-      .eq('produto_id', produtoId)
-      .order('ordem');
-    
-    if (error) {
-      console.error('Error loading modulos:', error);
-      return;
-    }
-
-    // Se não há módulos, criar um automaticamente
-    if (!data || data.length === 0) {
-      const produto = produtos.find(p => p.id === produtoId);
-      if (produto) {
-        const { data: novoModulo, error: moduloError } = await supabase
-          .from('modulos')
-          .insert({
-            titulo: `Módulo Principal - ${produto.nome}`,
-            descricao: `Módulo principal do produto ${produto.nome}`,
-            produto_id: produtoId,
-            ordem: 1
-          })
-          .select()
-          .single();
-
-        if (moduloError) {
-          console.error('Error creating module:', moduloError);
-          return;
-        }
-        data = [novoModulo];
-      }
-    }
-
-    setModulos(data || []);
-    if (data && data.length > 0 && !videoAula.modulo_id) {
-      setVideoAula(prev => ({ ...prev, modulo_id: data[0].id }));
-    }
-  };
-
   const loadVideoAula = async () => {
     if (!id) return;
 
@@ -170,12 +114,9 @@ const VideoAulaEditor: React.FC = () => {
       .from('video_aulas')
       .select(`
         *,
-        modulos (
+        produtos (
           *,
-          produtos (
-            *,
-            sistemas (*)
-          )
+          sistemas (*)
         )
       `)
       .eq('id', id)
@@ -193,8 +134,7 @@ const VideoAulaEditor: React.FC = () => {
 
     if (data) {
       setVideoAula(data);
-      const modulo = data.modulos;
-      const produto = modulo?.produtos;
+      const produto = data.produtos;
       const sistema = produto?.sistemas;
       
       if (sistema) setSelectedSistema(sistema.id);
@@ -206,7 +146,14 @@ const VideoAulaEditor: React.FC = () => {
     if (!file) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
+    
     try {
+      // Simulação de progresso
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
       const formData = new FormData();
       formData.append('video', file);
       formData.append('title', videoAula.titulo || 'Nova Videoaula');
@@ -215,6 +162,9 @@ const VideoAulaEditor: React.FC = () => {
         body: formData
       });
 
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
       if (error) throw error;
 
       if (data?.videoId && data?.playbackUrl) {
@@ -222,7 +172,6 @@ const VideoAulaEditor: React.FC = () => {
           ...prev,
           id_video_bunny: data.videoId,
           url_video: data.playbackUrl,
-          duracao_segundos: data.duration || 0,
           url_thumbnail: data.thumbnailUrl || ''
         }));
 
@@ -233,6 +182,7 @@ const VideoAulaEditor: React.FC = () => {
       }
     } catch (error) {
       console.error('Error uploading video:', error);
+      setUploadProgress(0);
       toast({
         title: "Erro no upload",
         description: "Não foi possível enviar o vídeo.",
@@ -240,6 +190,7 @@ const VideoAulaEditor: React.FC = () => {
       });
     } finally {
       setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 2000);
     }
   };
 
@@ -247,13 +198,13 @@ const VideoAulaEditor: React.FC = () => {
     if (!videoAula.titulo.trim()) {
       toast({
         title: "Dados obrigatórios",
-        description: "Informe pelo menos o título da videoaula.",
+        description: "Informe o título da videoaula.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!videoAula.modulo_id) {
+    if (!videoAula.produto_id) {
       toast({
         title: "Dados obrigatórios",
         description: "Selecione um produto para associar a videoaula.",
@@ -267,14 +218,11 @@ const VideoAulaEditor: React.FC = () => {
       const videoData = {
         titulo: videoAula.titulo.trim(),
         descricao: videoAula.descricao?.trim() || null,
-        url_video: videoAula.url_video.trim(),
-        id_video_bunny: videoAula.id_video_bunny.trim(),
+        url_video: videoAula.url_video?.trim() || '',
+        id_video_bunny: videoAula.id_video_bunny?.trim() || '',
         url_thumbnail: videoAula.url_thumbnail?.trim() || null,
-        transcricao_texto: videoAula.transcricao_texto?.trim() || null,
-        tags_ia: videoAula.tags_ia || [],
-        duracao_segundos: videoAula.duracao_segundos || 0,
-        ordem: videoAula.ordem,
-        modulo_id: videoAula.modulo_id
+        ordem: videoAula.ordem || 1,
+        produto_id: videoAula.produto_id
       };
 
       if (isEditing) {
@@ -287,7 +235,7 @@ const VideoAulaEditor: React.FC = () => {
 
         toast({
           title: "Videoaula atualizada",
-          description: `Videoaula "${videoAula.titulo}" foi atualizada com sucesso.`,
+          description: `"${videoAula.titulo}" foi atualizada com sucesso.`,
         });
       } else {
         const { error } = await supabase
@@ -298,7 +246,7 @@ const VideoAulaEditor: React.FC = () => {
 
         toast({
           title: "Videoaula criada",
-          description: `Videoaula "${videoAula.titulo}" foi criada com sucesso.`,
+          description: `"${videoAula.titulo}" foi criada com sucesso.`,
         });
       }
 
@@ -313,12 +261,6 @@ const VideoAulaEditor: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -364,12 +306,12 @@ const VideoAulaEditor: React.FC = () => {
         {/* Editor Content */}
         <div className="container mx-auto px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Video Area */}
+            {/* Main Video Area - WYSIWYG */}
             <div className="lg:col-span-2 space-y-6">
               {/* Video Player/Upload Area */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative flex items-center justify-center">
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative flex items-center justify-center border border-gray-600">
                     {videoAula.url_video ? (
                       <div className="w-full h-full">
                         <video
@@ -379,16 +321,35 @@ const VideoAulaEditor: React.FC = () => {
                         >
                           <source src={videoAula.url_video} type="video/mp4" />
                         </video>
+                        <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center">
+                          <Check className="h-3 w-3 mr-1" />
+                          Vídeo Carregado
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center">
                         <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-400 mb-4">Nenhum vídeo carregado</p>
+                        <p className="text-gray-400 mb-2">Nenhum vídeo carregado</p>
+                        <p className="text-gray-500 text-sm">Faça o upload ou configure o ID do Bunny.net</p>
+                      </div>
+                    )}
+                    
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-32 h-2 bg-gray-700 rounded-full mb-2">
+                            <div 
+                              className="h-full bg-red-600 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-white text-sm">Enviando... {uploadProgress}%</p>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Video Upload */}
+                  {/* Video Upload Controls */}
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -402,14 +363,10 @@ const VideoAulaEditor: React.FC = () => {
                           if (file) handleVideoUpload(file);
                         }}
                         disabled={isUploading}
-                        className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 file:cursor-pointer"
+                        className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 file:cursor-pointer disabled:opacity-50"
                       />
-                      {isUploading && (
-                        <p className="text-sm text-red-400 mt-2">Enviando vídeo...</p>
-                      )}
                     </div>
 
-                    {/* Video Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -424,13 +381,13 @@ const VideoAulaEditor: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Duração
+                          URL do Vídeo
                         </label>
                         <Input
-                          value={videoAula.duracao_segundos ? formatDuration(videoAula.duracao_segundos) : ''}
-                          readOnly
-                          className="bg-gray-700 border-gray-600 text-gray-300"
-                          placeholder="Detectado automaticamente"
+                          value={videoAula.url_video}
+                          onChange={(e) => setVideoAula(prev => ({ ...prev, url_video: e.target.value }))}
+                          className="bg-gray-800 border-gray-600 text-white"
+                          placeholder="URL de reprodução"
                         />
                       </div>
                     </div>
@@ -450,7 +407,7 @@ const VideoAulaEditor: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Title */}
+              {/* Title - WYSIWYG */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -465,7 +422,7 @@ const VideoAulaEditor: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Description */}
+              {/* Description - WYSIWYG */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -479,42 +436,9 @@ const VideoAulaEditor: React.FC = () => {
                   />
                 </CardContent>
               </Card>
-
-              {/* Transcription and Tags */}
-              <Card className="bg-gray-900 border-gray-700">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Transcrição (preenchida automaticamente)
-                      </label>
-                      <Textarea
-                        value={videoAula.transcricao_texto || ''}
-                        onChange={(e) => setVideoAula(prev => ({ ...prev, transcricao_texto: e.target.value }))}
-                        className="bg-gray-800 border-gray-600 text-white min-h-[80px]"
-                        placeholder="Transcrição será gerada automaticamente..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Tags IA (separadas por vírgula)
-                      </label>
-                      <Input
-                        value={videoAula.tags_ia?.join(', ') || ''}
-                        onChange={(e) => setVideoAula(prev => ({ 
-                          ...prev, 
-                          tags_ia: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag) 
-                        }))}
-                        className="bg-gray-800 border-gray-600 text-white"
-                        placeholder="tags, automaticas, ia"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
-            {/* Sidebar - Settings */}
+            {/* Sidebar - Settings & AI Chat Preview */}
             <div className="space-y-6">
               {/* Configuration */}
               <Card className="bg-gray-900 border-gray-700">
@@ -542,9 +466,15 @@ const VideoAulaEditor: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Produto
+                        Produto *
                       </label>
-                      <Select value={selectedProduto} onValueChange={setSelectedProduto}>
+                      <Select 
+                        value={selectedProduto} 
+                        onValueChange={(value) => {
+                          setSelectedProduto(value);
+                          setVideoAula(prev => ({ ...prev, produto_id: value }));
+                        }}
+                      >
                         <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                           <SelectValue placeholder="Selecione o produto" />
                         </SelectTrigger>
@@ -552,27 +482,6 @@ const VideoAulaEditor: React.FC = () => {
                           {produtos.map((produto) => (
                             <SelectItem key={produto.id} value={produto.id} className="text-white">
                               {produto.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Módulo
-                      </label>
-                      <Select 
-                        value={videoAula.modulo_id} 
-                        onValueChange={(value) => setVideoAula(prev => ({ ...prev, modulo_id: value }))}
-                      >
-                        <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                          <SelectValue placeholder="Selecione o módulo" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
-                          {modulos.map((modulo) => (
-                            <SelectItem key={modulo.id} value={modulo.id} className="text-white">
-                              {modulo.titulo}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -595,16 +504,56 @@ const VideoAulaEditor: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* AI Chat Placeholder */}
+              {/* AI Chat Preview - WYSIWYG */}
               <Card className="bg-gray-900 border-gray-700">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Chat com IA</h3>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                    <p className="text-gray-400 text-sm text-center">
-                      💬 Chat com IA disponível para o usuário final aqui
-                    </p>
-                    <p className="text-gray-500 text-xs text-center mt-2">
-                      Esta área será funcional na visualização do usuário
+                  <h3 className="text-lg font-semibold text-white mb-4">Chat com IA (Preview)</h3>
+                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-600 min-h-[300px]">
+                    <div className="flex flex-col space-y-3">
+                      {/* Simulated Chat Messages */}
+                      <div className="bg-gray-700 rounded-lg p-3 text-sm">
+                        <div className="font-semibold text-blue-400 mb-1">IA Assistant</div>
+                        <div className="text-gray-300">
+                          Olá! Sou seu assistente de IA para esta videoaula. 
+                          Posso responder dúvidas sobre o conteúdo apresentado.
+                        </div>
+                      </div>
+                      
+                      <div className="bg-red-600/20 rounded-lg p-3 text-sm ml-8">
+                        <div className="font-semibold text-gray-300 mb-1">Você</div>
+                        <div className="text-gray-300">
+                          Exemplo de pergunta do usuário...
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-700 rounded-lg p-3 text-sm">
+                        <div className="font-semibold text-blue-400 mb-1">IA Assistant</div>
+                        <div className="text-gray-300">
+                          Resposta baseada na transcrição e contexto do vídeo...
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Chat Input Preview */}
+                    <div className="mt-4 pt-4 border-t border-gray-600">
+                      <div className="flex space-x-2">
+                        <input 
+                          type="text" 
+                          placeholder="Digite sua pergunta..." 
+                          className="flex-1 bg-gray-700 text-white px-3 py-2 rounded text-sm"
+                          disabled
+                        />
+                        <button className="bg-red-600 text-white px-4 py-2 rounded text-sm" disabled>
+                          Enviar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-700">
+                    <p className="text-blue-300 text-xs">
+                      💡 <strong>Preview do Chat IA:</strong> Esta interface será funcional para os usuários finais, 
+                      alimentada pela transcrição automática do vídeo e integrada via n8n.
                     </p>
                   </div>
                 </CardContent>

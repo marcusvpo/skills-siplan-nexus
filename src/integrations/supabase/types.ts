@@ -257,49 +257,40 @@ export type Database = {
       video_aulas: {
         Row: {
           descricao: string | null
-          duracao_segundos: number | null
           id: string
-          id_video_bunny: string
-          modulo_id: string
+          id_video_bunny: string | null
           ordem: number | null
-          tags_ia: string[] | null
+          produto_id: string | null
           titulo: string
-          transcricao_texto: string | null
           url_thumbnail: string | null
           url_video: string
         }
         Insert: {
           descricao?: string | null
-          duracao_segundos?: number | null
           id?: string
-          id_video_bunny: string
-          modulo_id: string
+          id_video_bunny?: string | null
           ordem?: number | null
-          tags_ia?: string[] | null
+          produto_id?: string | null
           titulo: string
-          transcricao_texto?: string | null
           url_thumbnail?: string | null
           url_video: string
         }
         Update: {
           descricao?: string | null
-          duracao_segundos?: number | null
           id?: string
-          id_video_bunny?: string
-          modulo_id?: string
+          id_video_bunny?: string | null
           ordem?: number | null
-          tags_ia?: string[] | null
+          produto_id?: string | null
           titulo?: string
-          transcricao_texto?: string | null
           url_thumbnail?: string | null
           url_video?: string
         }
         Relationships: [
           {
-            foreignKeyName: "video_aulas_modulo_id_fkey"
-            columns: ["modulo_id"]
+            foreignKeyName: "video_aulas_produto_id_fkey"
+            columns: ["produto_id"]
             isOneToOne: false
-            referencedRelation: "modulos"
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]

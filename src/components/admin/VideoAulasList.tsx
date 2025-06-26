@@ -28,9 +28,8 @@ interface VideoAula {
   descricao?: string;
   url_video: string;
   id_video_bunny: string;
-  duracao_segundos: number;
   ordem: number;
-  modulo_id: string;
+  produto_id: string;
 }
 
 interface VideoAulasListProps {
@@ -91,12 +90,6 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
     navigate(`/admin/video-aulas/nova?sistema_id=${sistema.id}&produto_id=${produto.id}`);
   };
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -135,7 +128,7 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
               )}
               <div className="flex items-center space-x-4 text-sm text-gray-400">
                 <span>Ordem: {videoAula.ordem}</span>
-                <span>Duração: {formatDuration(videoAula.duracao_segundos)}</span>
+                <span>ID Bunny: {videoAula.id_video_bunny || 'Não configurado'}</span>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -143,11 +136,12 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(videoAula.url_video, '_blank')}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                  onClick={() => videoAula.url_video && window.open(videoAula.url_video, '_blank')}
+                  disabled={!videoAula.url_video}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Visualizar
+                  {videoAula.url_video ? 'Visualizar' : 'Sem vídeo'}
                 </Button>
                 <div className="flex space-x-2">
                   <Button
