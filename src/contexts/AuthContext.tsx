@@ -9,6 +9,8 @@ interface User {
   type: 'cartorio' | 'admin';
   token?: string;
   cartorio_id?: string;
+  cartorio_name?: string;
+  username?: string;
   email?: string;
 }
 
@@ -110,6 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type,
       token: type === 'cartorio' ? token : undefined,
       cartorio_id: userData?.cartorio_id,
+      cartorio_name: userData?.cartorio_name,
+      username: userData?.username,
       email: userData?.email
     };
     
