@@ -14,6 +14,7 @@ import ProductPage from "./pages/ProductPage";
 import ModulePage from "./pages/ModulePage";
 import VideoLesson from "./pages/VideoLesson";
 import AdminDashboard from "./pages/AdminDashboard";
+import VideoAulaEditor from "./pages/VideoAulaEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,8 @@ const App = () => (
             <Route path="/system/:systemId/product/:productId/module/:moduleId" element={<ModulePage />} />
             <Route path="/system/:systemId/product/:productId/lesson/:lessonId" element={<VideoLesson />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/video-aulas/nova" element={<VideoAulaEditor />} />
+            <Route path="/admin/video-aulas/editar/:id" element={<VideoAulaEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

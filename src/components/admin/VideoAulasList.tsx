@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Edit, Trash2, ArrowLeft, Play } from 'lucide-react';
-import { VideoAulaForm } from './VideoAulaForm';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface Sistema {
   id: string;
@@ -48,8 +48,7 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
   onVideoAulasChange,
   onBack
 }) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingVideoAula, setEditingVideoAula] = useState<VideoAula | null>(null);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async (videoAulaId: string, videoAulaTitle: string) => {
@@ -84,15 +83,12 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
     }
   };
 
-  const handleFormSuccess = () => {
-    setShowForm(false);
-    setEditingVideoAula(null);
-    onVideoAulasChange();
+  const handleEdit = (videoAula: VideoAula) => {
+    navigate(`/admin/video-aulas/editar/${videoAula.id}`);
   };
 
-  const handleEdit = (videoAula: VideoAula) => {
-    setEditingVideoAula(videoAula);
-    setShowForm(true);
+  const handleCreateNew = () => {
+    navigate(`/admin/video-aulas/nova?sistema_id=${sistema.id}&produto_id=${produto.id}`);
   };
 
   const formatDuration = (seconds: number) => {
@@ -121,26 +117,13 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
           </div>
         </div>
         <Button
-          onClick={() => setShowForm(true)}
+          onClick={handleCreateNew}
           className="bg-orange-600 hover:bg-orange-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar Nova Videoaula
         </Button>
       </div>
-
-      {showForm && (
-        <VideoAulaForm
-          sistema={sistema}
-          produto={produto}
-          videoAula={editingVideoAula}
-          onSuccess={handleFormSuccess}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingVideoAula(null);
-          }}
-        />
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {videoAulas.map((videoAula) => (
