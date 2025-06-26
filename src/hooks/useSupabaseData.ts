@@ -12,6 +12,8 @@ export const useSistemas = () => {
     queryFn: async () => {
       if (!client) return [];
       
+      console.log('Fetching sistemas with client type:', user?.type);
+      
       const { data, error } = await client
         .from('sistemas')
         .select(`
@@ -30,9 +32,13 @@ export const useSistemas = () => {
         console.error('Error fetching sistemas:', error);
         throw error;
       }
+      
+      console.log('Sistemas fetched successfully:', data);
       return data || [];
     },
-    enabled: !!client
+    enabled: !!client,
+    retry: 3,
+    retryDelay: 1000
   });
 };
 
