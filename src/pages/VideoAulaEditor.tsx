@@ -114,9 +114,9 @@ const VideoAulaEditor: React.FC = () => {
       .from('video_aulas')
       .select(`
         *,
-        produtos (
+        produtos!inner (
           *,
-          sistemas (*)
+          sistemas!inner (*)
         )
       `)
       .eq('id', id)
