@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SystemsList } from './SystemsList';
 import { ProductsList } from './ProductsList';
@@ -24,8 +25,7 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   url_video: string;
-  id_video_bunny?: string | null;
-  url_thumbnail?: string;
+  id_video_bunny: string;
   ordem: number;
   produto_id: string;
 }
@@ -104,7 +104,12 @@ export const ContentManager: React.FC = () => {
       
       console.log('Video aulas loaded:', data, 'Error:', error);
       if (!error && data) {
-        setVideoAulas(data);
+        // Map the data to ensure id_video_bunny is never null
+        const mappedVideoAulas = data.map(videoAula => ({
+          ...videoAula,
+          id_video_bunny: videoAula.id_video_bunny || ''
+        }));
+        setVideoAulas(mappedVideoAulas);
       } else {
         console.error('Error loading video aulas:', error);
       }
