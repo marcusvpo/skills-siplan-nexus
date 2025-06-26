@@ -26,14 +26,14 @@ interface ProductsListFixedProps {
   sistema: Sistema;
   produtos: Produto[];
   onBack: () => void;
-  onSelectProduct: (produto: Produto) => void;
+  onViewVideoAulas: (produto: Produto) => void;
 }
 
 export const ProductsListFixed: React.FC<ProductsListFixedProps> = ({
   sistema,
   produtos,
   onBack,
-  onSelectProduct
+  onViewVideoAulas
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
@@ -123,7 +123,7 @@ export const ProductsListFixed: React.FC<ProductsListFixedProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectProduct(produto)}
+                  onClick={() => onViewVideoAulas(produto)}
                   className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                 >
                   <Video className="h-4 w-4 mr-2" />

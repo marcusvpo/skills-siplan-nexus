@@ -16,12 +16,12 @@ interface Sistema {
 
 interface SystemsListFixedProps {
   sistemas: Sistema[];
-  onSelectSystem: (sistema: Sistema) => void;
+  onViewProdutos: (sistema: Sistema) => void;
 }
 
 export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
   sistemas,
-  onSelectSystem
+  onViewProdutos
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingSystem, setEditingSystem] = useState<Sistema | null>(null);
@@ -97,7 +97,7 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectSystem(sistema)}
+                  onClick={() => onViewProdutos(sistema)}
                   className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                 >
                   <FolderOpen className="h-4 w-4 mr-2" />
