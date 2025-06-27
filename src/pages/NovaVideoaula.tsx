@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { VideoAulaFormFixed } from '@/components/admin/VideoAulaFormFixed';
+import { VideoAulaFormAdmin } from '@/components/admin/VideoAulaFormAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -113,7 +113,7 @@ const NovaVideoaula: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <VideoAulaFormFixed 
+        <VideoAulaFormAdmin 
           sistema={sistema}
           produto={produto}
           onSuccess={handleSuccess}

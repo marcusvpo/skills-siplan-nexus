@@ -25,7 +25,9 @@ import {
   Settings
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
-import { useCartoriosWithAcessos, useCreateCartorio } from '@/hooks/useSupabaseDataRefactored';
+import { useCreateCartorio } from '@/hooks/useSupabaseDataRefactored';
+import { useCartoriosAdmin } from '@/hooks/useCartoriosAdmin';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
 import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioEditor } from './CartorioEditor';
@@ -44,27 +46,41 @@ const CartorioManagerAudited: React.FC = () => {
     data_expiracao: ''
   });
 
-  const { data: cartorios = [], isLoading, error, refetch } = useCartoriosWithAcessos();
+  const { isAdmin, isLoading: authLoading, error: authError } = useAdminAuth();
+  const { data: cartorios = [], isLoading, error, refetch } = useCartoriosAdmin();
   const createCartorioMutation = useCreateCartorio();
 
   React.useEffect(() => {
     logger.info('🏢 [CartorioManagerAudited] Component mounted', { 
       cartoriosCount: cartorios.length,
       isLoading,
-      hasError: !!error 
+      hasError: !!error,
+      isAdmin,
+      authLoading
     });
-  }, [cartorios.length, isLoading, error]);
+  }, [cartorios.length, isLoading, error, isAdmin, authLoading]);
 
   React.useEffect(() => {
     if (error) {
       logger.error('❌ [CartorioManagerAudited] Error loading cartorios:', error);
       toast({
         title: "Erro ao carregar cartórios",
-        description: "Não foi possível carregar a lista de cartórios. Tente recarregar a página.",
+        description: "Não foi possível carregar a lista de cartórios. Verifique as permissões administrativas.",
         variant: "destructive",
       });
     }
   }, [error]);
+
+  React.useEffect(() => {
+    if (authError) {
+      logger.error('❌ [CartorioManagerAudited] Auth error:', authError);
+      toast({
+        title: "Erro de autenticação",
+        description: authError,
+        variant: "destructive",
+      });
+    }
+  }, [authError]);
 
   const validateCartorioData = () => {
     const errors: string[] = [];
@@ -190,12 +206,34 @@ const CartorioManagerAudited: React.FC = () => {
     return daysUntilExpiration <= 30 && daysUntilExpiration > 0;
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando cartórios...</p>
+          <p className="text-gray-400">
+            {authLoading ? 'Verificando permissões...' : 'Carregando cartórios...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-white mb-2">Acesso negado</h3>
+          <p className="text-gray-400 text-center mb-4">
+            Você precisa ter permissões administrativas para acessar esta seção.
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Tentar Novamente
+          </Button>
         </div>
       </div>
     );
@@ -208,7 +246,7 @@ const CartorioManagerAudited: React.FC = () => {
           <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-white mb-2">Erro ao carregar dados</h3>
           <p className="text-gray-400 text-center mb-4">
-            Não foi possível carregar os cartórios. Verifique sua conexão e tente novamente.
+            Não foi possível carregar os cartórios. Verifique sua conexão e permissões.
           </p>
           <Button
             onClick={() => refetch()}
