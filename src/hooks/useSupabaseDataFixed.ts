@@ -20,6 +20,343 @@ interface UpdateVideoAulaData extends CreateVideoAulaData {
   id: string;
 }
 
+// Interface para progresso
+interface UpdateProgressData {
+  videoAulaId: string;
+  progressoSegundos: number;
+  completo: boolean;
+  cartorioId: string;
+}
+
+// Hook para buscar sistemas com produtos e videoaulas para admin
+export const useSistemasFixed = () => {
+  return useQuery({
+    queryKey: ['sistemas-with-video-aulas'],
+    queryFn: async () => {
+      logger.info('🔧 [useSistemasFixed] Fetching sistemas with full hierarchy');
+
+      try {
+        const { data: sistemas, error } = await supabase
+          .from('sistemas')
+          .select(`
+            *,
+            produtos (
+              *,
+              modulos (
+                *,
+                video_aulas (*)
+              )
+            )
+          `)
+          .order('ordem', { ascending: true });
+
+        if (error) {
+          logger.error('❌ [useSistemasFixed] Error fetching sistemas:', { error });
+          throw new Error(`Erro ao carregar sistemas: ${error.message}`);
+        }
+
+        logger.info('✅ [useSistemasFixed] Successfully fetched sistemas:', { 
+          count: sistemas?.length || 0 
+        });
+
+        return sistemas || [];
+      } catch (error) {
+        logger.error('❌ [useSistemasFixed] Unexpected error:', error);
+        throw error;
+      }
+    },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  });
+};
+
+// Hook para buscar sistemas para usuários de cartório
+export const useSistemasCartorio = () => {
+  return useQuery({
+    queryKey: ['sistemas-cartorio'],
+    queryFn: async () => {
+      logger.info('🏢 [useSistemasCartorio] Fetching sistemas for cartorio user');
+
+      try {
+        const { data: sistemas, error } = await supabase
+          .from('sistemas')
+          .select(`
+            *,
+            produtos (
+              *,
+              modulos (
+                *,
+                video_aulas (*)
+              )
+            )
+          `)
+          .order('ordem', { ascending: true });
+
+        if (error) {
+          logger.error('❌ [useSistemasCartorio] Error fetching sistemas:', { error });
+          throw new Error(`Erro ao carregar sistemas: ${error.message}`);
+        }
+
+        logger.info('✅ [useSistemasCartorio] Successfully fetched sistemas:', { 
+          count: sistemas?.length || 0 
+        });
+
+        return sistemas || [];
+      } catch (error) {
+        logger.error('❌ [useSistemasCartorio] Unexpected error:', error);
+        throw error;
+      }
+    },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  });
+};
+
+// Hook para visualizações
+export const useVisualizacoes = () => {
+  return useQuery({
+    queryKey: ['visualizacoes'],
+    queryFn: async () => {
+      logger.info('👁️ [useVisualizacoes] Fetching visualizacoes');
+
+      try {
+        const { data, error } = await supabase
+          .from('visualizacoes_cartorio')
+          .select(`
+            *,
+            video_aulas (
+              *,
+              modulos (
+                *,
+                produtos (
+                  *,
+                  sistemas (*)
+                )
+              )
+            )
+          `)
+          .order('ultima_visualizacao', { ascending: false });
+
+        if (error) {
+          logger.error('❌ [useVisualizacoes] Error fetching visualizacoes:', { error });
+          throw new Error(`Erro ao carregar visualizações: ${error.message}`);
+        }
+
+        return data || [];
+      } catch (error) {
+        logger.error('❌ [useVisualizacoes] Unexpected error:', error);
+        throw error;
+      }
+    },
+  });
+};
+
+// Hook para favoritos
+export const useFavoritos = (cartorioId: string) => {
+  return useQuery({
+    queryKey: ['favoritos', cartorioId],
+    queryFn: async () => {
+      if (!cartorioId) return [];
+
+      logger.info('⭐ [useFavoritos] Fetching favoritos for cartorio:', { cartorioId });
+
+      try {
+        const { data, error } = await supabase
+          .from('favoritos_cartorio')
+          .select(`
+            *,
+            video_aulas (
+              *,
+              modulos (
+                *,
+                produtos (
+                  *,
+                  sistemas (*)
+                )
+              )
+            )
+          `)
+          .eq('cartorio_id', cartorioId)
+          .order('data_favoritado', { ascending: false });
+
+        if (error) {
+          logger.error('❌ [useFavoritos] Error fetching favoritos:', { error });
+          throw new Error(`Erro ao carregar favoritos: ${error.message}`);
+        }
+
+        return data || [];
+      } catch (error) {
+        logger.error('❌ [useFavoritos] Unexpected error:', error);
+        throw error;
+      }
+    },
+    enabled: !!cartorioId,
+  });
+};
+
+// Hook para atualizar progresso
+export const useUpdateProgress = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateProgressData) => {
+      logger.info('📊 [useUpdateProgress] Updating progress:', data);
+
+      try {
+        const { data: result, error } = await supabase
+          .from('visualizacoes_cartorio')
+          .upsert({
+            video_aula_id: data.videoAulaId,
+            cartorio_id: data.cartorioId,
+            progresso_segundos: data.progressoSegundos,
+            completo: data.completo,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          logger.error('❌ [useUpdateProgress] Database error:', { error });
+          throw new Error(`Erro ao atualizar progresso: ${error.message}`);
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('❌ [useUpdateProgress] Unexpected error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['visualizacoes'] });
+    },
+  });
+};
+
+// Hooks para sistemas
+export const useCreateSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { nome: string; descricao?: string; ordem: number }) => {
+      const { data: result, error } = await supabase
+        .from('sistemas')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Sistema criado com sucesso!" });
+    },
+  });
+};
+
+export const useUpdateSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; nome: string; descricao?: string; ordem: number }) => {
+      const { data: result, error } = await supabase
+        .from('sistemas')
+        .update(data)
+        .eq('id', data.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Sistema atualizado com sucesso!" });
+    },
+  });
+};
+
+export const useDeleteSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('sistemas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Sistema deletado com sucesso!" });
+    },
+  });
+};
+
+// Hooks para produtos
+export const useCreateProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { nome: string; descricao?: string; sistema_id: string; ordem: number }) => {
+      const { data: result, error } = await supabase
+        .from('produtos')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Produto criado com sucesso!" });
+    },
+  });
+};
+
+export const useUpdateProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; nome: string; descricao?: string; ordem: number }) => {
+      const { data: result, error } = await supabase
+        .from('produtos')
+        .update(data)
+        .eq('id', data.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Produto atualizado com sucesso!" });
+    },
+  });
+};
+
+export const useDeleteProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      toast({ title: "Produto deletado com sucesso!" });
+    },
+  });
+};
+
 // Hook para criar videoaula com tratamento robusto de erros
 export const useCreateVideoAula = () => {
   const queryClient = useQueryClient();
@@ -177,44 +514,5 @@ export const useDeleteVideoAula = () => {
         variant: "destructive",
       });
     }
-  });
-};
-
-// Hook para buscar sistemas para usuários de cartório
-export const useSistemasCartorio = () => {
-  return useQuery({
-    queryKey: ['sistemas-cartorio'],
-    queryFn: async () => {
-      logger.info('🏢 [useSistemasCartorio] Fetching sistemas for cartorio user');
-
-      try {
-        const { data: sistemas, error } = await supabase
-          .from('sistemas')
-          .select(`
-            *,
-            produtos (
-              *,
-              video_aulas (*)
-            )
-          `)
-          .order('ordem', { ascending: true });
-
-        if (error) {
-          logger.error('❌ [useSistemasCartorio] Error fetching sistemas:', { error });
-          throw new Error(`Erro ao carregar sistemas: ${error.message}`);
-        }
-
-        logger.info('✅ [useSistemasCartorio] Successfully fetched sistemas:', { 
-          count: sistemas?.length || 0 
-        });
-
-        return sistemas || [];
-      } catch (error) {
-        logger.error('❌ [useSistemasCartorio] Unexpected error:', error);
-        throw error;
-      }
-    },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 };

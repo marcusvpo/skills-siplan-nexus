@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateVideoAula } from '@/hooks/useSupabaseDataFixed';
+import { useCreateVideoAula, useUpdateVideoAula } from '@/hooks/useSupabaseDataFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 import { Save, X, Loader2 } from 'lucide-react';
@@ -25,9 +25,21 @@ interface Produto {
   ordem: number;
 }
 
+interface VideoAula {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  url_video: string;
+  id_video_bunny?: string;
+  url_thumbnail?: string;
+  ordem: number;
+  produto_id: string;
+}
+
 interface VideoAulaFormFixedProps {
   sistema: Sistema;
   produto: Produto;
+  videoAula?: VideoAula | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -35,20 +47,22 @@ interface VideoAulaFormFixedProps {
 export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
   sistema,
   produto,
+  videoAula,
   onSuccess,
   onCancel
 }) => {
   const [formData, setFormData] = useState({
-    titulo: '',
-    descricao: '',
-    url_video: '',
-    id_video_bunny: '',
-    url_thumbnail: '',
-    ordem: 1
+    titulo: videoAula?.titulo || '',
+    descricao: videoAula?.descricao || '',
+    url_video: videoAula?.url_video || '',
+    id_video_bunny: videoAula?.id_video_bunny || '',
+    url_thumbnail: videoAula?.url_thumbnail || '',
+    ordem: videoAula?.ordem || 1
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createVideoAula = useCreateVideoAula();
+  const updateVideoAula = useUpdateVideoAula();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,19 +89,35 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     logger.info('📹 [VideoAulaFormFixed] Submitting form:', {
       titulo: formData.titulo,
       produto_id: produto.id,
-      sistema_id: sistema.id
+      sistema_id: sistema.id,
+      isEditing: !!videoAula
     });
 
     try {
-      await createVideoAula.mutateAsync({
-        titulo: formData.titulo.trim(),
-        descricao: formData.descricao.trim() || undefined,
-        url_video: formData.url_video.trim(),
-        id_video_bunny: formData.id_video_bunny.trim() || undefined,
-        url_thumbnail: formData.url_thumbnail.trim() || undefined,
-        produto_id: produto.id,
-        ordem: formData.ordem
-      });
+      if (videoAula) {
+        // Editing existing videoaula
+        await updateVideoAula.mutateAsync({
+          id: videoAula.id,
+          titulo: formData.titulo.trim(),
+          descricao: formData.descricao.trim() || undefined,
+          url_video: formData.url_video.trim(),
+          id_video_bunny: formData.id_video_bunny.trim() || undefined,
+          url_thumbnail: formData.url_thumbnail.trim() || undefined,
+          produto_id: produto.id,
+          ordem: formData.ordem
+        });
+      } else {
+        // Creating new videoaula
+        await createVideoAula.mutateAsync({
+          titulo: formData.titulo.trim(),
+          descricao: formData.descricao.trim() || undefined,
+          url_video: formData.url_video.trim(),
+          id_video_bunny: formData.id_video_bunny.trim() || undefined,
+          url_thumbnail: formData.url_thumbnail.trim() || undefined,
+          produto_id: produto.id,
+          ordem: formData.ordem
+        });
+      }
 
       logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
       onSuccess();
@@ -106,13 +136,13 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     }));
   };
 
-  const isLoading = isSubmitting || createVideoAula.isPending;
+  const isLoading = isSubmitting || createVideoAula.isPending || updateVideoAula.isPending;
 
   return (
     <Card className="bg-gray-800/50 border-gray-600">
       <CardHeader>
         <CardTitle className="text-white">
-          Nova Videoaula
+          {videoAula ? 'Editar Videoaula' : 'Nova Videoaula'}
         </CardTitle>
         <div className="text-sm text-gray-400">
           <p><strong>Sistema:</strong> {sistema.nome}</p>
@@ -225,7 +255,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Salvar Videoaula
+                  {videoAula ? 'Atualizar' : 'Salvar'} Videoaula
                 </>
               )}
             </Button>
