@@ -14,6 +14,7 @@ import ModulePage from '@/pages/ModulePage';
 import VideoLesson from '@/pages/VideoLesson';
 import VideoAulaEditor from '@/pages/VideoAulaEditor';
 import VideoAulaEditorWYSIWYG from '@/pages/VideoAulaEditorWYSIWYG';
+import NovaVideoaula from '@/pages/NovaVideoaula';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function App() {
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/videoaula/nova" element={<NovaVideoaula />} />
             <Route path="/admin/videoaula-editor" element={<VideoAulaEditorWYSIWYG />} />
             <Route path="/admin/videoaula-editor/:id" element={<VideoAulaEditorWYSIWYG />} />
             <Route path="/sistema/:sistemaId" element={<SystemPage />} />

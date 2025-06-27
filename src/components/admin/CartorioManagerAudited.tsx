@@ -20,15 +20,21 @@ import {
   XCircle,
   Users,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Edit2,
+  Settings
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { useCartoriosWithAcessos, useCreateCartorio } from '@/hooks/useSupabaseDataRefactored';
 import { toast } from '@/hooks/use-toast';
+import { CartorioUserManager } from './CartorioUserManager';
+import { CartorioEditor } from './CartorioEditor';
 
 const CartorioManagerAudited: React.FC = () => {
   const [isNewCartorioOpen, setIsNewCartorioOpen] = useState(false);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>({});
+  const [selectedCartorioForUsers, setSelectedCartorioForUsers] = useState<any>(null);
+  const [selectedCartorioForEdit, setSelectedCartorioForEdit] = useState<any>(null);
   const [newCartorio, setNewCartorio] = useState({
     nome: '',
     cidade: '',
@@ -383,6 +389,24 @@ const CartorioManagerAudited: React.FC = () => {
                       <Users className="h-3 w-3 mr-1" />
                       {cartorio.acessos_cartorio?.length || 0} acessos
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedCartorioForEdit(cartorio)}
+                      className="border-blue-600 text-blue-400 hover:bg-blue-700/20"
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedCartorioForUsers(cartorio)}
+                      className="border-green-600 text-green-400 hover:bg-green-700/20"
+                    >
+                      <Settings className="h-4 w-4 mr-1" />
+                      Usuários
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -507,6 +531,29 @@ const CartorioManagerAudited: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Modal de gerenciamento de usuários */}
+      {selectedCartorioForUsers && (
+        <CartorioUserManager
+          cartorioId={selectedCartorioForUsers.id}
+          cartorioName={selectedCartorioForUsers.nome}
+          isOpen={!!selectedCartorioForUsers}
+          onClose={() => setSelectedCartorioForUsers(null)}
+        />
+      )}
+
+      {/* Modal de edição de cartório */}
+      {selectedCartorioForEdit && (
+        <CartorioEditor
+          cartorio={selectedCartorioForEdit}
+          isOpen={!!selectedCartorioForEdit}
+          onClose={() => setSelectedCartorioForEdit(null)}
+          onUpdate={() => {
+            refetch();
+            setSelectedCartorioForEdit(null);
+          }}
+        />
+      )}
     </div>
   );
 };
