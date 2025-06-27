@@ -41,7 +41,19 @@ export const ContentManagerRefactored: React.FC = () => {
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
 
   const { data: sistemas = [], isLoading, refetch: refetchSistemas } = useSistemasWithVideoAulas();
-  const { data: videoAulas = [], refetch: refetchVideoAulas } = useVideoAulasByProduto(selectedProduto?.id || '');
+  const { data: videoAulasData = [], refetch: refetchVideoAulas } = useVideoAulasByProduto(selectedProduto?.id || '');
+
+  // Ensure type compatibility by mapping the data
+  const videoAulas: VideoAula[] = videoAulasData.map(va => ({
+    id: va.id,
+    titulo: va.titulo,
+    descricao: va.descricao,
+    url_video: va.url_video,
+    id_video_bunny: va.id_video_bunny,
+    url_thumbnail: va.url_thumbnail,
+    ordem: va.ordem,
+    produto_id: va.produto_id || selectedProduto?.id || ''
+  }));
 
   const handleViewProdutos = (sistema: Sistema) => {
     setSelectedSistema(sistema);

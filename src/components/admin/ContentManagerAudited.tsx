@@ -39,12 +39,12 @@ const ContentManagerAudited: React.FC = () => {
 
   // Log do estado atual para debugging
   React.useEffect(() => {
-    logger.info('🎯 [ContentManagerAudited] Current view state:', viewState);
+    logger.info('🎯 [ContentManagerAudited] Current view state:', { viewState });
   }, [viewState]);
 
   React.useEffect(() => {
     if (error) {
-      logger.error('❌ [ContentManagerAudited] Error loading data:', error);
+      logger.error('❌ [ContentManagerAudited] Error loading data:', { error });
       toast({
         title: "Erro ao carregar dados",
         description: "Não foi possível carregar o conteúdo. Tente novamente.",
@@ -54,7 +54,7 @@ const ContentManagerAudited: React.FC = () => {
   }, [error]);
 
   const handleNavigateToProductos = (sistemaId: string, sistemaNome: string) => {
-    logger.info('🧭 [ContentManagerAudited] Navigating to produtos of sistema:', sistemaId);
+    logger.info('🧭 [ContentManagerAudited] Navigating to produtos of sistema:', { sistemaId });
     setViewState({
       mode: 'produtos',
       sistemaId,
@@ -63,7 +63,7 @@ const ContentManagerAudited: React.FC = () => {
   };
 
   const handleNavigateToVideoaulas = (produtoId: string, produtoNome: string) => {
-    logger.info('🧭 [ContentManagerAudited] Navigating to videoaulas of produto:', produtoId);
+    logger.info('🧭 [ContentManagerAudited] Navigating to videoaulas of produto:', { produtoId });
     setViewState({
       ...viewState,
       mode: 'videoaulas',
@@ -90,13 +90,13 @@ const ContentManagerAudited: React.FC = () => {
   const handleCreateVideoAula = () => {
     if (!viewState.produtoId) return;
     
-    logger.info('➕ [ContentManagerAudited] Creating new videoaula for produto:', viewState.produtoId);
+    logger.info('➕ [ContentManagerAudited] Creating new videoaula for produto:', { produtoId: viewState.produtoId });
     
     navigate(`/admin/videoaula/nova?sistema_id=${viewState.sistemaId}&produto_id=${viewState.produtoId}`);
   };
 
   const handleEditVideoAula = (videoAulaId: string) => {
-    logger.info('✏️ [ContentManagerAudited] Editing videoaula:', videoAulaId);
+    logger.info('✏️ [ContentManagerAudited] Editing videoaula:', { videoAulaId });
     navigate(`/admin/videoaula/${videoAulaId}`);
   };
 
@@ -105,7 +105,7 @@ const ContentManagerAudited: React.FC = () => {
       return;
     }
 
-    logger.info('🗑️ [ContentManagerAudited] Deleting videoaula:', videoAulaId);
+    logger.info('🗑️ [ContentManagerAudited] Deleting videoaula:', { videoAulaId });
     
     try {
       await deleteVideoAulaMutation.mutateAsync(videoAulaId);
@@ -115,7 +115,7 @@ const ContentManagerAudited: React.FC = () => {
       });
       refetch();
     } catch (error) {
-      logger.error('❌ Error deleting videoaula:', error);
+      logger.error('❌ Error deleting videoaula:', { error });
       toast({
         title: "Erro ao excluir",
         description: "Não foi possível excluir a videoaula.",
