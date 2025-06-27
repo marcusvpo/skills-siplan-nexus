@@ -3,389 +3,93 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
+import { toast } from '@/hooks/use-toast';
 
-// Interfaces para tipagem robusta
-interface Sistema {
-  id: string;
-  nome: string;
-  descricao?: string;
-  ordem: number;
-  produtos?: Produto[];
-}
-
-interface Produto {
-  id: string;
-  nome: string;
-  descricao?: string;
-  sistema_id: string;
-  ordem: number;
-  video_aulas?: VideoAula[];
-}
-
-interface VideoAula {
-  id: string;
-  titulo: string;
-  descricao?: string;
-  url_video: string;
-  id_video_bunny?: string;
-  url_thumbnail?: string;
-  ordem: number;
-  produto_id: string;
-}
-
-interface Cartorio {
-  id: string;
-  nome: string;
-  cidade?: string;
-  estado?: string;
-  is_active: boolean;
-  data_cadastro: string;
-  observacoes?: string;
-  acessos_cartorio?: AcessoCartorio[];
-}
-
-interface AcessoCartorio {
-  id: string;
-  login_token: string;
-  cartorio_id: string;
-  data_expiracao: string;
-  email_contato: string;
-  ativo: boolean;
-  data_criacao: string;
-}
-
-// Hook para buscar sistemas com hierarquia completa - CORRIGIDO para resolver ambiguidade
 export const useSistemasWithVideoAulas = () => {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ['sistemas-hierarchical'],
-    queryFn: async (): Promise<Sistema[]> => {
-      logger.info('🔍 Iniciando busca hierárquica de sistemas', { userType: user?.type });
+    queryKey: ['sistemas-with-video-aulas'],
+    queryFn: async () => {
+      logger.info('🔍 [useSistemasWithVideoAulas] Fetching sistemas with video aulas');
       
-      try {
-        // Primeiro, buscar todos os sistemas
-        const { data: sistemas, error: sistemasError } = await supabase
-          .from('sistemas')
-          .select('id, nome, descricao, ordem')
-          .order('ordem', { ascending: true });
-        
-        if (sistemasError) {
-          logger.error('❌ Erro ao buscar sistemas', sistemasError);
-          throw sistemasError;
-        }
-        
-        logger.info(`✅ Encontrados ${sistemas?.length || 0} sistemas`);
-        
-        if (!sistemas || sistemas.length === 0) {
-          return [];
-        }
-        
-        // Para cada sistema, buscar seus produtos usando foreign key explícita
-        const sistemasComProdutos = await Promise.all(
-          sistemas.map(async (sistema) => {
-            const { data: produtos, error: produtosError } = await supabase
-              .from('produtos')
-              .select('id, nome, descricao, ordem, sistema_id')
-              .eq('sistema_id', sistema.id)
-              .order('ordem', { ascending: true });
-            
-            if (produtosError) {
-              logger.error(`❌ Erro ao buscar produtos do sistema ${sistema.nome}`, produtosError);
-              return { ...sistema, produtos: [] };
-            }
-            
-            logger.info(`📦 Sistema "${sistema.nome}": ${produtos?.length || 0} produtos`);
-            
-            // Para cada produto, buscar suas videoaulas
-            const produtosComVideoAulas = await Promise.all(
-              (produtos || []).map(async (produto) => {
-                const { data: videoAulas, error: videoAulasError } = await supabase
-                  .from('video_aulas')
-                  .select('id, titulo, descricao, url_video, url_thumbnail, ordem, produto_id, id_video_bunny')
-                  .eq('produto_id', produto.id)
-                  .order('ordem', { ascending: true });
-                
-                if (videoAulasError) {
-                  logger.error(`❌ Erro ao buscar videoaulas do produto ${produto.nome}`, videoAulasError);
-                  return { ...produto, video_aulas: [] };
-                }
-                
-                logger.info(`🎥 Produto "${produto.nome}": ${videoAulas?.length || 0} videoaulas`);
-                
-                return {
-                  ...produto,
-                  video_aulas: videoAulas || []
-                };
-              })
-            );
-            
-            return {
-              ...sistema,
-              produtos: produtosComVideoAulas
-            };
-          })
-        );
-        
-        logger.info('🎯 Hierarquia completa carregada com sucesso');
-        return sistemasComProdutos;
-        
-      } catch (error) {
-        logger.error('💥 Exceção ao carregar hierarquia de sistemas', error);
+      const { data, error } = await supabase
+        .from('sistemas')
+        .select(`
+          *,
+          produtos (
+            *,
+            video_aulas (*)
+          )
+        `)
+        .order('ordem', { ascending: true });
+      
+      if (error) {
+        logger.error('❌ [useSistemasWithVideoAulas] Error:', error);
         throw error;
       }
+      
+      logger.info('✅ [useSistemasWithVideoAulas] Success:', { count: data?.length });
+      return data || [];
     },
     retry: 3,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    retryDelay: 1000
   });
 };
 
-// Hook para buscar cartórios com acessos - CORRIGIDO para RLS
-export const useCartoriosWithAcessos = () => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['cartorios-with-acessos'],
-    queryFn: async (): Promise<Cartorio[]> => {
-      logger.info('🏢 Iniciando busca de cartórios', { userType: user?.type });
-      
-      try {
-        // Buscar cartórios primeiro
-        const { data: cartorios, error: cartoriosError } = await supabase
-          .from('cartorios')
-          .select('*')
-          .order('nome', { ascending: true });
-        
-        if (cartoriosError) {
-          logger.error('❌ Erro ao buscar cartórios', cartoriosError);
-          throw cartoriosError;
-        }
-        
-        logger.info(`✅ Encontrados ${cartorios?.length || 0} cartórios`);
-        
-        if (!cartorios || cartorios.length === 0) {
-          return [];
-        }
-        
-        // Para cada cartório, buscar seus acessos
-        const cartoriosComAcessos = await Promise.all(
-          cartorios.map(async (cartorio) => {
-            const { data: acessos, error: acessosError } = await supabase
-              .from('acessos_cartorio')
-              .select('*')
-              .eq('cartorio_id', cartorio.id)
-              .order('data_criacao', { ascending: false });
-            
-            if (acessosError) {
-              logger.error(`❌ Erro ao buscar acessos do cartório ${cartorio.nome}`, acessosError);
-              return { ...cartorio, acessos_cartorio: [] };
-            }
-            
-            logger.info(`🔑 Cartório "${cartorio.nome}": ${acessos?.length || 0} acessos`);
-            
-            return {
-              ...cartorio,
-              acessos_cartorio: acessos || []
-            };
-          })
-        );
-        
-        logger.info('🎯 Cartórios com acessos carregados com sucesso');
-        return cartoriosComAcessos;
-        
-      } catch (error) {
-        logger.error('💥 Exceção ao carregar cartórios', error);
-        throw error;
-      }
-    },
-    retry: 3,
-    retryDelay: 1000,
-    staleTime: 2 * 60 * 1000, // 2 minutos
-  });
-};
-
-// Hook para buscar videoaulas por produto
 export const useVideoAulasByProduto = (produtoId: string) => {
   return useQuery({
     queryKey: ['video-aulas-by-produto', produtoId],
-    queryFn: async (): Promise<VideoAula[]> => {
-      if (!produtoId) {
-        logger.info('🎥 ID do produto não fornecido');
-        return [];
-      }
+    queryFn: async () => {
+      if (!produtoId) return [];
       
-      logger.info('🎥 Buscando videoaulas do produto', { produtoId });
+      logger.info('🔍 [useVideoAulasByProduto] Fetching video aulas for produto:', { produtoId });
       
-      try {
-        const { data, error } = await supabase
-          .from('video_aulas')
-          .select('*')
-          .eq('produto_id', produtoId)
-          .order('ordem', { ascending: true });
-        
-        if (error) {
-          logger.error('❌ Erro ao buscar videoaulas', error);
-          throw error;
-        }
-        
-        logger.info(`✅ Encontradas ${data?.length || 0} videoaulas`);
-        return data || [];
-      } catch (error) {
-        logger.error('💥 Exceção ao buscar videoaulas', error);
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .select('*')
+        .eq('produto_id', produtoId)
+        .order('ordem', { ascending: true });
+      
+      if (error) {
+        logger.error('❌ [useVideoAulasByProduto] Error:', error);
         throw error;
       }
+      
+      logger.info('✅ [useVideoAulasByProduto] Success:', { count: data?.length });
+      return data || [];
     },
     enabled: !!produtoId,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: 3,
+    retryDelay: 1000
   });
 };
 
-// Hook para criar videoaula - CORRIGIDO para evitar carregamento infinito
-export const useCreateVideoAula = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (videoAulaData: { 
-      titulo: string; 
-      descricao?: string; 
-      produto_id: string; 
-      ordem: number;
-      url_video?: string;
-      id_video_bunny?: string;
-      url_thumbnail?: string;
-    }): Promise<VideoAula> => {
-      logger.info('🔧 Iniciando criação de videoaula', { titulo: videoAulaData.titulo });
+export const useCartoriosWithAcessos = () => {
+  return useQuery({
+    queryKey: ['cartorios-with-acessos'],
+    queryFn: async () => {
+      logger.info('🔍 [useCartoriosWithAcessos] Fetching cartorios with acessos');
       
-      try {
-        // Garantir que url_video tenha um valor padrão se não fornecido
-        const dataToInsert = {
-          titulo: videoAulaData.titulo.trim(),
-          descricao: videoAulaData.descricao?.trim() || null,
-          produto_id: videoAulaData.produto_id,
-          ordem: videoAulaData.ordem || 1,
-          url_video: videoAulaData.url_video?.trim() || '',
-          id_video_bunny: videoAulaData.id_video_bunny?.trim() || null,
-          url_thumbnail: videoAulaData.url_thumbnail?.trim() || null
-        };
-
-        logger.info('📝 Dados para inserção', dataToInsert);
-
-        const { data, error } = await supabase
-          .from('video_aulas')
-          .insert(dataToInsert)
-          .select()
-          .single();
-
-        if (error) {
-          logger.error('❌ Erro ao inserir videoaula', error);
-          throw error;
-        }
-
-        if (!data) {
-          throw new Error('Nenhum dado retornado após inserção');
-        }
-
-        logger.info('✅ Videoaula criada com sucesso', { id: data.id, titulo: data.titulo });
-        return data;
-      } catch (error) {
-        logger.error('💥 Exceção ao criar videoaula', error);
+      const { data, error } = await supabase
+        .from('cartorios')
+        .select(`
+          *,
+          acessos_cartorio (*)
+        `)
+        .order('nome', { ascending: true });
+      
+      if (error) {
+        logger.error('❌ [useCartoriosWithAcessos] Error:', error);
         throw error;
       }
-    },
-    onSuccess: (data) => {
-      logger.info('🎯 Invalidando caches após criação de videoaula');
-      queryClient.invalidateQueries({ queryKey: ['sistemas-hierarchical'] });
-      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto', data.produto_id] });
-    },
-    onError: (error) => {
-      logger.error('❌ Erro na mutação de criação de videoaula', error);
-    }
-  });
-};
-
-// Hook para atualizar videoaula
-export const useUpdateVideoAula = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: { 
-      id: string; 
-      titulo?: string; 
-      descricao?: string; 
-      ordem?: number;
-      url_video?: string;
-      id_video_bunny?: string;
-      url_thumbnail?: string;
-    }): Promise<VideoAula> => {
-      logger.info('🔧 Atualizando videoaula', { id, updates });
       
-      try {
-        const { data, error } = await supabase
-          .from('video_aulas')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) {
-          logger.error('❌ Erro ao atualizar videoaula', error);
-          throw error;
-        }
-
-        if (!data) {
-          throw new Error('Nenhum dado retornado após atualização');
-        }
-
-        logger.info('✅ Videoaula atualizada com sucesso', { id: data.id });
-        return data;
-      } catch (error) {
-        logger.error('💥 Exceção ao atualizar videoaula', error);
-        throw error;
-      }
+      logger.info('✅ [useCartoriosWithAcessos] Success:', { count: data?.length });
+      return data || [];
     },
-    onSuccess: (data) => {
-      logger.info('🎯 Invalidando caches após atualização de videoaula');
-      queryClient.invalidateQueries({ queryKey: ['sistemas-hierarchical'] });
-      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto', data.produto_id] });
-    }
+    retry: 3,
+    retryDelay: 1000
   });
 };
 
-// Hook para deletar videoaula
-export const useDeleteVideoAula = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string): Promise<void> => {
-      logger.info('🗑️ Deletando videoaula', { id });
-      
-      try {
-        const { error } = await supabase
-          .from('video_aulas')
-          .delete()
-          .eq('id', id);
-
-        if (error) {
-          logger.error('❌ Erro ao deletar videoaula', error);
-          throw error;
-        }
-
-        logger.info('✅ Videoaula deletada com sucesso', { id });
-      } catch (error) {
-        logger.error('💥 Exceção ao deletar videoaula', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      logger.info('🎯 Invalidando caches após deleção de videoaula');
-      queryClient.invalidateQueries({ queryKey: ['sistemas-hierarchical'] });
-      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto'] });
-    }
-  });
-};
-
-// Hook para criar cartório
 export const useCreateCartorio = () => {
   const queryClient = useQueryClient();
 
@@ -397,63 +101,369 @@ export const useCreateCartorio = () => {
       observacoes?: string;
       email_contato: string;
       data_expiracao: string;
-    }): Promise<{ cartorio: Cartorio; acesso: AcessoCartorio }> => {
-      logger.info('🏢 Criando novo cartório', { nome: cartorioData.nome });
+    }) => {
+      logger.info('🏗️ [useCreateCartorio] Creating cartorio:', { nome: cartorioData.nome });
       
       try {
-        // Criar cartório
+        // 1. Criar o cartório
         const { data: cartorio, error: cartorioError } = await supabase
           .from('cartorios')
           .insert({
-            nome: cartorioData.nome.trim(),
-            cidade: cartorioData.cidade?.trim() || null,
-            estado: cartorioData.estado?.trim() || null,
-            observacoes: cartorioData.observacoes?.trim() || null,
+            nome: cartorioData.nome,
+            cidade: cartorioData.cidade || null,
+            estado: cartorioData.estado || 'SP',
+            observacoes: cartorioData.observacoes || null,
             is_active: true
           })
           .select()
           .single();
 
-        if (cartorioError || !cartorio) {
-          logger.error('❌ Erro ao criar cartório', cartorioError);
-          throw cartorioError || new Error('Cartório não foi criado');
+        if (cartorioError) {
+          logger.error('❌ [useCreateCartorio] Error creating cartorio:', cartorioError);
+          throw new Error(`Erro ao criar cartório: ${cartorioError.message}`);
         }
 
-        // Gerar token único
-        const token = `CART-${Date.now()}-${Math.random().toString(36).substr(2, 11)}`;
+        logger.info('✅ [useCreateCartorio] Cartorio created:', { id: cartorio.id });
 
-        // Criar acesso
+        // 2. Gerar token único
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const login_token = `CART-${timestamp}-${randomSuffix}`;
+
+        // 3. Criar acesso do cartório
         const { data: acesso, error: acessoError } = await supabase
           .from('acessos_cartorio')
           .insert({
-            login_token: token,
+            login_token,
             cartorio_id: cartorio.id,
-            email_contato: cartorioData.email_contato.trim(),
             data_expiracao: cartorioData.data_expiracao,
+            email_contato: cartorioData.email_contato,
             ativo: true
           })
           .select()
           .single();
 
-        if (acessoError || !acesso) {
-          logger.error('❌ Erro ao criar acesso', acessoError);
-          throw acessoError || new Error('Acesso não foi criado');
+        if (acessoError) {
+          logger.error('❌ [useCreateCartorio] Error creating acesso:', acessoError);
+          
+          // Limpar cartório criado em caso de erro no acesso
+          await supabase.from('cartorios').delete().eq('id', cartorio.id);
+          
+          throw new Error(`Erro ao criar acesso do cartório: ${acessoError.message}`);
         }
 
-        logger.info('✅ Cartório e acesso criados com sucesso', { 
-          cartorioId: cartorio.id, 
-          token: token.substring(0, 10) + '...' 
-        });
+        logger.info('✅ [useCreateCartorio] Acesso created:', { token: login_token });
 
-        return { cartorio, acesso };
+        // 4. Criar usuário padrão "admin" para o cartório
+        const { error: usuarioError } = await supabase
+          .from('cartorio_usuarios')
+          .insert({
+            cartorio_id: cartorio.id,
+            username: 'admin',
+            email: cartorioData.email_contato,
+            is_active: true
+          });
+
+        if (usuarioError) {
+          logger.warn('⚠️ [useCreateCartorio] Warning creating default user:', usuarioError);
+          // Não falhar por causa do usuário padrão, mas logar o aviso
+        }
+
+        logger.info('✅ [useCreateCartorio] Cartorio creation completed successfully');
+
+        return {
+          cartorio,
+          acesso,
+          login_token
+        };
+
       } catch (error) {
-        logger.error('💥 Exceção ao criar cartório', error);
-        throw error;
+        logger.error('❌ [useCreateCartorio] Unexpected error:', error);
+        
+        // Re-throw com mensagem mais amigável
+        if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error('Erro desconhecido ao criar cartório. Tente novamente.');
+        }
       }
     },
-    onSuccess: () => {
-      logger.info('🎯 Invalidando cache de cartórios');
+    onSuccess: (data) => {
+      logger.info('🎉 [useCreateCartorio] Success callback:', { cartorioId: data.cartorio.id });
       queryClient.invalidateQueries({ queryKey: ['cartorios-with-acessos'] });
+      
+      toast({
+        title: "Cartório criado com sucesso!",
+        description: `Token gerado: ${data.login_token}`,
+      });
+    },
+    onError: (error) => {
+      logger.error('💥 [useCreateCartorio] Error callback:', error);
+      
+      toast({
+        title: "Erro ao criar cartório",
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+export const useCreateSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sistemaData: { nome: string; descricao?: string; ordem: number }) => {
+      logger.info('🏗️ [useCreateSistema] Creating sistema:', { nome: sistemaData.nome });
+      
+      const { data, error } = await supabase
+        .from('sistemas')
+        .insert(sistemaData)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useCreateSistema] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useCreateSistema] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useUpdateSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; nome?: string; descricao?: string; ordem?: number }) => {
+      logger.info('🔄 [useUpdateSistema] Updating sistema:', { id, updates });
+      
+      const { data, error } = await supabase
+        .from('sistemas')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useUpdateSistema] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useUpdateSistema] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useDeleteSistema = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      logger.info('🗑️ [useDeleteSistema] Deleting sistema:', { id });
+      
+      const { error } = await supabase
+        .from('sistemas')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        logger.error('❌ [useDeleteSistema] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useDeleteSistema] Success:', { id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useCreateProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (produtoData: { nome: string; descricao?: string; sistema_id: string; ordem: number }) => {
+      logger.info('🏗️ [useCreateProduto] Creating produto:', { nome: produtoData.nome });
+      
+      const { data, error } = await supabase
+        .from('produtos')
+        .insert(produtoData)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useCreateProduto] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useCreateProduto] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useUpdateProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; nome?: string; descricao?: string; ordem?: number }) => {
+      logger.info('🔄 [useUpdateProduto] Updating produto:', { id, updates });
+      
+      const { data, error } = await supabase
+        .from('produtos')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useUpdateProduto] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useUpdateProduto] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useDeleteProduto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      logger.info('🗑️ [useDeleteProduto] Deleting produto:', { id });
+      
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        logger.error('❌ [useDeleteProduto] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useDeleteProduto] Success:', { id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+    }
+  });
+};
+
+export const useCreateVideoAula = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (videoAulaData: { 
+      titulo: string; 
+      descricao?: string; 
+      url_video: string;
+      produto_id: string; 
+      ordem: number;
+      id_video_bunny?: string;
+      url_thumbnail?: string;
+    }) => {
+      logger.info('🏗️ [useCreateVideoAula] Creating video aula:', { titulo: videoAulaData.titulo });
+      
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .insert(videoAulaData)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useCreateVideoAula] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useCreateVideoAula] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto'] });
+    }
+  });
+};
+
+export const useUpdateVideoAula = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { 
+      id: string; 
+      titulo?: string; 
+      descricao?: string; 
+      url_video?: string;
+      ordem?: number;
+      id_video_bunny?: string;
+      url_thumbnail?: string;
+    }) => {
+      logger.info('🔄 [useUpdateVideoAula] Updating video aula:', { id, updates });
+      
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('❌ [useUpdateVideoAula] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useUpdateVideoAula] Success:', { id: data.id });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto'] });
+    }
+  });
+};
+
+export const useDeleteVideoAula = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      logger.info('🗑️ [useDeleteVideoAula] Deleting video aula:', { id });
+      
+      const { error } = await supabase
+        .from('video_aulas')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        logger.error('❌ [useDeleteVideoAula] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useDeleteVideoAula] Success:', { id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['video-aulas-by-produto'] });
     }
   });
 };

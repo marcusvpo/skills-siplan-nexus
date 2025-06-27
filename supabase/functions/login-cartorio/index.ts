@@ -7,23 +7,9 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-const JWT_SECRET = Deno.env.get('JWT_SECRET') ?? '';
-
 interface LoginRequest {
-  token: string;
-}
-
-interface AcessoCartorio {
-  id: string;
+  username: string;
   login_token: string;
-  cartorio_id: string;
-  data_expiracao: string;
-  ativo: boolean;
-  cartorios: {
-    id: string;
-    nome: string;
-    is_active: boolean;
-  };
 }
 
 const corsHeaders = {
@@ -32,18 +18,19 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
   
   console.log('=== LOGIN CARTORIO FUNCTION START ===');
   console.log('Method:', req.method);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   
   if (req.method !== 'POST') {
     console.log('Method not allowed:', req.method);
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Method not allowed',
+      code: 'METHOD_NOT_ALLOWED'
+    }), {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -51,24 +38,28 @@ serve(async (req) => {
 
   try {
     const requestData = await req.json() as LoginRequest;
-    console.log('Request data received:', { token: requestData.token ? '***' : null });
+    console.log('Request data received:', { 
+      username: requestData.username || null,
+      token: requestData.login_token ? '***' : null 
+    });
     
-    const { token } = requestData;
+    const { username, login_token } = requestData;
 
-    if (!token) {
-      console.log('No token provided');
+    // Validação de entrada
+    if (!username || !login_token) {
+      console.log('Missing required fields:', { username: !!username, login_token: !!login_token });
       return new Response(JSON.stringify({ 
-        error: 'Token é obrigatório',
-        code: 'MISSING_TOKEN'
+        error: 'Username e token são obrigatórios',
+        code: 'MISSING_FIELDS'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('Searching for token in database...');
+    console.log('Searching for token and user in database...');
     
-    // Buscar o acesso do cartório com relacionamento usando nome correto da FK
+    // Buscar o acesso do cartório com JOIN otimizado
     const { data: acesso, error: acessoError } = await supabase
       .from('acessos_cartorio')
       .select(`
@@ -77,16 +68,19 @@ serve(async (req) => {
         cartorio_id,
         data_expiracao,
         ativo,
+        email_contato,
         cartorios!acessos_cartorio_fk (
           id,
           nome,
+          cidade,
+          estado,
           is_active
         )
       `)
-      .eq('login_token', token)
+      .eq('login_token', login_token)
       .single();
 
-    console.log('Database query result:', { 
+    console.log('Token lookup result:', { 
       found: !!acesso, 
       error: acessoError?.message,
       cartorioActive: acesso?.cartorios?.is_active,
@@ -96,7 +90,7 @@ serve(async (req) => {
     if (acessoError || !acesso) {
       console.log('Token not found or database error:', acessoError);
       return new Response(JSON.stringify({ 
-        error: 'Token inválido ou não encontrado',
+        error: 'Token não encontrado ou inválido',
         code: 'INVALID_TOKEN',
         debug: acessoError?.message
       }), {
@@ -105,11 +99,11 @@ serve(async (req) => {
       });
     }
 
-    // Verificar se o token está ativo
+    // Verificações de integridade
     if (!acesso.ativo) {
       console.log('Token is inactive');
       return new Response(JSON.stringify({ 
-        error: 'Token foi desativado',
+        error: 'Token foi desativado pelo administrador',
         code: 'INACTIVE_TOKEN'
       }), {
         status: 401,
@@ -117,7 +111,6 @@ serve(async (req) => {
       });
     }
 
-    // Verificar se o cartório está ativo
     if (!acesso.cartorios?.is_active) {
       console.log('Cartorio is inactive');
       return new Response(JSON.stringify({ 
@@ -129,7 +122,7 @@ serve(async (req) => {
       });
     }
 
-    // Verificar se o token não expirou
+    // Verificar expiração
     const expirationDate = new Date(acesso.data_expiracao);
     const now = new Date();
     
@@ -144,40 +137,80 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: 'Token expirado',
         code: 'EXPIRED_TOKEN',
-        expirationDate: acesso.data_expiracao
+        expirationDate: acesso.data_expiracao,
+        daysExpired: Math.ceil((now.getTime() - expirationDate.getTime()) / (1000 * 60 * 60 * 24))
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('Creating JWT token...');
+    // Buscar o usuário do cartório
+    console.log('Searching for cartorio user...');
+    const { data: usuario, error: usuarioError } = await supabase
+      .from('cartorio_usuarios')
+      .select('*')
+      .eq('cartorio_id', acesso.cartorio_id)
+      .eq('username', username)
+      .eq('is_active', true)
+      .single();
+
+    console.log('User lookup result:', { 
+      found: !!usuario, 
+      error: usuarioError?.message,
+      userActive: usuario?.is_active
+    });
+
+    if (usuarioError || !usuario) {
+      console.log('User not found or database error:', usuarioError);
+      return new Response(JSON.stringify({ 
+        error: 'Usuário não encontrado ou inativo',
+        code: 'USER_NOT_FOUND',
+        debug: usuarioError?.message
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Creating authentication token...');
     
-    // Criar JWT personalizado simples (sem biblioteca externa que causa problemas)
-    const jwtPayload = {
+    // Criar token de autenticação customizado
+    const authPayload = {
       cartorio_id: acesso.cartorio_id,
       cartorio_nome: acesso.cartorios.nome,
-      login_token: token,
+      user_id: usuario.id,
+      username: usuario.username,
+      login_token: login_token,
       role: 'cartorio_user',
       exp: Math.floor(Date.now() / 1000) + (60 * 60 * 8), // 8 horas
       iat: Math.floor(Date.now() / 1000),
       iss: 'siplan-skills'
     };
 
-    // Criar um token simples ao invés de JWT complexo
-    const customToken = `SIPLAN-${btoa(JSON.stringify(jwtPayload))}`;
+    // Usar base64 simples para o token customizado
+    const customToken = `CART-${btoa(JSON.stringify(authPayload))}`;
     
-    console.log('Token created successfully');
-    console.log('Login successful for cartorio:', acesso.cartorios.nome);
+    console.log('Login successful for:', {
+      cartorio: acesso.cartorios.nome,
+      usuario: usuario.username
+    });
 
     return new Response(JSON.stringify({
       success: true,
+      token: customToken,
       cartorio: {
         id: acesso.cartorio_id,
         nome: acesso.cartorios.nome,
-        token: customToken
+        cidade: acesso.cartorios.cidade,
+        estado: acesso.cartorios.estado
       },
-      message: `Bem-vindo ao ${acesso.cartorios.nome}!`
+      usuario: {
+        id: usuario.id,
+        username: usuario.username,
+        email: usuario.email
+      },
+      message: `Bem-vindo(a), ${usuario.username}! Acesso autorizado para ${acesso.cartorios.nome}.`
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

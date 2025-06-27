@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,9 @@ import {
   Copy,
   CheckCircle,
   XCircle,
-  Users
+  Users,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { useCartoriosWithAcessos, useCreateCartorio } from '@/hooks/useSupabaseDataRefactored';
@@ -53,30 +54,69 @@ const CartorioManagerAudited: React.FC = () => {
       logger.error('❌ [CartorioManagerAudited] Error loading cartorios:', error);
       toast({
         title: "Erro ao carregar cartórios",
-        description: "Não foi possível carregar a lista de cartórios.",
+        description: "Não foi possível carregar a lista de cartórios. Tente recarregar a página.",
         variant: "destructive",
       });
     }
   }, [error]);
 
+  const validateCartorioData = () => {
+    const errors: string[] = [];
+    
+    if (!newCartorio.nome.trim()) {
+      errors.push('Nome do cartório é obrigatório');
+    }
+    
+    if (!newCartorio.email_contato.trim()) {
+      errors.push('Email de contato é obrigatório');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCartorio.email_contato)) {
+      errors.push('Email de contato deve ter formato válido');
+    }
+    
+    if (!newCartorio.data_expiracao) {
+      errors.push('Data de expiração é obrigatória');
+    } else {
+      const expirationDate = new Date(newCartorio.data_expiracao);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (expirationDate <= today) {
+        errors.push('Data de expiração deve ser futura');
+      }
+    }
+    
+    return errors;
+  };
+
   const handleCreateCartorio = async () => {
-    if (!newCartorio.nome.trim() || !newCartorio.email_contato.trim() || !newCartorio.data_expiracao) {
+    const validationErrors = validateCartorioData();
+    
+    if (validationErrors.length > 0) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha pelo menos o nome, email e data de expiração.",
+        title: "Dados inválidos",
+        description: validationErrors.join('. '),
         variant: "destructive",
       });
       return;
     }
 
-    logger.info('🏢 [CartorioManagerAudited] Creating new cartorio:', { nome: newCartorio.nome });
+    logger.info('🏢 [CartorioManagerAudited] Creating new cartorio:', { 
+      nome: newCartorio.nome,
+      email: newCartorio.email_contato 
+    });
 
     try {
-      await createCartorioMutation.mutateAsync(newCartorio);
+      const result = await createCartorioMutation.mutateAsync(newCartorio);
       
+      logger.info('✅ [CartorioManagerAudited] Cartorio created successfully:', { 
+        id: result.cartorio.id,
+        token: result.login_token
+      });
+
       toast({
-        title: "Cartório criado com sucesso",
-        description: `"${newCartorio.nome}" foi criado e o token de acesso foi gerado.`,
+        title: "Cartório criado com sucesso!",
+        description: `"${newCartorio.nome}" foi criado. Token: ${result.login_token}`,
+        duration: 10000, // 10 segundos para o usuário copiar o token
       });
 
       setNewCartorio({
@@ -90,10 +130,25 @@ const CartorioManagerAudited: React.FC = () => {
       setIsNewCartorioOpen(false);
       refetch();
     } catch (error) {
-      logger.error('❌ Error creating cartorio:', error);
+      logger.error('❌ [CartorioManagerAudited] Error creating cartorio:', error);
+      
+      let errorMessage = 'Não foi possível criar o cartório. Tente novamente.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key value')) {
+          errorMessage = 'Já existe um cartório com este nome.';
+        } else if (error.message.includes('violates check constraint')) {
+          errorMessage = 'Dados inválidos fornecidos.';
+        } else if (error.message.includes('permission denied')) {
+          errorMessage = 'Sem permissão para criar cartório.';
+        } else {
+          errorMessage = `Erro: ${error.message}`;
+        }
+      }
+      
       toast({
         title: "Erro ao criar cartório",
-        description: "Não foi possível criar o cartório. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -140,6 +195,26 @@ const CartorioManagerAudited: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-white mb-2">Erro ao carregar dados</h3>
+          <p className="text-gray-400 text-center mb-4">
+            Não foi possível carregar os cartórios. Verifique sua conexão e tente novamente.
+          </p>
+          <Button
+            onClick={() => refetch()}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header com botão de criar */}
@@ -168,6 +243,7 @@ const CartorioManagerAudited: React.FC = () => {
                   onChange={(e) => setNewCartorio(prev => ({ ...prev, nome: e.target.value }))}
                   className="bg-gray-700 border-gray-600 text-white"
                   placeholder="Ex: 1º Cartório de Registro de Imóveis"
+                  disabled={createCartorioMutation.isPending}
                 />
               </div>
               
@@ -180,6 +256,7 @@ const CartorioManagerAudited: React.FC = () => {
                     onChange={(e) => setNewCartorio(prev => ({ ...prev, cidade: e.target.value }))}
                     className="bg-gray-700 border-gray-600 text-white"
                     placeholder="São Paulo"
+                    disabled={createCartorioMutation.isPending}
                   />
                 </div>
                 <div>
@@ -190,6 +267,7 @@ const CartorioManagerAudited: React.FC = () => {
                     onChange={(e) => setNewCartorio(prev => ({ ...prev, estado: e.target.value }))}
                     className="bg-gray-700 border-gray-600 text-white"
                     placeholder="SP"
+                    disabled={createCartorioMutation.isPending}
                   />
                 </div>
               </div>
@@ -203,6 +281,7 @@ const CartorioManagerAudited: React.FC = () => {
                   onChange={(e) => setNewCartorio(prev => ({ ...prev, email_contato: e.target.value }))}
                   className="bg-gray-700 border-gray-600 text-white"
                   placeholder="contato@cartorio.com.br"
+                  disabled={createCartorioMutation.isPending}
                 />
               </div>
 
@@ -214,6 +293,8 @@ const CartorioManagerAudited: React.FC = () => {
                   value={newCartorio.data_expiracao}
                   onChange={(e) => setNewCartorio(prev => ({ ...prev, data_expiracao: e.target.value }))}
                   className="bg-gray-700 border-gray-600 text-white"
+                  disabled={createCartorioMutation.isPending}
+                  min={new Date().toISOString().split('T')[0]}
                 />
               </div>
 
@@ -225,6 +306,7 @@ const CartorioManagerAudited: React.FC = () => {
                   onChange={(e) => setNewCartorio(prev => ({ ...prev, observacoes: e.target.value }))}
                   className="bg-gray-700 border-gray-600 text-white"
                   placeholder="Observações sobre o cartório..."
+                  disabled={createCartorioMutation.isPending}
                 />
               </div>
 
@@ -233,6 +315,7 @@ const CartorioManagerAudited: React.FC = () => {
                   variant="outline"
                   onClick={() => setIsNewCartorioOpen(false)}
                   className="border-gray-600 text-gray-300"
+                  disabled={createCartorioMutation.isPending}
                 >
                   Cancelar
                 </Button>
@@ -241,7 +324,14 @@ const CartorioManagerAudited: React.FC = () => {
                   disabled={createCartorioMutation.isPending}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
-                  {createCartorioMutation.isPending ? 'Criando...' : 'Criar Cartório'}
+                  {createCartorioMutation.isPending ? (
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Criando...</span>
+                    </div>
+                  ) : (
+                    'Criar Cartório'
+                  )}
                 </Button>
               </div>
             </div>

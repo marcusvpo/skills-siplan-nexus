@@ -390,6 +390,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debug_cartorios_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cartorio_id: string
+          cartorio_nome: string
+          cartorio_ativo: boolean
+          tokens_count: number
+          usuarios_count: number
+          tokens_ativos: number
+          tokens_expirados: number
+        }[]
+      }
       get_current_cartorio_id: {
         Args: Record<PropertyKey, never>
         Returns: string
