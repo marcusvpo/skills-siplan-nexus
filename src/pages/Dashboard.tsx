@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -45,14 +46,12 @@ const Dashboard = () => {
     let aulasCompletas = 0;
     
     sistema.produtos.forEach((produto: any) => {
-      produto.modulos?.forEach((modulo: any) => {
-        modulo.video_aulas?.forEach((aula: any) => {
-          totalAulas++;
-          const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id);
-          if (visualizacao?.completo) {
-            aulasCompletas++;
-          }
-        });
+      produto.video_aulas?.forEach((aula: any) => {
+        totalAulas++;
+        const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id);
+        if (visualizacao?.completo) {
+          aulasCompletas++;
+        }
       });
     });
     
@@ -109,14 +108,14 @@ const Dashboard = () => {
                         {vis.video_aulas?.titulo}
                       </CardTitle>
                       <p className="text-sm text-gray-400">
-                        {vis.video_aulas?.modulos?.produtos?.sistemas?.nome} • {vis.video_aulas?.modulos?.produtos?.nome}
+                        {vis.video_aulas?.produtos?.sistemas?.nome} • {vis.video_aulas?.produtos?.nome}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-gray-300 text-sm line-clamp-2">{vis.video_aulas?.descricao}</p>
                       <ProgressDisplay
                         progressSegundos={vis.progresso_segundos}
-                        duracaoSegundos={vis.video_aulas?.duracao_segundos || 0}
+                        duracaoSegundos={0}
                         completo={vis.completo}
                         size="sm"
                       />
@@ -150,7 +149,7 @@ const Dashboard = () => {
                             {fav.video_aulas?.titulo}
                           </CardTitle>
                           <p className="text-sm text-gray-400">
-                            {fav.video_aulas?.modulos?.produtos?.sistemas?.nome} • {fav.video_aulas?.modulos?.produtos?.nome}
+                            {fav.video_aulas?.produtos?.sistemas?.nome} • {fav.video_aulas?.produtos?.nome}
                           </p>
                         </div>
                         <Star className="h-5 w-5 text-yellow-500 fill-current flex-shrink-0" />
@@ -300,7 +299,7 @@ const Dashboard = () => {
                           <div className="flex-1">
                             <h3 className="font-semibold text-white">{hist.video_aulas?.titulo}</h3>
                             <p className="text-sm text-gray-400">
-                              {hist.video_aulas?.modulos?.produtos?.sistemas?.nome} • {hist.video_aulas?.modulos?.produtos?.nome}
+                              {hist.video_aulas?.produtos?.sistemas?.nome} • {hist.video_aulas?.produtos?.nome}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                               Última visualização: {new Date(hist.ultima_visualizacao).toLocaleDateString('pt-BR')}
@@ -311,7 +310,7 @@ const Dashboard = () => {
                           <div className="w-32">
                             <ProgressDisplay
                               progressSegundos={hist.progresso_segundos}
-                              duracaoSegundos={hist.video_aulas?.duracao_segundos || 0}
+                              duracaoSegundos={0}
                               completo={hist.completo}
                               size="sm"
                             />

@@ -90,7 +90,7 @@ export const TreinamentosSection: React.FC = () => {
   const totalVideoAulas = sistemas.reduce(
     (total, sistema) => 
       total + sistema.produtos.reduce(
-        (prodTotal, produto) => prodTotal + produto.video_aulas.length, 
+        (prodTotal, produto) => prodTotal + (produto.video_aulas?.length || 0), 
         0
       ), 
     0
@@ -121,7 +121,7 @@ export const TreinamentosSection: React.FC = () => {
               <CardTitle className="text-white flex items-center justify-between">
                 <span>{sistema.nome}</span>
                 <Badge variant="secondary" className="bg-orange-600/20 text-orange-400">
-                  {sistema.produtos.length} produto(s)
+                  {sistema.produtos?.length || 0} produto(s)
                 </Badge>
               </CardTitle>
               {sistema.descricao && (
@@ -130,13 +130,13 @@ export const TreinamentosSection: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {sistema.produtos.map((produto) => (
+                {sistema.produtos?.map((produto) => (
                   <div key={produto.id} className="border border-gray-600 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-white font-medium">{produto.nome}</h4>
                       <div className="flex items-center space-x-2">
                         <Badge variant="outline" className="border-gray-500 text-gray-300">
-                          {produto.video_aulas.length} aula(s)
+                          {produto.video_aulas?.length || 0} aula(s)
                         </Badge>
                       </div>
                     </div>
@@ -145,7 +145,7 @@ export const TreinamentosSection: React.FC = () => {
                       <p className="text-gray-400 text-xs mb-3">{produto.descricao}</p>
                     )}
 
-                    {produto.video_aulas.length > 0 ? (
+                    {produto.video_aulas?.length > 0 ? (
                       <div className="space-y-2">
                         {produto.video_aulas
                           .sort((a, b) => a.ordem - b.ordem)
@@ -185,7 +185,12 @@ export const TreinamentosSection: React.FC = () => {
                       </div>
                     )}
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center py-4">
+                    <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-500 text-xs">Nenhum produto disponível</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

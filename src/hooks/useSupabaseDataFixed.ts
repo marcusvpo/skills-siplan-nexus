@@ -42,10 +42,7 @@ export const useSistemasFixed = () => {
             *,
             produtos (
               *,
-              modulos (
-                *,
-                video_aulas (*)
-              )
+              video_aulas (*)
             )
           `)
           .order('ordem', { ascending: true });
@@ -84,10 +81,7 @@ export const useSistemasCartorio = () => {
             *,
             produtos (
               *,
-              modulos (
-                *,
-                video_aulas (*)
-              )
+              video_aulas (*)
             )
           `)
           .order('ordem', { ascending: true });
@@ -126,12 +120,9 @@ export const useVisualizacoes = () => {
             *,
             video_aulas (
               *,
-              modulos (
+              produtos (
                 *,
-                produtos (
-                  *,
-                  sistemas (*)
-                )
+                sistemas (*)
               )
             )
           `)
@@ -167,12 +158,9 @@ export const useFavoritos = (cartorioId: string) => {
             *,
             video_aulas (
               *,
-              modulos (
+              produtos (
                 *,
-                produtos (
-                  *,
-                  sistemas (*)
-                )
+                sistemas (*)
               )
             )
           `)
