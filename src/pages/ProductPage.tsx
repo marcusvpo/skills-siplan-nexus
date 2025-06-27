@@ -62,20 +62,17 @@ const ProductPage = () => {
     );
   }
 
-  const modulos = currentProduct.modulos || [];
+  const videoAulas = currentProduct.video_aulas || [];
 
   // Calculate progress
-  let totalAulas = 0;
+  let totalAulas = videoAulas.length;
   let aulasCompletas = 0;
   
-  modulos.forEach((modulo: any) => {
-    modulo.video_aulas?.forEach((aula: any) => {
-      totalAulas++;
-      const visualizacao = visualizacoes?.find(v => v.video_aula_id === aula.id && v.completo);
-      if (visualizacao) {
-        aulasCompletas++;
-      }
-    });
+  videoAulas.forEach((aula: any) => {
+    const visualizacao = visualizacoes?.find(v => v.video_aula_id === aula.id && v.completo);
+    if (visualizacao) {
+      aulasCompletas++;
+    }
   });
   
   const progress = totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
@@ -132,127 +129,87 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <div className="space-y-8">
-            {modulos.map((modulo: any) => {
-              const videoAulas = modulo.video_aulas || [];
-              const moduloCompletas = videoAulas.filter((aula: any) => 
-                visualizacoes?.find(v => v.video_aula_id === aula.id && v.completo)
-              ).length;
-              const moduloProgress = videoAulas.length > 0 ? Math.round((moduloCompletas / videoAulas.length) * 100) : 0;
-              
-              return (
-                <Card key={modulo.id} className="glass-effect border-gray-700">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-xl text-white mb-2">{modulo.titulo}</CardTitle>
-                        {modulo.descricao && (
-                          <p className="text-gray-400 text-sm">{modulo.descricao}</p>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-green-400">{moduloCompletas}/{videoAulas.length}</div>
-                          <div className="text-xs text-gray-500">aulas</div>
-                        </div>
-                        {moduloProgress > 0 && (
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-red-400">{moduloProgress}%</div>
-                            <div className="text-xs text-gray-500">concluído</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {moduloProgress > 0 && (
-                      <Progress value={moduloProgress} className="h-2 mt-3" />
-                    )}
-                  </CardHeader>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white mb-4">Videoaulas</h2>
+            
+            {videoAulas.length > 0 ? (
+              videoAulas
+                .sort((a, b) => a.ordem - b.ordem)
+                .map((aula: any) => {
+                  const aulaCompleta = visualizacoes?.find(v => v.video_aula_id === aula.id && v.completo);
                   
-                  <CardContent>
-                    <div className="space-y-3">
-                      {videoAulas.map((aula: any) => {
-                        const aulaCompleta = visualizacoes?.find(v => v.video_aula_id === aula.id && v.completo);
-                        
-                        return (
-                          <Card 
-                            key={aula.id} 
-                            className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group"
-                            onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4 flex-1">
-                                  <div className="p-2 bg-red-600/20 rounded-lg group-hover:bg-red-600/30 transition-colors">
-                                    <Play className="h-5 w-5 text-red-400" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <h3 className="font-semibold text-white group-hover:text-red-400 transition-colors">
-                                      {aula.titulo}
-                                    </h3>
-                                    {aula.descricao && (
-                                      <p className="text-sm text-gray-400 mt-1 line-clamp-2">
-                                        {aula.descricao}
-                                      </p>
-                                    )}
-                                    <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                                      <div className="flex items-center">
-                                        <Clock className="h-3 w-3 mr-1" />
-                                        {aula.duracao_segundos ? `${Math.floor(aula.duracao_segundos / 60)}min` : 'N/A'}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center space-x-3">
-                                  {aulaCompleta ? (
-                                    <CheckCircle className="h-6 w-6 text-green-400" />
-                                  ) : (
-                                    <Circle className="h-6 w-6 text-gray-500" />
-                                  )}
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
-                                    }}
-                                  >
-                                    {aulaCompleta ? 'Revisar' : 'Assistir'}
-                                    <ArrowRight className="h-4 w-4 ml-1" />
-                                  </Button>
+                  return (
+                    <Card 
+                      key={aula.id} 
+                      className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group"
+                      onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <div className="p-2 bg-red-600/20 rounded-lg group-hover:bg-red-600/30 transition-colors">
+                              <Play className="h-5 w-5 text-red-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-white group-hover:text-red-400 transition-colors">
+                                {aula.titulo}
+                              </h3>
+                              {aula.descricao && (
+                                <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                                  {aula.descricao}
+                                </p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Videoaula {aula.ordem}
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            {aulaCompleta ? (
+                              <CheckCircle className="h-6 w-6 text-green-400" />
+                            ) : (
+                              <Circle className="h-6 w-6 text-gray-500" />
+                            )}
+                            <Button 
+                              size="sm" 
+                              className="bg-red-600 hover:bg-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
+                              }}
+                            >
+                              {aulaCompleta ? 'Revisar' : 'Assistir'}
+                              <ArrowRight className="h-4 w-4 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+            ) : (
+              <Card className="glass-effect border-gray-700">
+                <CardContent className="p-12 text-center">
+                  <div className="text-6xl mb-6">🎥</div>
+                  <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhuma videoaula disponível</h3>
+                  <p className="text-gray-400 mb-6">
+                    As videoaulas para este produto serão disponibilizadas em breve.
+                  </p>
+                  <Button 
+                    onClick={() => navigate(`/system/${systemId}`)} 
+                    variant="outline" 
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Voltar aos Produtos
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
-
-          {modulos.length === 0 && (
-            <Card className="glass-effect border-gray-700">
-              <CardContent className="p-12 text-center">
-                <div className="text-6xl mb-6">🎥</div>
-                <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhuma videoaula disponível</h3>
-                <p className="text-gray-400 mb-6">
-                  As videoaulas para este produto serão disponibilizadas em breve.
-                </p>
-                <Button 
-                  onClick={() => navigate(`/system/${systemId}`)} 
-                  variant="outline" 
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  Voltar aos Produtos
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </Layout>

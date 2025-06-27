@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,7 @@ interface Sistema {
 }
 
 export const TreinamentosSection: React.FC = () => {
+  const navigate = useNavigate();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorio();
 
   React.useEffect(() => {
@@ -173,6 +175,7 @@ export const TreinamentosSection: React.FC = () => {
                         <Button 
                           size="sm" 
                           className="w-full bg-orange-600 hover:bg-orange-700 text-white mt-2"
+                          onClick={() => navigate(`/system/${sistema.id}/product/${produto.id}`)}
                         >
                           <Play className="h-3 w-3 mr-1" />
                           Começar Treinamento
@@ -191,6 +194,15 @@ export const TreinamentosSection: React.FC = () => {
                     <p className="text-gray-500 text-xs">Nenhum produto disponível</p>
                   </div>
                 )}
+                
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 mt-2"
+                  onClick={() => navigate(`/system/${sistema.id}`)}
+                >
+                  Ver Todos os Produtos
+                </Button>
               </div>
             </CardContent>
           </Card>

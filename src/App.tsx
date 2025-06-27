@@ -10,7 +10,6 @@ import Dashboard from '@/pages/Dashboard';
 import AdminDashboard from '@/pages/AdminDashboard';
 import SystemPage from '@/pages/SystemPage';
 import ProductPage from '@/pages/ProductPage';
-import ModulePage from '@/pages/ModulePage';
 import VideoLesson from '@/pages/VideoLesson';
 import VideoAulaEditor from '@/pages/VideoAulaEditor';
 import VideoAulaEditorWYSIWYG from '@/pages/VideoAulaEditorWYSIWYG';
@@ -33,10 +32,9 @@ function App() {
             <Route path="/admin/videoaula/nova" element={<NovaVideoaula />} />
             <Route path="/admin/videoaula-editor" element={<VideoAulaEditorWYSIWYG />} />
             <Route path="/admin/videoaula-editor/:id" element={<VideoAulaEditorWYSIWYG />} />
-            <Route path="/sistema/:sistemaId" element={<SystemPage />} />
-            <Route path="/produto/:produtoId" element={<ProductPage />} />
-            <Route path="/modulo/:moduloId" element={<ModulePage />} />
-            <Route path="/video/:videoId" element={<VideoLesson />} />
+            <Route path="/system/:systemId" element={<SystemPage />} />
+            <Route path="/system/:systemId/product/:productId" element={<ProductPage />} />
+            <Route path="/system/:systemId/product/:productId/lesson/:videoId" element={<VideoLesson />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
