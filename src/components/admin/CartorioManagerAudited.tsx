@@ -73,7 +73,7 @@ const CartorioManagerAudited: React.FC = () => {
 
   React.useEffect(() => {
     if (authError) {
-      logger.error('❌ [CartorioManagerAudited] Auth error:', authError);
+      logger.error('❌ [CartorioManagerAudited] Auth error:', { error: authError });
       toast({
         title: "Erro de autenticação",
         description: authError,
