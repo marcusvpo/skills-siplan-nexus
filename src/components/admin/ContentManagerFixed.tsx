@@ -99,7 +99,7 @@ export const ContentManagerFixed: React.FC = () => {
 
   if (viewMode === 'videoaulas' && selectedSistema && selectedProduto) {
     const produto = sistemas?.find(s => s.id === selectedSistema.id)?.produtos?.find(p => p.id === selectedProduto.id);
-    const videoAulas = produto?.modulos?.flatMap(m => m.video_aulas || []) || [];
+    const videoAulas = produto?.video_aulas || [];
     
     return (
       <VideoAulasList

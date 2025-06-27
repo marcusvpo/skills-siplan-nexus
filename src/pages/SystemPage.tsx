@@ -50,19 +50,16 @@ const SystemPage = () => {
 
   // Calculate progress for each product
   const calculateProductProgress = (produto: any) => {
-    if (!visualizacoes || !produto.modulos) return 0;
+    if (!visualizacoes || !produto.video_aulas) return 0;
     
-    let totalAulas = 0;
+    const totalAulas = produto.video_aulas.length;
     let aulasCompletas = 0;
     
-    produto.modulos.forEach((modulo: any) => {
-      modulo.video_aulas?.forEach((aula: any) => {
-        totalAulas++;
-        const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id && v.completo);
-        if (visualizacao) {
-          aulasCompletas++;
-        }
-      });
+    produto.video_aulas.forEach((aula: any) => {
+      const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id && v.completo);
+      if (visualizacao) {
+        aulasCompletas++;
+      }
     });
     
     return totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
@@ -111,8 +108,7 @@ const SystemPage = () => {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {produtos.map((produto) => {
                   const progress = calculateProductProgress(produto);
-                  const totalAulas = produto.modulos?.reduce((total: number, modulo: any) => 
-                    total + (modulo.video_aulas?.length || 0), 0) || 0;
+                  const totalAulas = produto.video_aulas?.length || 0;
                   
                   return (
                     <Card 
