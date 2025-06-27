@@ -84,7 +84,7 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
     setUserForm({
       username: user.username,
       email: user.email || '',
-      is_active: user.is_active
+      is_active: Boolean(user.is_active)
     });
     setEditingUser(user.id);
   };
@@ -111,7 +111,7 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
             <Button
               onClick={() => setIsCreating(true)}
               className="bg-green-600 hover:bg-green-700 text-white"
-              disabled={isCreating || editingUser}
+              disabled={isCreating || editingUser !== null}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Usuário
@@ -149,7 +149,7 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                 <div className="flex items-center space-x-2">
                   <Switch
                     checked={userForm.is_active}
-                    onCheckedChange={(checked) => setUserForm({...userForm, is_active: checked})}
+                    onCheckedChange={(checked: boolean) => setUserForm({...userForm, is_active: checked})}
                   />
                   <Label className="text-gray-300">Usuário ativo</Label>
                 </div>
@@ -204,7 +204,7 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                       <div className="flex items-center space-x-2">
                         <Switch
                           checked={userForm.is_active}
-                          onCheckedChange={(checked) => setUserForm({...userForm, is_active: checked})}
+                          onCheckedChange={(checked: boolean) => setUserForm({...userForm, is_active: checked})}
                         />
                         <Label className="text-gray-300">Usuário ativo</Label>
                       </div>

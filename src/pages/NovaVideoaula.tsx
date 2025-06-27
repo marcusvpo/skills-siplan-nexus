@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import VideoAulaFormFixed from '@/components/admin/VideoAulaFormFixed';
+import { VideoAulaFormFixed } from '@/components/admin/VideoAulaFormFixed';
 
 const NovaVideoaula: React.FC = () => {
   const [searchParams] = useSearchParams();
