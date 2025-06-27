@@ -3,16 +3,21 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, ChevronRight, Plus, Settings, Video } from 'lucide-react';
 import { 
-  useSistemasAudited, 
-  useProdutosBySystem,
-  useVideoAulasByProduct 
-} from '@/hooks/useSupabaseDataAudited';
-import { SystemFormAudited } from './SystemFormAudited';
-import { ProductFormAudited } from './ProductFormAudited';
-import { VideoAulasListAudited } from './VideoAulasListAudited';
+  ChevronRight, 
+  ChevronLeft, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Play,
+  FolderOpen,
+  Video,
+  Package
+} from 'lucide-react';
+import { logger } from '@/utils/logger';
+import { useSistemasWithVideoAulas, useCreateVideoAula, useDeleteVideoAula } from '@/hooks/useSupabaseDataRefactored';
+import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 type ViewMode = 'sistemas' | 'produtos' | 'videoaulas';
 
@@ -24,386 +29,357 @@ interface ViewState {
   produtoNome?: string;
 }
 
-export const ContentManagerAudited: React.FC = () => {
+const ContentManagerAudited: React.FC = () => {
+  const navigate = useNavigate();
   const [viewState, setViewState] = useState<ViewState>({ mode: 'sistemas' });
-  const [showSystemForm, setShowSystemForm] = useState(false);
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [editingSystem, setEditingSystem] = useState<any>(null);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  
+  const { data: sistemas = [], isLoading, error, refetch } = useSistemasWithVideoAulas();
+  const createVideoAulaMutation = useCreateVideoAula();
+  const deleteVideoAulaMutation = useDeleteVideoAula();
 
-  console.log('🎯 [ContentManagerAudited] Current view state:', viewState);
+  // Log do estado atual para debugging
+  React.useEffect(() => {
+    logger.info('🎯 [ContentManagerAudited] Current view state:', viewState);
+  }, [viewState]);
 
-  // Queries
-  const { 
-    data: sistemas = [], 
-    isLoading: sistemasLoading, 
-    error: sistemasError,
-    refetch: refetchSistemas
-  } = useSistemasAudited();
+  React.useEffect(() => {
+    if (error) {
+      logger.error('❌ [ContentManagerAudited] Error loading data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar o conteúdo. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  }, [error]);
 
-  const { 
-    data: produtos = [], 
-    isLoading: produtosLoading, 
-    error: produtosError,
-    refetch: refetchProdutos
-  } = useProdutosBySystem(viewState.sistemaId || '');
-
-  const {
-    data: videoAulas = [],
-    isLoading: videoAulasLoading,
-    error: videoAulasError,
-    refetch: refetchVideoAulas
-  } = useVideoAulasByProduct(viewState.produtoId || '');
-
-  // Navigation handlers
-  const navigateToSistemas = () => {
-    console.log('🧭 [ContentManagerAudited] Navigating to sistemas');
-    setViewState({ mode: 'sistemas' });
-    setShowSystemForm(false);
-    setShowProductForm(false);
-    setEditingSystem(null);
-    setEditingProduct(null);
-  };
-
-  const navigateToProdutos = (sistemaId: string, sistemaNome: string) => {
-    console.log('🧭 [ContentManagerAudited] Navigating to produtos of sistema:', sistemaId);
-    setViewState({ 
-      mode: 'produtos', 
-      sistemaId, 
-      sistemaNome 
+  const handleNavigateToProductos = (sistemaId: string, sistemaNome: string) => {
+    logger.info('🧭 [ContentManagerAudited] Navigating to produtos of sistema:', sistemaId);
+    setViewState({
+      mode: 'produtos',
+      sistemaId,
+      sistemaNome
     });
-    setShowSystemForm(false);
-    setShowProductForm(false);
-    setEditingSystem(null);
-    setEditingProduct(null);
   };
 
-  const navigateToVideoAulas = (produtoId: string, produtoNome: string) => {
-    console.log('🧭 [ContentManagerAudited] Navigating to videoaulas of produto:', produtoId);
-    setViewState({ 
+  const handleNavigateToVideoaulas = (produtoId: string, produtoNome: string) => {
+    logger.info('🧭 [ContentManagerAudited] Navigating to videoaulas of produto:', produtoId);
+    setViewState({
       ...viewState,
-      mode: 'videoaulas', 
-      produtoId, 
-      produtoNome 
+      mode: 'videoaulas',
+      produtoId,
+      produtoNome
     });
   };
 
-  // Form handlers
-  const handleSystemFormSuccess = () => {
-    setShowSystemForm(false);
-    setEditingSystem(null);
-    refetchSistemas();
+  const handleBackToSistemas = () => {
+    logger.info('🔙 [ContentManagerAudited] Back to sistemas');
+    setViewState({ mode: 'sistemas' });
+    refetch();
   };
 
-  const handleProductFormSuccess = () => {
-    setShowProductForm(false);
-    setEditingProduct(null);
-    refetchProdutos();
-    refetchSistemas(); // Refresh sistemas to update produto counts
+  const handleBackToProductos = () => {
+    logger.info('🔙 [ContentManagerAudited] Back to produtos');
+    setViewState({
+      mode: 'produtos',
+      sistemaId: viewState.sistemaId,
+      sistemaNome: viewState.sistemaNome
+    });
   };
 
-  const handleVideoAulasChange = () => {
-    refetchVideoAulas();
-    refetchProdutos(); // Refresh produtos to update videoaula counts
-    refetchSistemas(); // Refresh sistemas to update total counts
+  const handleCreateVideoAula = () => {
+    if (!viewState.produtoId) return;
+    
+    logger.info('➕ [ContentManagerAudited] Creating new videoaula for produto:', viewState.produtoId);
+    
+    navigate(`/admin/videoaula/nova?sistema_id=${viewState.sistemaId}&produto_id=${viewState.produtoId}`);
   };
 
-  // Render error state
-  const renderError = (error: any, context: string) => (
-    <Card className="bg-red-50 border-red-200">
-      <CardContent className="pt-6">
-        <div className="flex items-center space-x-2 text-red-600">
-          <AlertCircle className="h-5 w-5" />
-          <span className="font-medium">Erro ao carregar {context}</span>
-        </div>
-        <p className="text-red-500 text-sm mt-2">
-          {error?.message || 'Erro desconhecido'}
-        </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-3"
-          onClick={() => {
-            if (context === 'sistemas') refetchSistemas();
-            else if (context === 'produtos') refetchProdutos();
-            else if (context === 'videoaulas') refetchVideoAulas();
-          }}
-        >
-          Tentar novamente
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
-  // Render loading state
-  const renderLoading = (count: number = 3) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: count }).map((_, i) => (
-        <Card key={i} className="bg-gray-800/50 border-gray-600">
-          <CardHeader>
-            <Skeleton className="h-6 w-3/4 bg-gray-700" />
-            <Skeleton className="h-4 w-full bg-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-10 w-full bg-gray-700" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-
-  // Render breadcrumb
-  const renderBreadcrumb = () => (
-    <div className="flex items-center space-x-2 text-sm text-gray-400 mb-6">
-      <button 
-        onClick={navigateToSistemas}
-        className="hover:text-white transition-colors"
-      >
-        Sistemas
-      </button>
-      {viewState.mode !== 'sistemas' && (
-        <>
-          <ChevronRight className="h-4 w-4" />
-          <button 
-            onClick={() => navigateToProdutos(viewState.sistemaId!, viewState.sistemaNome!)}
-            className="hover:text-white transition-colors"
-          >
-            {viewState.sistemaNome} 
-          </button>
-        </>
-      )}
-      {viewState.mode === 'videoaulas' && (
-        <>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-white">{viewState.produtoNome}</span>
-        </>
-      )}
-    </div>
-  );
-
-  // Render sistemas view
-  const renderSistemas = () => {
-    if (sistemasError) return renderError(sistemasError, 'sistemas');
-    if (sistemasLoading) return renderLoading();
-
-    return (
-      <>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Gerenciar Sistemas</h2>
-            <p className="text-gray-300">
-              {sistemas.length} sistema{sistemas.length !== 1 ? 's' : ''} cadastrado{sistemas.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowSystemForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Sistema
-          </Button>
-        </div>
-
-        {showSystemForm && (
-          <div className="mb-6">
-            <SystemFormAudited
-              sistema={editingSystem}
-              onSuccess={handleSystemFormSuccess}
-              onCancel={() => {
-                setShowSystemForm(false);
-                setEditingSystem(null);
-              }}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sistemas.map((sistema) => (
-            <Card key={sistema.id} className="bg-gray-800/50 border-gray-600 hover:bg-gray-800/70 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
-                  <span className="truncate">{sistema.nome}</span>
-                  <Badge variant="secondary" className="ml-2">
-                    {sistema.produtos?.length || 0}
-                  </Badge>
-                </CardTitle>
-                {sistema.descricao && (
-                  <p className="text-gray-300 text-sm line-clamp-2">{sistema.descricao}</p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Ordem: {sistema.ordem}</span>
-                  <span>
-                    {sistema.produtos?.reduce((acc, p) => acc + (p.video_aulas?.length || 0), 0) || 0} videoaulas
-                  </span>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateToProdutos(sistema.id, sistema.nome)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50 flex-1"
-                  >
-                    Ver Produtos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingSystem(sistema);
-                      setShowSystemForm(true);
-                    }}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {sistemas.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">Nenhum sistema cadastrado</p>
-            <p className="text-gray-500 text-sm mt-2">
-              Clique em "Novo Sistema" para começar
-            </p>
-          </div>
-        )}
-      </>
-    );
+  const handleEditVideoAula = (videoAulaId: string) => {
+    logger.info('✏️ [ContentManagerAudited] Editing videoaula:', videoAulaId);
+    navigate(`/admin/videoaula/${videoAulaId}`);
   };
 
-  // Render produtos view
-  const renderProdutos = () => {
-    if (produtosError) return renderError(produtosError, 'produtos');
-    if (produtosLoading) return renderLoading();
-
-    return (
-      <>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Produtos do Sistema</h2>
-            <p className="text-gray-300">
-              {produtos.length} produto{produtos.length !== 1 ? 's' : ''} em {viewState.sistemaNome}
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowProductForm(true)}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Produto
-          </Button>
-        </div>
-
-        {showProductForm && (
-          <div className="mb-6">
-            <ProductFormAudited
-              sistemaId={viewState.sistemaId!}
-              sistemaNome={viewState.sistemaNome!}
-              produto={editingProduct}
-              onSuccess={handleProductFormSuccess}
-              onCancel={() => {
-                setShowProductForm(false);
-                setEditingProduct(null);
-              }}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos.map((produto) => (
-            <Card key={produto.id} className="bg-gray-800/50 border-gray-600 hover:bg-gray-800/70 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
-                  <span className="truncate">{produto.nome}</span>
-                  <Badge variant="secondary" className="ml-2">
-                    {produto.video_aulas?.length || 0}
-                  </Badge>
-                </CardTitle>
-                {produto.descricao && (
-                  <p className="text-gray-300 text-sm line-clamp-2">{produto.descricao}</p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-sm text-gray-400">
-                  Ordem: {produto.ordem}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateToVideoAulas(produto.id, produto.nome)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50 flex-1"
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Videoaulas
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingProduct(produto);
-                      setShowProductForm(true);
-                    }}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {produtos.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">Nenhum produto cadastrado neste sistema</p>
-            <p className="text-gray-500 text-sm mt-2">
-              Clique em "Novo Produto" para começar
-            </p>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  // Render videoaulas view
-  const renderVideoAulas = () => {
-    if (videoAulasError) return renderError(videoAulasError, 'videoaulas');
-
-    const sistema = sistemas.find(s => s.id === viewState.sistemaId);
-    const produto = produtos.find(p => p.id === viewState.produtoId);
-
-    if (!sistema || !produto) {
-      return (
-        <div className="text-center py-12">
-          <p className="text-red-400">Erro: Sistema ou Produto não encontrado</p>
-        </div>
-      );
+  const handleDeleteVideoAula = async (videoAulaId: string, titulo: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a videoaula "${titulo}"?`)) {
+      return;
     }
 
-    return (
-      <VideoAulasListAudited
-        sistema={sistema}
-        produto={produto}
-        videoAulas={videoAulas}
-        onVideoAulasChange={handleVideoAulasChange}
-        onBack={() => navigateToProdutos(viewState.sistemaId!, viewState.sistemaNome!)}
-      />
-    );
+    logger.info('🗑️ [ContentManagerAudited] Deleting videoaula:', videoAulaId);
+    
+    try {
+      await deleteVideoAulaMutation.mutateAsync(videoAulaId);
+      toast({
+        title: "Videoaula excluída",
+        description: `"${titulo}" foi excluída com sucesso.`,
+      });
+      refetch();
+    } catch (error) {
+      logger.error('❌ Error deleting videoaula:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a videoaula.",
+        variant: "destructive",
+      });
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      {renderBreadcrumb()}
-      
-      {viewState.mode === 'sistemas' && renderSistemas()}
-      {viewState.mode === 'produtos' && renderProdutos()}
-      {viewState.mode === 'videoaulas' && renderVideoAulas()}
-    </div>
-  );
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando conteúdo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-400 mb-4">⚠️</div>
+          <p className="text-gray-400 mb-4">Erro ao carregar conteúdo</p>
+          <Button onClick={() => refetch()} variant="outline">
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar lista de sistemas
+  if (viewState.mode === 'sistemas') {
+    return (
+      <Card className="bg-gray-800/50 border-gray-600">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center">
+            <Package className="h-5 w-5 mr-2" />
+            Sistemas ({sistemas.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sistemas.length === 0 ? (
+            <div className="text-center py-8">
+              <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">Nenhum sistema encontrado</p>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeiro Sistema
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sistemas.map((sistema) => (
+                <div
+                  key={sistema.id}
+                  className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600 hover:bg-gray-700/70 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium">{sistema.nome}</h3>
+                    {sistema.descricao && (
+                      <p className="text-gray-400 text-sm mt-1">{sistema.descricao}</p>
+                    )}
+                    <div className="flex items-center space-x-4 mt-2">
+                      <Badge variant="secondary">
+                        {sistema.produtos?.length || 0} produtos
+                      </Badge>
+                      <Badge variant="secondary">
+                        {sistema.produtos?.reduce((total, produto) => 
+                          total + (produto.video_aulas?.length || 0), 0
+                        ) || 0} videoaulas
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleNavigateToProductos(sistema.id, sistema.nome)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-300 hover:text-white"
+                  >
+                    Ver Produtos
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Renderizar lista de produtos
+  if (viewState.mode === 'produtos') {
+    const sistema = sistemas.find(s => s.id === viewState.sistemaId);
+    const produtos = sistema?.produtos || [];
+
+    return (
+      <Card className="bg-gray-800/50 border-gray-600">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center">
+              <Button
+                onClick={handleBackToSistemas}
+                variant="ghost"
+                size="sm"
+                className="text-gray-300 hover:text-white mr-3"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Package className="h-5 w-5 mr-2" />
+              {viewState.sistemaNome} - Produtos ({produtos.length})
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {produtos.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">Nenhum produto encontrado para este sistema</p>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeiro Produto
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {produtos.map((produto) => (
+                <div
+                  key={produto.id}
+                  className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600 hover:bg-gray-700/70 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium">{produto.nome}</h3>
+                    {produto.descricao && (
+                      <p className="text-gray-400 text-sm mt-1">{produto.descricao}</p>
+                    )}
+                    <div className="flex items-center space-x-4 mt-2">
+                      <Badge variant="secondary">
+                        {produto.video_aulas?.length || 0} videoaulas
+                      </Badge>
+                      <Badge variant="outline">
+                        Ordem: {produto.ordem}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleNavigateToVideoaulas(produto.id, produto.nome)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-300 hover:text-white"
+                  >
+                    Ver Videoaulas
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Renderizar lista de videoaulas
+  if (viewState.mode === 'videoaulas') {
+    const sistema = sistemas.find(s => s.id === viewState.sistemaId);
+    const produto = sistema?.produtos?.find(p => p.id === viewState.produtoId);
+    const videoaulas = produto?.video_aulas || [];
+
+    return (
+      <Card className="bg-gray-800/50 border-gray-600">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center">
+              <Button
+                onClick={handleBackToProductos}
+                variant="ghost"
+                size="sm"
+                className="text-gray-300 hover:text-white mr-3"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Video className="h-5 w-5 mr-2" />
+              {viewState.produtoNome} - Videoaulas ({videoaulas.length})
+            </CardTitle>
+            <Button
+              onClick={handleCreateVideoAula}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Videoaula
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {videoaulas.length === 0 ? (
+            <div className="text-center py-8">
+              <Video className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">Nenhuma videoaula encontrada para este produto</p>
+              <Button
+                onClick={handleCreateVideoAula}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Videoaula
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {videoaulas.map((videoaula) => (
+                <div
+                  key={videoaula.id}
+                  className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600 hover:bg-gray-700/70 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium">{videoaula.titulo}</h3>
+                    {videoaula.descricao && (
+                      <p className="text-gray-400 text-sm mt-1">{videoaula.descricao}</p>
+                    )}
+                    <div className="flex items-center space-x-4 mt-2">
+                      <Badge variant="outline">Ordem: {videoaula.ordem}</Badge>
+                      {videoaula.url_video && (
+                        <Badge variant="secondary">
+                          <Play className="h-3 w-3 mr-1" />
+                          Vídeo
+                        </Badge>
+                      )}
+                      {videoaula.id_video_bunny && (
+                        <Badge variant="secondary">Bunny.net</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => handleEditVideoAula(videoaula.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-300 hover:text-white"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteVideoAula(videoaula.id, videoaula.titulo)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-300 hover:text-red-400"
+                      disabled={deleteVideoAulaMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
 };
+
+export default ContentManagerAudited;
