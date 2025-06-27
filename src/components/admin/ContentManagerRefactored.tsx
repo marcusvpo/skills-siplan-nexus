@@ -27,7 +27,7 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   url_video: string;
-  id_video_bunny?: string;
+  id_video_bunny: string | null;
   url_thumbnail?: string;
   ordem: number;
   produto_id: string;
@@ -49,7 +49,7 @@ export const ContentManagerRefactored: React.FC = () => {
     titulo: va.titulo,
     descricao: va.descricao || undefined,
     url_video: va.url_video,
-    id_video_bunny: va.id_video_bunny || undefined,
+    id_video_bunny: va.id_video_bunny || null,
     url_thumbnail: va.url_thumbnail || undefined,
     ordem: va.ordem,
     produto_id: va.produto_id || selectedProduto?.id || ''
