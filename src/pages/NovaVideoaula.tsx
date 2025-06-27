@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -8,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/utils/logger';
+import { useQueryInvalidation } from '@/hooks/useQueryInvalidation';
 
 interface Sistema {
   id: string;
@@ -27,6 +27,8 @@ interface Produto {
 const NovaVideoaula: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { invalidateVideoAulaQueries } = useQueryInvalidation();
+  
   const sistemaId = searchParams.get('sistema_id');
   const produtoId = searchParams.get('produto_id');
 
@@ -92,8 +94,17 @@ const NovaVideoaula: React.FC = () => {
   }, [sistemaId, produtoId]);
 
   const handleSuccess = () => {
-    logger.info('✅ [NovaVideoaula] Videoaula created successfully, navigating to admin');
-    navigate('/admin');
+    logger.info('✅ [NovaVideoaula] Videoaula created successfully');
+    
+    // Invalidar queries para garantir atualização imediata
+    if (produtoId) {
+      invalidateVideoAulaQueries(produtoId);
+    }
+    
+    // Navegar de volta para o admin após invalidação
+    setTimeout(() => {
+      navigate('/admin');
+    }, 1000); // Dar tempo para as queries serem invalidadas
   };
 
   const handleCancel = () => {

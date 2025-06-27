@@ -60,10 +60,12 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     ordem: videoAula?.ordem || 1
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const createVideoAula = useCreateVideoAula();
   const updateVideoAula = useUpdateVideoAula();
 
-  const isLoading = createVideoAula.isPending || updateVideoAula.isPending;
+  const isLoading = createVideoAula.isPending || updateVideoAula.isPending || isSubmitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +87,8 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       });
       return;
     }
+
+    setIsSubmitting(true);
 
     logger.info('📹 [VideoAulaFormFixed] Submitting form:', {
       titulo: formData.titulo,
@@ -116,7 +120,12 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       }
 
       logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
-      onSuccess();
+      
+      // Pequeno delay para garantir que o toast apareça antes da navegação
+      setTimeout(() => {
+        onSuccess();
+      }, 500);
+      
     } catch (error) {
       logger.error('❌ [VideoAulaFormFixed] Form submission failed:', error);
       toast({
@@ -124,6 +133,9 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
+    } finally {
+      // Garantir que o loading state seja sempre desativado
+      setIsSubmitting(false);
     }
   };
 

@@ -380,13 +380,21 @@ export const useCreateVideoAula = () => {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidar todas as queries relacionadas para forçar re-fetch
       queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-fixed'] });
+      
+      // Invalidar queries específicas do produto para garantir atualização imediata
+      queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
+      
+      logger.info('✅ [useCreateVideoAula] Queries invalidated, UI should update');
       
       toast({
         title: "Videoaula criada!",
-        description: "A videoaula foi criada com sucesso.",
+        description: "A videoaula foi criada com sucesso e já está disponível.",
       });
     },
     onError: (error) => {
@@ -437,9 +445,17 @@ export const useUpdateVideoAula = () => {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidar todas as queries relacionadas para forçar re-fetch
       queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-fixed'] });
+      
+      // Invalidar queries específicas do produto
+      queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
+      
+      logger.info('✅ [useUpdateVideoAula] Queries invalidated, UI should update');
       
       toast({
         title: "Videoaula atualizada!",

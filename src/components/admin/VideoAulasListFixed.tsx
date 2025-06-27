@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Plus, Edit, Trash2, ArrowLeft, ExternalLink, Video } from 'lucide-react
 import { VideoAulaFormFixed } from './VideoAulaFormFixed';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryInvalidation } from '@/hooks/useQueryInvalidation';
 
 interface Sistema {
   id: string;
@@ -49,6 +49,8 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
   onBack
 }) => {
   const navigate = useNavigate();
+  const { invalidateVideoAulaQueries } = useQueryInvalidation();
+  
   const [showForm, setShowForm] = useState(false);
   const [editingVideoAula, setEditingVideoAula] = useState<VideoAula | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -75,7 +77,10 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
         description: `A videoaula "${videoAulaTitle}" foi excluída com sucesso.`,
       });
       
+      // Invalidar queries e forçar atualização
+      invalidateVideoAulaQueries(produto.id);
       onVideoAulasChange();
+      
     } catch (error) {
       console.error('Error deleting video aula:', error);
       toast({
@@ -91,6 +96,9 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingVideoAula(null);
+    
+    // Invalidar queries e forçar atualização
+    invalidateVideoAulaQueries(produto.id);
     onVideoAulasChange();
   };
 
