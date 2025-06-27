@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,8 +65,8 @@ const AdminDashboardAudited: React.FC = () => {
   }, [sistemas, cartorios]);
 
   React.useEffect(() => {
-    logger.info('📊 [AdminDashboard] Current view:', activeTab);
-    logger.info('📊 [AdminDashboard] Stats:', stats);
+    logger.info('📊 [AdminDashboard] Current view:', { activeTab });
+    logger.info('📊 [AdminDashboard] Stats:', { stats });
   }, [activeTab, stats]);
 
   return (

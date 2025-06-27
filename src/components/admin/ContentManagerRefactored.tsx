@@ -43,14 +43,14 @@ export const ContentManagerRefactored: React.FC = () => {
   const { data: sistemas = [], isLoading, refetch: refetchSistemas } = useSistemasWithVideoAulas();
   const { data: videoAulasData = [], refetch: refetchVideoAulas } = useVideoAulasByProduto(selectedProduto?.id || '');
 
-  // Ensure type compatibility by mapping the data
+  // Ensure type compatibility by mapping the data to match our local VideoAula interface
   const videoAulas: VideoAula[] = videoAulasData.map(va => ({
     id: va.id,
     titulo: va.titulo,
-    descricao: va.descricao,
+    descricao: va.descricao || undefined,
     url_video: va.url_video,
-    id_video_bunny: va.id_video_bunny,
-    url_thumbnail: va.url_thumbnail,
+    id_video_bunny: va.id_video_bunny || undefined,
+    url_thumbnail: va.url_thumbnail || undefined,
     ordem: va.ordem,
     produto_id: va.produto_id || selectedProduto?.id || ''
   }));
