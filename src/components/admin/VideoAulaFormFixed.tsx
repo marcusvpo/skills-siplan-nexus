@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, X, Save } from 'lucide-react';
+import { useCreateVideoAula } from '@/hooks/useSupabaseDataFixed';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
+import { Save, X, Loader2 } from 'lucide-react';
 
 interface Sistema {
   id: string;
@@ -25,20 +25,9 @@ interface Produto {
   ordem: number;
 }
 
-interface VideoAula {
-  id?: string;
-  titulo: string;
-  descricao?: string;
-  url_video: string;
-  id_video_bunny: string;
-  ordem: number;
-  produto_id: string;
-}
-
 interface VideoAulaFormFixedProps {
   sistema: Sistema;
   produto: Produto;
-  videoAula?: VideoAula | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -46,20 +35,20 @@ interface VideoAulaFormFixedProps {
 export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
   sistema,
   produto,
-  videoAula,
   onSuccess,
   onCancel
 }) => {
   const [formData, setFormData] = useState({
-    titulo: videoAula?.titulo || '',
-    descricao: videoAula?.descricao || '',
-    url_video: videoAula?.url_video || '',
-    id_video_bunny: videoAula?.id_video_bunny || '',
-    ordem: videoAula?.ordem || 1,
-    produto_id: videoAula?.produto_id || produto.id
+    titulo: '',
+    descricao: '',
+    url_video: '',
+    id_video_bunny: '',
+    url_thumbnail: '',
+    ordem: 1
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createVideoAula = useCreateVideoAula();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,172 +56,189 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     if (!formData.titulo.trim()) {
       toast({
         title: "Título obrigatório",
-        description: "Informe o título da videoaula.",
+        description: "Digite um título para a videoaula",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const videoAulaData = {
-        titulo: formData.titulo.trim(),
-        descricao: formData.descricao.trim() || null,
-        url_video: formData.url_video.trim(),
-        id_video_bunny: formData.id_video_bunny.trim(),
-        ordem: formData.ordem,
-        produto_id: produto.id
-      };
-
-      if (videoAula?.id) {
-        // Update existing videoaula
-        const { error } = await supabase
-          .from('video_aulas')
-          .update(videoAulaData)
-          .eq('id', videoAula.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Videoaula atualizada",
-          description: `"${formData.titulo}" foi atualizada com sucesso.`,
-        });
-      } else {
-        // Create new videoaula
-        const { error } = await supabase
-          .from('video_aulas')
-          .insert(videoAulaData);
-
-        if (error) throw error;
-
-        toast({
-          title: "Videoaula criada",
-          description: `"${formData.titulo}" foi criada com sucesso.`,
-        });
-      }
-
-      onSuccess();
-    } catch (error) {
-      console.error('Error saving videoaula:', error);
+    if (!formData.url_video.trim()) {
       toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar a videoaula.",
+        title: "URL do vídeo obrigatória",
+        description: "Digite a URL do vídeo",
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsSubmitting(true);
+    logger.info('📹 [VideoAulaFormFixed] Submitting form:', {
+      titulo: formData.titulo,
+      produto_id: produto.id,
+      sistema_id: sistema.id
+    });
+
+    try {
+      await createVideoAula.mutateAsync({
+        titulo: formData.titulo.trim(),
+        descricao: formData.descricao.trim() || undefined,
+        url_video: formData.url_video.trim(),
+        id_video_bunny: formData.id_video_bunny.trim() || undefined,
+        url_thumbnail: formData.url_thumbnail.trim() || undefined,
+        produto_id: produto.id,
+        ordem: formData.ordem
+      });
+
+      logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
+      onSuccess();
+    } catch (error) {
+      logger.error('❌ [VideoAulaFormFixed] Form submission failed:', error);
+      // O toast de erro já é mostrado pelo hook
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const isLoading = isSubmitting || createVideoAula.isPending;
+
   return (
     <Card className="bg-gray-800/50 border-gray-600">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle className="text-white">
-          {videoAula ? 'Editar Videoaula' : 'Nova Videoaula'}
+          Nova Videoaula
         </CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="text-sm text-gray-400">
+          <p><strong>Sistema:</strong> {sistema.nome}</p>
+          <p><strong>Produto:</strong> {produto.nome}</p>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 p-3 bg-gray-700/30 rounded border border-gray-600">
-          <p className="text-gray-300 text-sm">
-            <strong>Sistema:</strong> {sistema.nome} • <strong>Produto:</strong> {produto.nome}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Título */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="titulo" className="text-gray-300">Título da Videoaula *</Label>
+            <Label htmlFor="titulo" className="text-gray-300">
+              Título da Videoaula *
+            </Label>
             <Input
               id="titulo"
               value={formData.titulo}
-              onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-              placeholder="Ex: Introdução ao Sistema"
+              onChange={(e) => handleInputChange('titulo', e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="Digite o título da videoaula"
+              disabled={isLoading}
               required
             />
           </div>
 
-          {/* URL do Vídeo */}
           <div>
-            <Label htmlFor="url_video" className="text-gray-300">URL do Vídeo</Label>
+            <Label htmlFor="descricao" className="text-gray-300">
+              Descrição
+            </Label>
+            <Textarea
+              id="descricao"
+              value={formData.descricao}
+              onChange={(e) => handleInputChange('descricao', e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="Descrição da videoaula (opcional)"
+              rows={3}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="url_video" className="text-gray-300">
+              URL do Vídeo *
+            </Label>
             <Input
               id="url_video"
               value={formData.url_video}
-              onChange={(e) => setFormData({ ...formData, url_video: e.target.value })}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-              placeholder="https://exemplo.com/video.mp4"
+              onChange={(e) => handleInputChange('url_video', e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="https://..."
+              disabled={isLoading}
+              required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID Bunny */}
             <div>
-              <Label htmlFor="id_video_bunny" className="text-gray-300">ID Bunny.net</Label>
+              <Label htmlFor="id_video_bunny" className="text-gray-300">
+                ID Bunny.net
+              </Label>
               <Input
                 id="id_video_bunny"
                 value={formData.id_video_bunny}
-                onChange={(e) => setFormData({ ...formData, id_video_bunny: e.target.value })}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
+                onChange={(e) => handleInputChange('id_video_bunny', e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white"
                 placeholder="ID do vídeo no Bunny.net"
+                disabled={isLoading}
               />
             </div>
 
-            {/* Ordem */}
             <div>
-              <Label htmlFor="ordem" className="text-gray-300">Ordem</Label>
+              <Label htmlFor="ordem" className="text-gray-300">
+                Ordem
+              </Label>
               <Input
                 id="ordem"
                 type="number"
                 value={formData.ordem}
-                onChange={(e) => setFormData({ ...formData, ordem: parseInt(e.target.value) || 1 })}
-                className="bg-gray-700/50 border-gray-600 text-white"
+                onChange={(e) => handleInputChange('ordem', parseInt(e.target.value) || 1)}
+                className="bg-gray-700 border-gray-600 text-white"
                 min="1"
+                disabled={isLoading}
               />
             </div>
           </div>
 
-          {/* Descrição */}
           <div>
-            <Label htmlFor="descricao" className="text-gray-300">Descrição</Label>
-            <Textarea
-              id="descricao"
-              value={formData.descricao}
-              onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-              placeholder="Descrição da videoaula..."
-              rows={3}
+            <Label htmlFor="url_thumbnail" className="text-gray-300">
+              URL Thumbnail
+            </Label>
+            <Input
+              id="url_thumbnail"
+              value={formData.url_thumbnail}
+              onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="https://..."
+              disabled={isLoading}
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex space-x-4">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Videoaula
+                </>
+              )}
+            </Button>
+            
             <Button
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
               disabled={isLoading}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className="border-gray-600 text-gray-300"
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {videoAula ? 'Atualizar' : 'Criar'} Videoaula
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
             </Button>
           </div>
         </form>

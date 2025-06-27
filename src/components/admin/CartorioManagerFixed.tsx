@@ -12,7 +12,7 @@ import { CartorioFormDialog } from './CartorioFormDialog';
 import { CartorioCard } from './CartorioCard';
 import { CartorioEmptyState } from './CartorioEmptyState';
 
-const CartorioManagerAudited: React.FC = () => {
+const CartorioManagerFixed: React.FC = () => {
   const [isNewCartorioOpen, setIsNewCartorioOpen] = useState(false);
   const [selectedCartorioForUsers, setSelectedCartorioForUsers] = useState<any>(null);
   const [selectedCartorioForEdit, setSelectedCartorioForEdit] = useState<any>(null);
@@ -21,7 +21,7 @@ const CartorioManagerAudited: React.FC = () => {
   const { data: cartorios = [], isLoading, error, refetch } = useCartoriosAdmin();
 
   useEffect(() => {
-    logger.info('🏢 [CartorioManagerAudited] Component mounted', { 
+    logger.info('🏢 [CartorioManagerFixed] Component mounted', { 
       cartoriosCount: cartorios.length,
       isLoading,
       hasError: !!error,
@@ -33,7 +33,7 @@ const CartorioManagerAudited: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      logger.error('❌ [CartorioManagerAudited] Error loading cartorios:', { error });
+      logger.error('❌ [CartorioManagerFixed] Error loading cartorios:', { error });
       toast({
         title: "Erro ao carregar cartórios",
         description: "Não foi possível carregar a lista de cartórios. Verifique as permissões administrativas.",
@@ -44,7 +44,7 @@ const CartorioManagerAudited: React.FC = () => {
 
   useEffect(() => {
     if (authError) {
-      logger.error('❌ [CartorioManagerAudited] Auth error:', { error: authError });
+      logger.error('❌ [CartorioManagerFixed] Auth error:', { error: authError });
       toast({
         title: "Erro de autenticação",
         description: authError,
@@ -183,4 +183,4 @@ const CartorioManagerAudited: React.FC = () => {
   );
 };
 
-export default CartorioManagerAudited;
+export default CartorioManagerFixed;

@@ -24,7 +24,7 @@ interface Produto {
   ordem: number;
 }
 
-const NovaVideoaula: React.FC = () => {
+const NovaVideoaulaFixed: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sistemaId = searchParams.get('sistema_id');
@@ -44,7 +44,7 @@ const NovaVideoaula: React.FC = () => {
       }
 
       try {
-        logger.info('📹 [NovaVideoaula] Loading sistema and produto data', {
+        logger.info('📹 [NovaVideoaulaFixed] Loading sistema and produto data', {
           sistemaId,
           produtoId
         });
@@ -57,7 +57,7 @@ const NovaVideoaula: React.FC = () => {
           .single();
 
         if (sistemaError) {
-          logger.error('❌ [NovaVideoaula] Error loading sistema:', { error: sistemaError });
+          logger.error('❌ [NovaVideoaulaFixed] Error loading sistema:', { error: sistemaError });
           throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
         }
 
@@ -69,19 +69,19 @@ const NovaVideoaula: React.FC = () => {
           .single();
 
         if (produtoError) {
-          logger.error('❌ [NovaVideoaula] Error loading produto:', { error: produtoError });
+          logger.error('❌ [NovaVideoaulaFixed] Error loading produto:', { error: produtoError });
           throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
         }
 
         setSistema(sistemaData);
         setProduto(produtoData);
         
-        logger.info('✅ [NovaVideoaula] Data loaded successfully', {
+        logger.info('✅ [NovaVideoaulaFixed] Data loaded successfully', {
           sistema: sistemaData.nome,
           produto: produtoData.nome
         });
       } catch (err) {
-        logger.error('❌ [NovaVideoaula] Unexpected error:', err);
+        logger.error('❌ [NovaVideoaulaFixed] Unexpected error:', err);
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados do sistema e produto');
       } finally {
         setIsLoading(false);
@@ -92,12 +92,12 @@ const NovaVideoaula: React.FC = () => {
   }, [sistemaId, produtoId]);
 
   const handleSuccess = () => {
-    logger.info('✅ [NovaVideoaula] Videoaula created successfully, navigating to admin');
+    logger.info('✅ [NovaVideoaulaFixed] Videoaula created successfully, navigating to admin');
     navigate('/admin');
   };
 
   const handleCancel = () => {
-    logger.info('ℹ️ [NovaVideoaula] User cancelled, navigating to admin');
+    logger.info('ℹ️ [NovaVideoaulaFixed] User cancelled, navigating to admin');
     navigate('/admin');
   };
 
@@ -151,4 +151,4 @@ const NovaVideoaula: React.FC = () => {
   );
 };
 
-export default NovaVideoaula;
+export default NovaVideoaulaFixed;
