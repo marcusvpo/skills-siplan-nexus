@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,7 +83,7 @@ const VideoLesson = () => {
 
   // Error state
   if (error) {
-    logger.error('📹 [VideoLesson] Error loading data:', error);
+    logger.error('📹 [VideoLesson] Error loading data:', { error });
     return (
       <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
@@ -141,14 +140,14 @@ const VideoLesson = () => {
   const nextVideo = currentVideoIndex < productVideoAulas.length - 1 ? productVideoAulas[currentVideoIndex + 1] : null;
 
   const toggleFavorite = () => {
-    logger.info('📹 [VideoLesson] Toggle favorite for video:', videoId);
+    logger.info('📹 [VideoLesson] Toggle favorite for video:', { videoId });
     // TODO: Implement favorite functionality
   };
 
   const markAsComplete = async () => {
     if (!user?.cartorio_id) return;
     
-    logger.info('📹 [VideoLesson] Marking video as complete:', videoId);
+    logger.info('📹 [VideoLesson] Marking video as complete:', { videoId });
     // TODO: Implement complete functionality
   };
 
