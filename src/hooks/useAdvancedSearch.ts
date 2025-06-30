@@ -27,80 +27,62 @@ export const useAdvancedSearch = () => {
     try {
       logger.info('🔍 [useAdvancedSearch] Iniciando busca avançada:', { termo, limite });
 
-      // Primeira tentativa: usar a nova função de busca avançada
-      try {
-        const { data, error } = await supabase.rpc('busca_avancada_conteudo', {
-          termo_busca: termo,
-          limite: limite
-        });
-
-        if (error) {
-          logger.warn('⚠️ [useAdvancedSearch] Função busca_avancada_conteudo não disponível:', error);
-          throw new Error('Função não disponível');
-        }
-
-        logger.info('✅ [useAdvancedSearch] Busca avançada bem-sucedida:', { resultados: data?.length || 0 });
-        setSearchResults(data || []);
-        return;
-      } catch (functionError) {
-        logger.warn('⚠️ [useAdvancedSearch] Fallback para busca tradicional');
+      // Busca tradicional em paralelo
+      const [sistemasResult, produtosResult, videoaulasResult] = await Promise.all([
+        supabase
+          .from('sistemas')
+          .select('id, nome, descricao')
+          .ilike('nome', `%${termo}%`)
+          .limit(Math.ceil(limite / 3)),
         
-        // Fallback: busca tradicional
-        const [sistemasResult, produtosResult, videoaulasResult] = await Promise.all([
-          supabase
-            .from('sistemas')
-            .select('id, nome, descricao')
-            .ilike('nome', `%${termo}%`)
-            .limit(Math.ceil(limite / 3)),
-          
-          supabase
-            .from('produtos')
-            .select('id, nome, descricao')
-            .ilike('nome', `%${termo}%`)
-            .limit(Math.ceil(limite / 3)),
-          
-          supabase
-            .from('video_aulas')
-            .select('id, titulo, descricao')
-            .ilike('titulo', `%${termo}%`)
-            .limit(Math.ceil(limite / 3))
-        ]);
+        supabase
+          .from('produtos')
+          .select('id, nome, descricao')
+          .ilike('nome', `%${termo}%`)
+          .limit(Math.ceil(limite / 3)),
+        
+        supabase
+          .from('video_aulas')
+          .select('id, titulo, descricao')
+          .ilike('titulo', `%${termo}%`)
+          .limit(Math.ceil(limite / 3))
+      ]);
 
-        const results: SearchResult[] = [];
+      const results: SearchResult[] = [];
 
-        if (sistemasResult.data) {
-          results.push(...sistemasResult.data.map(item => ({
-            tipo: 'sistema',
-            id: item.id,
-            titulo: item.nome,
-            descricao: item.descricao,
-            similaridade: 0.5 // Valor padrão para busca tradicional
-          })));
-        }
-
-        if (produtosResult.data) {
-          results.push(...produtosResult.data.map(item => ({
-            tipo: 'produto',
-            id: item.id,
-            titulo: item.nome,
-            descricao: item.descricao,
-            similaridade: 0.5
-          })));
-        }
-
-        if (videoaulasResult.data) {
-          results.push(...videoaulasResult.data.map(item => ({
-            tipo: 'video_aula',
-            id: item.id,
-            titulo: item.titulo,
-            descricao: item.descricao,
-            similaridade: 0.5
-          })));
-        }
-
-        logger.info('✅ [useAdvancedSearch] Busca tradicional concluída:', { resultados: results.length });
-        setSearchResults(results);
+      if (sistemasResult.data) {
+        results.push(...sistemasResult.data.map(item => ({
+          tipo: 'sistema',
+          id: item.id,
+          titulo: item.nome,
+          descricao: item.descricao,
+          similaridade: 0.5 // Valor padrão para busca tradicional
+        })));
       }
+
+      if (produtosResult.data) {
+        results.push(...produtosResult.data.map(item => ({
+          tipo: 'produto',
+          id: item.id,
+          titulo: item.nome,
+          descricao: item.descricao,
+          similaridade: 0.5
+        })));
+      }
+
+      if (videoaulasResult.data) {
+        results.push(...videoaulasResult.data.map(item => ({
+          tipo: 'video_aula',
+          id: item.id,
+          titulo: item.titulo,
+          descricao: item.descricao,
+          similaridade: 0.5
+        })));
+      }
+
+      logger.info('✅ [useAdvancedSearch] Busca concluída:', { resultados: results.length });
+      setSearchResults(results);
+      
     } catch (error) {
       logger.error('❌ [useAdvancedSearch] Erro na busca:', error);
       toast({

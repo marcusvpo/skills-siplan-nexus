@@ -119,29 +119,41 @@ export const useOptimizedVideoAulas = (produtoId: string) => {
   });
 };
 
-// Hook para monitoramento de performance (se disponível)
-export const usePerformanceMonitoring = () => {
+// Hook para estatísticas básicas (removendo dependência de função inexistente)
+export const useBasicStats = () => {
   return useQuery({
-    queryKey: ['performance-monitoring'],
+    queryKey: ['basic-stats'],
     queryFn: async () => {
-      logger.info('📊 [usePerformanceMonitoring] Verificando performance do banco');
+      logger.info('📊 [useBasicStats] Carregando estatísticas básicas');
       
       try {
-        const { data, error } = await supabase.rpc('relatorio_performance_queries');
-        
-        if (error) {
-          logger.warn('⚠️ [usePerformanceMonitoring] Função de performance não disponível:', error);
-          return null;
-        }
+        const [sistemasCount, produtosCount, videoaulasCount, cartoriosCount] = await Promise.all([
+          supabase.from('sistemas').select('id', { count: 'exact', head: true }),
+          supabase.from('produtos').select('id', { count: 'exact', head: true }),
+          supabase.from('video_aulas').select('id', { count: 'exact', head: true }),
+          supabase.from('cartorios').select('id', { count: 'exact', head: true })
+        ]);
 
-        logger.info('✅ [usePerformanceMonitoring] Relatório de performance obtido:', { queries: data?.length || 0 });
-        return data;
+        const stats = {
+          sistemas: sistemasCount.count || 0,
+          produtos: produtosCount.count || 0,
+          videoaulas: videoaulasCount.count || 0,
+          cartorios: cartoriosCount.count || 0
+        };
+
+        logger.info('✅ [useBasicStats] Estatísticas carregadas:', stats);
+        return stats;
       } catch (error) {
-        logger.warn('⚠️ [usePerformanceMonitoring] Monitoramento não disponível:', error);
-        return null;
+        logger.warn('⚠️ [useBasicStats] Erro ao carregar estatísticas:', error);
+        return {
+          sistemas: 0,
+          produtos: 0,
+          videoaulas: 0,
+          cartorios: 0
+        };
       }
     },
-    enabled: false, // Só executa quando chamado manualmente
+    staleTime: 10 * 60 * 1000, // 10 minutos
     retry: false,
   });
 };
