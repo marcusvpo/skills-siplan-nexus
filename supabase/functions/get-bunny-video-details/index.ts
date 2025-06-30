@@ -36,16 +36,18 @@ interface BunnyVideoResponse {
 }
 
 serve(async (req) => {
-  console.log('🎥 [get-bunny-video-details] Function called');
+  console.log('🎥 [get-bunny-video-details] Function called - Method:', req.method);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('🎥 [get-bunny-video-details] Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Validate request method
     if (req.method !== 'POST') {
+      console.error('❌ [get-bunny-video-details] Invalid method:', req.method);
       return new Response(
         JSON.stringify({ 
           error: 'Método não permitido. Use POST.',
@@ -58,13 +60,30 @@ serve(async (req) => {
       );
     }
 
-    // Get request body
-    const { videoId } = await req.json();
+    // Get and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('🎥 [get-bunny-video-details] Request body received:', requestBody);
+    } catch (error) {
+      console.error('❌ [get-bunny-video-details] Invalid JSON in request body:', error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Corpo da requisição deve ser um JSON válido',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
 
-    console.log('🎥 [get-bunny-video-details] Received request:', { videoId });
+    const { videoId } = requestBody;
 
     // Validate videoId
     if (!videoId || typeof videoId !== 'string') {
+      console.error('❌ [get-bunny-video-details] Invalid videoId:', videoId);
       return new Response(
         JSON.stringify({ 
           error: 'ID do vídeo é obrigatório e deve ser uma string',
@@ -77,16 +96,19 @@ serve(async (req) => {
       );
     }
 
-    // Get Bunny.net credentials from environment - USANDO A API KEY DA BIBLIOTECA DE VÍDEOS
+    // Get Bunny.net credentials from environment
     const BUNNY_VIDEO_LIBRARY_API_KEY = Deno.env.get('BUNNY_API_KEY');
     const LIBRARY_ID = '461543';
     const CDN_HOSTNAME = 'vz-2e72e0ff-de5.b-cdn.net';
 
+    console.log('🔑 [get-bunny-video-details] Environment check - API Key exists:', !!BUNNY_VIDEO_LIBRARY_API_KEY);
+    console.log('📚 [get-bunny-video-details] Using Library ID:', LIBRARY_ID);
+
     if (!BUNNY_VIDEO_LIBRARY_API_KEY) {
-      console.error('❌ [get-bunny-video-details] BUNNY_API_KEY (Video Library) not found in environment');
+      console.error('❌ [get-bunny-video-details] BUNNY_API_KEY not found in environment');
       return new Response(
         JSON.stringify({ 
-          error: 'Configuração da API Bunny.net (Video Library) não encontrada',
+          error: 'Configuração da API Bunny.net (Video Library) não encontrada. Verifique se o secret BUNNY_API_KEY está configurado.',
           success: false 
         }),
         {
@@ -96,17 +118,18 @@ serve(async (req) => {
       );
     }
 
-    console.log('🔑 [get-bunny-video-details] Making request to Bunny.net Video Library API');
-    console.log('📚 [get-bunny-video-details] Using Library ID:', LIBRARY_ID);
-
-    // Make request to Bunny.net Video Library API com a API Key CORRETA
+    // Make request to Bunny.net Video Library API
     const bunnyApiUrl = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`;
     
+    console.log('📡 [get-bunny-video-details] Making request to:', bunnyApiUrl);
+    console.log('🔐 [get-bunny-video-details] Using API Key (first 10 chars):', BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...');
+
     const response = await fetch(bunnyApiUrl, {
       method: 'GET',
       headers: {
-        'AccessKey': BUNNY_VIDEO_LIBRARY_API_KEY, // USANDO A API KEY DA BIBLIOTECA
-        'accept': 'application/json'
+        'AccessKey': BUNNY_VIDEO_LIBRARY_API_KEY,
+        'accept': 'application/json',
+        'User-Agent': 'Siplan-Skills/1.0'
       }
     });
 
@@ -118,7 +141,8 @@ serve(async (req) => {
         status: response.status, 
         statusText: response.statusText,
         errorText,
-        url: bunnyApiUrl
+        url: bunnyApiUrl,
+        apiKeyPrefix: BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...'
       });
 
       if (response.status === 404) {
@@ -137,8 +161,13 @@ serve(async (req) => {
       if (response.status === 401 || response.status === 403) {
         return new Response(
           JSON.stringify({ 
-            error: 'Erro de autenticação com a API da Bunny.net. Verifique se a API Key da Video Library está configurada corretamente.',
-            success: false 
+            error: 'Erro de autenticação com a API da Bunny.net. Verifique se a API Key da Video Library está configurada corretamente no secret BUNNY_API_KEY.',
+            success: false,
+            debug: {
+              status: response.status,
+              apiKeyPrefix: BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...',
+              expectedKey: '0f94a759-6635-403e-89b3fb1c6aa3-700f-4c4e'
+            }
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -161,7 +190,7 @@ serve(async (req) => {
 
     const videoData: BunnyVideoResponse = await response.json();
     
-    console.log('✅ [get-bunny-video-details] Video data received:', {
+    console.log('✅ [get-bunny-video-details] Video data received successfully:', {
       guid: videoData.guid,
       title: videoData.title,
       status: videoData.status,
@@ -169,7 +198,7 @@ serve(async (req) => {
       library: LIBRARY_ID
     });
 
-    // Generate URLs usando o CDN correto
+    // Generate URLs using correct CDN
     const playUrl = `https://${CDN_HOSTNAME}/${videoData.guid}/playlist.m3u8`;
     const thumbnailUrl = videoData.thumbnailCount > 0 
       ? `https://${CDN_HOSTNAME}/${videoData.guid}/${videoData.thumbnailFileName}`
@@ -195,13 +224,7 @@ serve(async (req) => {
       storageSize: videoData.storageSize
     };
 
-    console.log('📤 [get-bunny-video-details] Returning result:', {
-      success: result.success,
-      title: result.title.substring(0, 50) + '...',
-      hasPlayUrl: !!result.playUrl,
-      hasThumbnailUrl: !!result.thumbnailUrl,
-      library: LIBRARY_ID
-    });
+    console.log('📤 [get-bunny-video-details] Returning successful result');
 
     return new Response(
       JSON.stringify(result),
