@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,7 +86,7 @@ export const VideoAulasList: React.FC<VideoAulasListProps> = ({
   };
 
   const handleCreateNew = () => {
-    navigate(`/admin/video-aulas/nova?sistema_id=${sistema.id}&produto_id=${produto.id}`);
+    navigate(`/admin/videoaula/nova?sistema_id=${sistema.id}&produto_id=${produto.id}`);
   };
 
   return (

@@ -108,7 +108,7 @@ export const VideoAulasListFixed: React.FC<VideoAulasListFixedProps> = ({
   };
 
   const handleCreateNew = () => {
-    navigate(`/admin/videoaula-editor?sistema_id=${sistema.id}&produto_id=${produto.id}`);
+    navigate(`/admin/videoaula/nova?sistema_id=${sistema.id}&produto_id=${produto.id}`);
   };
 
   const handleEditWYSIWYG = (videoAula: VideoAula) => {

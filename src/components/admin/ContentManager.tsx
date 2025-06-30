@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SystemsList } from './SystemsList';
 import { ProductsList } from './ProductsList';
