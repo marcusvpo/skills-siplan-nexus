@@ -53,44 +53,45 @@ const NovaVideoaula: React.FC = () => {
           produtoId
         });
 
-        // Carregar sistema
-        const { data: sistemaData, error: sistemaError } = await supabase
-          .from('sistemas')
-          .select('*')
-          .eq('id', sistemaId)
-          .single();
+        // Usar consulta otimizada para carregar dados relacionados
+        const [sistemaResult, produtoResult] = await Promise.all([
+          supabase
+            .from('sistemas')
+            .select('*')
+            .eq('id', sistemaId)
+            .single(),
+          
+          supabase
+            .from('produtos')
+            .select('*')
+            .eq('id', produtoId)
+            .single()
+        ]);
 
-        if (sistemaError) {
-          logger.error('❌ [NovaVideoaula] Error loading sistema:', { error: sistemaError });
-          throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
+        if (sistemaResult.error) {
+          logger.error('❌ [NovaVideoaula] Error loading sistema:', { error: sistemaResult.error });
+          throw new Error(`Erro ao carregar sistema: ${sistemaResult.error.message}`);
         }
 
-        if (!sistemaData) {
+        if (produtoResult.error) {
+          logger.error('❌ [NovaVideoaula] Error loading produto:', { error: produtoResult.error });
+          throw new Error(`Erro ao carregar produto: ${produtoResult.error.message}`);
+        }
+
+        if (!sistemaResult.data) {
           throw new Error('Sistema não encontrado');
         }
 
-        // Carregar produto
-        const { data: produtoData, error: produtoError } = await supabase
-          .from('produtos')
-          .select('*')
-          .eq('id', produtoId)
-          .single();
-
-        if (produtoError) {
-          logger.error('❌ [NovaVideoaula] Error loading produto:', { error: produtoError });
-          throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
-        }
-
-        if (!produtoData) {
+        if (!produtoResult.data) {
           throw new Error('Produto não encontrado');
         }
 
-        setSistema(sistemaData);
-        setProduto(produtoData);
+        setSistema(sistemaResult.data);
+        setProduto(produtoResult.data);
         
         logger.info('✅ [NovaVideoaula] Data loaded successfully', {
-          sistema: sistemaData.nome,
-          produto: produtoData.nome
+          sistema: sistemaResult.data.nome,
+          produto: produtoResult.data.nome
         });
       } catch (err) {
         logger.error('❌ [NovaVideoaula] Unexpected error:', { error: err });
@@ -126,7 +127,7 @@ const NovaVideoaula: React.FC = () => {
         <div className="container mx-auto px-4 py-8">
           <Card className="bg-gray-800/50 border-gray-600">
             <CardContent className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500 mr-3" />
+              <Loader2 className="h-8 w-8 animate-spin text-red-500 mr-3" />
               <span className="text-white">Carregando dados...</span>
             </CardContent>
           </Card>
