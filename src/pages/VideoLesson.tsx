@@ -48,9 +48,8 @@ const VideoLesson: React.FC = () => {
   const { 
     videoDetails, 
     isLoading: isBunnyLoading, 
-    error: bunnyError,
-    fetchVideoDetails
-  } = useBunnyVideoDetails();
+    error: bunnyError 
+  } = useBunnyVideoDetails(videoAula?.id_video_bunny || '');
 
   useEffect(() => {
     const loadVideoLesson = async () => {
@@ -114,10 +113,8 @@ const VideoLesson: React.FC = () => {
 
         setSistema(sistemaData);
 
-        // Fetch Bunny video details if bunny_video_id exists
-        if (videoData.id_video_bunny) {
-          await fetchVideoDetails(videoData.id_video_bunny);
-        } else {
+        // Check if bunny_video_id is missing and show helpful message
+        if (!videoData.id_video_bunny) {
           console.warn('No bunny_video_id found for this video aula:', videoData);
           toast({
             title: "ID da Bunny.net ausente",
@@ -135,7 +132,7 @@ const VideoLesson: React.FC = () => {
     };
 
     loadVideoLesson();
-  }, [videoId, productId, systemId, fetchVideoDetails]);
+  }, [videoId, productId, systemId]);
 
   const handleBack = () => {
     navigate(`/system/${systemId}/product/${productId}`);
@@ -204,7 +201,7 @@ const VideoLesson: React.FC = () => {
 
   // Determine video URL to use
   const videoUrl = videoDetails?.playUrl || videoAula.url_video || '';
-  const thumbnailUrl = videoDetails?.thumbnailUrl;
+  const thumbnailUrl = videoDetails?.thumbnailUrl || videoAula.url_thumbnail;
   const videoDuration = videoDetails?.duration;
 
   return (
@@ -216,7 +213,7 @@ const VideoLesson: React.FC = () => {
             { label: 'Dashboard', href: '/dashboard' },
             { label: sistema.nome, href: `/system/${sistema.id}` },
             { label: produto.nome, href: `/system/${sistema.id}/product/${produto.id}` },
-            { label: videoAula.titulo, href: '#' }
+            { label: videoAula.titulo, href: '#', active: true }
           ]}
         />
 
@@ -307,7 +304,7 @@ const VideoLesson: React.FC = () => {
 
           {/* AI Chat Section */}
           <div className="lg:col-span-1">
-            <AIChat />
+            <AIChat videoAulaId={videoAula.id} />
           </div>
         </div>
       </div>
