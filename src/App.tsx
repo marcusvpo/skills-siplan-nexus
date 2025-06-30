@@ -1,7 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProviderEnhanced } from '@/contexts/AuthContextEnhanced';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
@@ -18,27 +18,12 @@ import NovaVideoaulaBunny from '@/pages/NovaVideoaulaBunny';
 import EditarVideoaula from '@/pages/EditarVideoaula';
 import NotFound from '@/pages/NotFound';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos
-      retry: (failureCount, error: any) => {
-        // Não tentar novamente em caso de erro de autenticação
-        if (error?.message?.includes('JWT') || error?.status === 401) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-      refetchOnWindowFocus: true, // Refetch quando a janela ganha foco
-      refetchOnReconnect: true, // Refetch quando reconecta à internet
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProviderEnhanced>
+      <AuthProvider>
         <Router>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -58,7 +43,7 @@ function App() {
           </Routes>
           <Toaster />
         </Router>
-      </AuthProviderEnhanced>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
