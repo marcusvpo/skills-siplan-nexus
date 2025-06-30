@@ -25,16 +25,18 @@ interface BunnyVideoDetails {
 
 interface UseBunnyVideoDetailsReturn {
   fetchVideoDetails: (videoId: string) => Promise<BunnyVideoDetails | null>;
+  videoDetails: BunnyVideoDetails | null;
   isLoading: boolean;
   error: string | null;
 }
 
-export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
+export const useBunnyVideoDetails = (videoId?: string): UseBunnyVideoDetailsReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [videoDetails, setVideoDetails] = useState<BunnyVideoDetails | null>(null);
 
-  const fetchVideoDetails = async (videoId: string): Promise<BunnyVideoDetails | null> => {
-    if (!videoId?.trim()) {
+  const fetchVideoDetails = async (targetVideoId: string): Promise<BunnyVideoDetails | null> => {
+    if (!targetVideoId?.trim()) {
       setError('ID do vídeo é obrigatório');
       toast({
         title: "ID do vídeo é obrigatório",
@@ -47,13 +49,13 @@ export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
     setIsLoading(true);
     setError(null);
 
-    logger.info('🎥 [useBunnyVideoDetails] Fetching video details', { videoId });
+    logger.info('🎥 [useBunnyVideoDetails] Fetching video details', { videoId: targetVideoId });
 
     try {
       const { data, error: functionError } = await supabase.functions.invoke(
         'get-bunny-video-details',
         {
-          body: { videoId: videoId.trim() }
+          body: { videoId: targetVideoId.trim() }
         }
       );
 
@@ -88,14 +90,16 @@ export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
         description: `Vídeo "${data.title}" carregado com sucesso`,
       });
 
-      return data as BunnyVideoDetails;
+      const details = data as BunnyVideoDetails;
+      setVideoDetails(details);
+      return details;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       
       logger.error('❌ [useBunnyVideoDetails] Error fetching video details:', { 
         error: errorMessage,
-        videoId 
+        videoId: targetVideoId 
       });
 
       setError(errorMessage);
@@ -112,8 +116,16 @@ export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
     }
   };
 
+  // Auto-fetch if videoId is provided
+  React.useEffect(() => {
+    if (videoId?.trim()) {
+      fetchVideoDetails(videoId);
+    }
+  }, [videoId]);
+
   return {
     fetchVideoDetails,
+    videoDetails,
     isLoading,
     error
   };
