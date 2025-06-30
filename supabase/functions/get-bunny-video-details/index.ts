@@ -198,11 +198,13 @@ serve(async (req) => {
       library: LIBRARY_ID
     });
 
-    // Generate URLs using correct CDN
-    const playUrl = `https://${CDN_HOSTNAME}/${videoData.guid}/playlist.m3u8`;
+    // Generate URLs - UPDATED: Use embed URL for playUrl instead of HLS
+    const playUrl = `https://iframe.mediadelivery.net/play/${LIBRARY_ID}/${videoData.guid}`;
     const thumbnailUrl = videoData.thumbnailCount > 0 
       ? `https://${CDN_HOSTNAME}/${videoData.guid}/${videoData.thumbnailFileName}`
       : null;
+
+    console.log('🎬 [get-bunny-video-details] Generated embed playUrl:', playUrl);
 
     // Return formatted response
     const result = {
