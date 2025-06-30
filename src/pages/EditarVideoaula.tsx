@@ -1,0 +1,193 @@
+
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
+import { VideoAulaFormFixed } from '@/components/admin/VideoAulaFormFixed';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { logger } from '@/utils/logger';
+import { useQueryInvalidation } from '@/hooks/useQueryInvalidation';
+
+interface Sistema {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ordem: number;
+}
+
+interface Produto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  sistema_id: string;
+  ordem: number;
+}
+
+interface VideoAula {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  url_video: string;
+  id_video_bunny?: string;
+  url_thumbnail?: string;
+  ordem: number;
+  produto_id: string;
+}
+
+const EditarVideoaula: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { invalidateVideoAulaQueries } = useQueryInvalidation();
+  
+  const videoAulaId = searchParams.get('id');
+  const sistemaId = searchParams.get('sistema_id');
+  const produtoId = searchParams.get('produto_id');
+
+  const [sistema, setSistema] = useState<Sistema | null>(null);
+  const [produto, setProduto] = useState<Produto | null>(null);
+  const [videoAula, setVideoAula] = useState<VideoAula | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!videoAulaId || !sistemaId || !produtoId) {
+        setError('IDs obrigatórios estão faltando');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        logger.info('📹 [EditarVideoaula] Loading data', {
+          videoAulaId,
+          sistemaId,
+          produtoId
+        });
+
+        // Fetch sistema
+        const { data: sistemaData, error: sistemaError } = await supabase
+          .from('sistemas')
+          .select('*')
+          .eq('id', sistemaId)
+          .single();
+
+        if (sistemaError) {
+          logger.error('❌ [EditarVideoaula] Error loading sistema:', { error: sistemaError });
+          throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
+        }
+
+        // Fetch produto
+        const { data: produtoData, error: produtoError } = await supabase
+          .from('produtos')
+          .select('*')
+          .eq('id', produtoId)
+          .single();
+
+        if (produtoError) {
+          logger.error('❌ [EditarVideoaula] Error loading produto:', { error: produtoError });
+          throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
+        }
+
+        // Fetch videoaula
+        const { data: videoAulaData, error: videoAulaError } = await supabase
+          .from('video_aulas')
+          .select('*')
+          .eq('id', videoAulaId)
+          .single();
+
+        if (videoAulaError) {
+          logger.error('❌ [EditarVideoaula] Error loading videoaula:', { error: videoAulaError });
+          throw new Error(`Erro ao carregar videoaula: ${videoAulaError.message}`);
+        }
+
+        setSistema(sistemaData);
+        setProduto(produtoData);
+        setVideoAula(videoAulaData);
+        
+        logger.info('✅ [EditarVideoaula] Data loaded successfully', {
+          sistema: sistemaData.nome,
+          produto: produtoData.nome,
+          videoaula: videoAulaData.titulo
+        });
+      } catch (err) {
+        logger.error('❌ [EditarVideoaula] Unexpected error:', { error: err });
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [videoAulaId, sistemaId, produtoId]);
+
+  const handleSuccess = () => {
+    logger.info('✅ [EditarVideoaula] Videoaula updated successfully');
+    
+    // Invalidar queries para garantir atualização imediata
+    if (produtoId) {
+      invalidateVideoAulaQueries(produtoId);
+    }
+    
+    // Navegar de volta para o admin
+    navigate('/admin');
+  };
+
+  const handleCancel = () => {
+    logger.info('ℹ️ [EditarVideoaula] User cancelled, navigating to admin');
+    navigate('/admin');
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="bg-gray-800/50 border-gray-600">
+            <CardContent className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500 mr-3" />
+              <span className="text-white">Carregando dados...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !sistema || !produto || !videoAula) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="bg-gray-800/50 border-gray-600">
+            <CardContent className="py-8 text-center">
+              <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+              <p className="text-red-400 mb-4">{error || 'Videoaula não encontrada'}</p>
+              <Button
+                onClick={() => navigate('/admin')}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Voltar ao Painel Admin
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <VideoAulaFormFixed 
+          sistema={sistema}
+          produto={produto}
+          videoAula={videoAula}
+          onSuccess={handleSuccess}
+          onCancel={handleCancel}
+        />
+      </div>
+    </Layout>
+  );
+};
+
+export default EditarVideoaula;

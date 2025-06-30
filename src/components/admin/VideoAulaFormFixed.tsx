@@ -60,12 +60,10 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     ordem: videoAula?.ordem || 1
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const createVideoAula = useCreateVideoAula();
   const updateVideoAula = useUpdateVideoAula();
 
-  const isLoading = createVideoAula.isPending || updateVideoAula.isPending || isSubmitting;
+  const isLoading = createVideoAula.isPending || updateVideoAula.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +85,6 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       });
       return;
     }
-
-    setIsSubmitting(true);
 
     logger.info('📹 [VideoAulaFormFixed] Submitting form:', {
       titulo: formData.titulo,
@@ -114,28 +110,33 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           id: videoAula.id,
           ...videoAulaData
         });
+        
+        toast({
+          title: "Videoaula atualizada!",
+          description: "A videoaula foi atualizada com sucesso.",
+        });
       } else {
         // Creating new videoaula
         await createVideoAula.mutateAsync(videoAulaData);
+        
+        toast({
+          title: "Videoaula criada!",
+          description: "A videoaula foi criada com sucesso.",
+        });
       }
 
       logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
       
-      // Pequeno delay para garantir que o toast apareça antes da navegação
-      setTimeout(() => {
-        onSuccess();
-      }, 500);
+      // Chamar onSuccess imediatamente
+      onSuccess();
       
     } catch (error) {
-      logger.error('❌ [VideoAulaFormFixed] Form submission failed:', error);
+      logger.error('❌ [VideoAulaFormFixed] Form submission failed:', { error });
       toast({
         title: "Erro ao salvar videoaula",
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
-    } finally {
-      // Garantir que o loading state seja sempre desativado
-      setIsSubmitting(false);
     }
   };
 
