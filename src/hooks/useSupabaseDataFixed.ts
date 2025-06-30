@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -58,12 +57,14 @@ export const useSistemasFixed = () => {
 
         return sistemas || [];
       } catch (error) {
-        logger.error('❌ [useSistemasFixed] Unexpected error:', error);
+        logger.error('❌ [useSistemasFixed] Unexpected error:', { error });
         throw error;
       }
     },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    retry: 1, // Reduzir retry para evitar loops
+    retryDelay: 2000,
+    staleTime: 30000, // Cache por 30 segundos
+    gcTime: 300000, // Manter em cache por 5 minutos
   });
 };
 
@@ -97,12 +98,14 @@ export const useSistemasCartorio = () => {
 
         return sistemas || [];
       } catch (error) {
-        logger.error('❌ [useSistemasCartorio] Unexpected error:', error);
+        logger.error('❌ [useSistemasCartorio] Unexpected error:', { error });
         throw error;
       }
     },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    retry: 1, // Reduzir retry para evitar loops
+    retryDelay: 2000,
+    staleTime: 30000, // Cache por 30 segundos
+    gcTime: 300000, // Manter em cache por 5 minutos
   });
 };
 
@@ -225,19 +228,29 @@ export const useCreateSistema = () => {
 
   return useMutation({
     mutationFn: async (data: { nome: string; descricao?: string; ordem: number }) => {
+      logger.info('🔧 [useCreateSistema] Creating sistema:', { nome: data.nome });
+      
       const { data: result, error } = await supabase
         .from('sistemas')
         .insert(data)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('❌ [useCreateSistema] Database error:', { error });
+        throw new Error(`Erro ao criar sistema: ${error.message}`);
+      }
+
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
-      toast({ title: "Sistema criado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      logger.info('✅ [useCreateSistema] Sistema created successfully');
     },
+    onError: (error) => {
+      logger.error('❌ [useCreateSistema] Mutation failed:', { error });
+    }
   });
 };
 
@@ -288,19 +301,29 @@ export const useCreateProduto = () => {
 
   return useMutation({
     mutationFn: async (data: { nome: string; descricao?: string; sistema_id: string; ordem: number }) => {
+      logger.info('🔧 [useCreateProduto] Creating produto:', { nome: data.nome });
+      
       const { data: result, error } = await supabase
         .from('produtos')
         .insert(data)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('❌ [useCreateProduto] Database error:', { error });
+        throw new Error(`Erro ao criar produto: ${error.message}`);
+      }
+
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
-      toast({ title: "Produto criado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      logger.info('✅ [useCreateProduto] Produto created successfully');
     },
+    onError: (error) => {
+      logger.error('❌ [useCreateProduto] Mutation failed:', { error });
+    }
   });
 };
 
@@ -376,35 +399,22 @@ export const useCreateVideoAula = () => {
         logger.info('✅ [useCreateVideoAula] Video aula created successfully:', { id: result.id });
         return result;
       } catch (error) {
-        logger.error('❌ [useCreateVideoAula] Unexpected error:', error);
+        logger.error('❌ [useCreateVideoAula] Unexpected error:', { error });
         throw error;
       }
     },
     onSuccess: (data) => {
-      // Invalidar todas as queries relacionadas para forçar re-fetch
-      queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
+      // Invalidar queries de forma mais específica
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
       queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
-      queryClient.invalidateQueries({ queryKey: ['sistemas-fixed'] });
       
-      // Invalidar queries específicas do produto para garantir atualização imediata
+      // Invalidar queries específicas do produto
       queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
       
-      logger.info('✅ [useCreateVideoAula] Queries invalidated, UI should update');
-      
-      toast({
-        title: "Videoaula criada!",
-        description: "A videoaula foi criada com sucesso e já está disponível.",
-      });
+      logger.info('✅ [useCreateVideoAula] Queries invalidated successfully');
     },
     onError: (error) => {
-      logger.error('❌ [useCreateVideoAula] Mutation failed:', error);
-      
-      toast({
-        title: "Erro ao criar videoaula",
-        description: error instanceof Error ? error.message : "Erro desconhecido ao criar videoaula",
-        variant: "destructive",
-      });
+      logger.error('❌ [useCreateVideoAula] Mutation failed:', { error });
     }
   });
 };
@@ -441,35 +451,22 @@ export const useUpdateVideoAula = () => {
         logger.info('✅ [useUpdateVideoAula] Video aula updated successfully:', { id: result.id });
         return result;
       } catch (error) {
-        logger.error('❌ [useUpdateVideoAula] Unexpected error:', error);
+        logger.error('❌ [useUpdateVideoAula] Unexpected error:', { error });
         throw error;
       }
     },
     onSuccess: (data) => {
-      // Invalidar todas as queries relacionadas para forçar re-fetch
-      queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
+      // Invalidar queries de forma mais específica
       queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
       queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
-      queryClient.invalidateQueries({ queryKey: ['sistemas-fixed'] });
       
       // Invalidar queries específicas do produto
       queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
       
-      logger.info('✅ [useUpdateVideoAula] Queries invalidated, UI should update');
-      
-      toast({
-        title: "Videoaula atualizada!",
-        description: "A videoaula foi atualizada com sucesso.",
-      });
+      logger.info('✅ [useUpdateVideoAula] Queries invalidated successfully');
     },
     onError: (error) => {
-      logger.error('❌ [useUpdateVideoAula] Mutation failed:', error);
-      
-      toast({
-        title: "Erro ao atualizar videoaula",
-        description: error instanceof Error ? error.message : "Erro desconhecido ao atualizar videoaula",
-        variant: "destructive",
-      });
+      logger.error('❌ [useUpdateVideoAula] Mutation failed:', { error });
     }
   });
 };

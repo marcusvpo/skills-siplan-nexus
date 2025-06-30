@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +64,20 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
   const isLoading = createVideoAula.isPending || updateVideoAula.isPending;
 
+  // Atualizar form data quando videoAula mudar
+  useEffect(() => {
+    if (videoAula) {
+      setFormData({
+        titulo: videoAula.titulo || '',
+        descricao: videoAula.descricao || '',
+        url_video: videoAula.url_video || '',
+        id_video_bunny: videoAula.id_video_bunny || '',
+        url_thumbnail: videoAula.url_thumbnail || '',
+        ordem: videoAula.ordem || 1
+      });
+    }
+  }, [videoAula]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -127,8 +140,10 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
       logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
       
-      // Chamar onSuccess imediatamente
-      onSuccess();
+      // Aguardar um pouco antes de chamar onSuccess para garantir que as queries foram invalidadas
+      setTimeout(() => {
+        onSuccess();
+      }, 500);
       
     } catch (error) {
       logger.error('❌ [VideoAulaFormFixed] Form submission failed:', { error });

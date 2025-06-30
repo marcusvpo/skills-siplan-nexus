@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useStableAuth } from '@/hooks/useStableAuth';
 
 interface User {
   id: string;
@@ -22,88 +23,51 @@ interface AuthContextType {
   isAuthenticated: boolean;
   authenticatedClient: any;
   isLoading: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const stableAuth = useStableAuth();
 
   useEffect(() => {
-    let mounted = true;
-
-    // Set up auth state listener for Supabase Auth (admin users)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        if (session?.user) {
-          // Check if user is admin
-          const { data: adminData } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('email', session.user.email)
-            .single();
-
-          if (adminData) {
-            const adminUser: User = {
-              id: adminData.id,
-              name: adminData.nome || 'Administrador',
-              type: 'admin',
-              email: session.user.email || ''
-            };
-            setUser(adminUser);
-            localStorage.setItem('siplan-user', JSON.stringify(adminUser));
-          }
-        } else {
-          // Only clear if it's an admin user
-          const savedUser = localStorage.getItem('siplan-user');
-          if (savedUser) {
-            const userData = JSON.parse(savedUser);
-            if (userData.type === 'admin') {
-              setUser(null);
-              localStorage.removeItem('siplan-user');
-            }
-          }
-        }
-        
-        setSession(session);
-        setIsLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      setIsLoading(false);
-    });
-
-    // Check for existing cartório user in localStorage
+    // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      
-      // Create authenticated client for cartorio users
-      if (userData.type === 'cartorio' && userData.token) {
-        const authClient = createAuthenticatedClient(userData.token);
-        setAuthenticatedClient(authClient);
+      try {
+        const userData = JSON.parse(savedUser);
+        if (userData.type === 'cartorio' && userData.token) {
+          setUser(userData);
+          const authClient = createAuthenticatedClient(userData.token);
+          setAuthenticatedClient(authClient);
+        }
+      } catch (err) {
+        console.error('Error parsing saved user:', err);
+        localStorage.removeItem('siplan-user');
       }
     }
-
-    setIsLoading(false);
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
   }, []);
+
+  useEffect(() => {
+    // Atualizar usuário admin baseado no stableAuth
+    if (stableAuth.session?.user && stableAuth.isAdmin) {
+      const adminUser: User = {
+        id: stableAuth.session.user.id,
+        name: 'Administrador',
+        type: 'admin',
+        email: stableAuth.session.user.email || ''
+      };
+      setUser(adminUser);
+    } else if (!stableAuth.session && user?.type === 'admin') {
+      // Limpar usuário admin se não há sessão
+      setUser(null);
+      setAuthenticatedClient(null);
+    }
+  }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
   const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     const newUser: User = {
@@ -130,26 +94,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     // Sign out from Supabase Auth if it's an admin
     if (user?.type === 'admin') {
-      await supabase.auth.signOut();
+      await stableAuth.logout();
     }
     
     setUser(null);
-    setSession(null);
     setAuthenticatedClient(null);
     localStorage.removeItem('siplan-user');
   };
 
-  const isAuthenticated = !!user || !!session;
+  const isAuthenticated = !!user || !!stableAuth.session;
+  const isLoading = stableAuth.isLoading;
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session, 
+      session: stableAuth.session, 
       login, 
       logout, 
       isAuthenticated, 
       authenticatedClient,
-      isLoading
+      isLoading,
+      isAdmin: stableAuth.isAdmin
     }}>
       {children}
     </AuthContext.Provider>

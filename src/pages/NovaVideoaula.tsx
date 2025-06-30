@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -40,6 +41,7 @@ const NovaVideoaula: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!sistemaId || !produtoId) {
+        logger.error('📹 [NovaVideoaula] Missing required IDs', { sistemaId, produtoId });
         setError('Sistema ID e Produto ID são obrigatórios');
         setIsLoading(false);
         return;
@@ -51,39 +53,47 @@ const NovaVideoaula: React.FC = () => {
           produtoId
         });
 
-        // Fetch sistema
-        const { data: sistemaData, error: sistemaError } = await supabase
-          .from('sistemas')
-          .select('*')
-          .eq('id', sistemaId)
-          .single();
+        // Usar Promise.all para carregar ambos em paralelo
+        const [sistemaResponse, produtoResponse] = await Promise.all([
+          supabase
+            .from('sistemas')
+            .select('*')
+            .eq('id', sistemaId)
+            .single(),
+          supabase
+            .from('produtos')
+            .select('*')
+            .eq('id', produtoId)
+            .single()
+        ]);
 
-        if (sistemaError) {
-          logger.error('❌ [NovaVideoaula] Error loading sistema:', { error: sistemaError });
-          throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
+        if (sistemaResponse.error) {
+          logger.error('❌ [NovaVideoaula] Error loading sistema:', { error: sistemaResponse.error });
+          throw new Error(`Erro ao carregar sistema: ${sistemaResponse.error.message}`);
         }
 
-        // Fetch produto
-        const { data: produtoData, error: produtoError } = await supabase
-          .from('produtos')
-          .select('*')
-          .eq('id', produtoId)
-          .single();
-
-        if (produtoError) {
-          logger.error('❌ [NovaVideoaula] Error loading produto:', { error: produtoError });
-          throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
+        if (produtoResponse.error) {
+          logger.error('❌ [NovaVideoaula] Error loading produto:', { error: produtoResponse.error });
+          throw new Error(`Erro ao carregar produto: ${produtoResponse.error.message}`);
         }
 
-        setSistema(sistemaData);
-        setProduto(produtoData);
+        if (!sistemaResponse.data) {
+          throw new Error('Sistema não encontrado');
+        }
+
+        if (!produtoResponse.data) {
+          throw new Error('Produto não encontrado');
+        }
+
+        setSistema(sistemaResponse.data);
+        setProduto(produtoResponse.data);
         
         logger.info('✅ [NovaVideoaula] Data loaded successfully', {
-          sistema: sistemaData.nome,
-          produto: produtoData.nome
+          sistema: sistemaResponse.data.nome,
+          produto: produtoResponse.data.nome
         });
       } catch (err) {
-        logger.error('❌ [NovaVideoaula] Unexpected error:', err);
+        logger.error('❌ [NovaVideoaula] Unexpected error:', { error: err });
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados do sistema e produto');
       } finally {
         setIsLoading(false);
@@ -101,10 +111,8 @@ const NovaVideoaula: React.FC = () => {
       invalidateVideoAulaQueries(produtoId);
     }
     
-    // Navegar de volta para o admin após invalidação
-    setTimeout(() => {
-      navigate('/admin');
-    }, 1000); // Dar tempo para as queries serem invalidadas
+    // Navegar de volta para o admin
+    navigate('/admin');
   };
 
   const handleCancel = () => {
