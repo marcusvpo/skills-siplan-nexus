@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -10,15 +11,38 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star, Clock, BookOpen, Play, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { useSistemasCartorio } from '@/hooks/useSupabaseDataFixed';
+import { useBunnyVideoDetails } from '@/hooks/useBunnyVideoDetails';
 import ProgressDisplay from '@/components/ProgressDisplay';
 import { logger } from '@/utils/logger';
+
+interface BunnyVideoData {
+  success: boolean;
+  videoId: string;
+  title: string;
+  playUrl: string;
+  thumbnailUrl: string | null;
+  duration: number;
+  status: number;
+  encodeProgress: number;
+  isPublic: boolean;
+  resolution: {
+    width: number;
+    height: number;
+  };
+  uploadDate: string;
+  views: number;
+  storageSize: number;
+}
 
 const VideoLesson = () => {
   const { systemId, productId, videoId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [bunnyVideoData, setBunnyVideoData] = useState<BunnyVideoData | null>(null);
+  const [isLoadingBunnyData, setIsLoadingBunnyData] = useState(false);
 
   const { data: sistemas, isLoading, error } = useSistemasCartorio();
+  const { fetchVideoDetails } = useBunnyVideoDetails();
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -64,6 +88,39 @@ const VideoLesson = () => {
       }
     }
   }
+
+  // Fetch Bunny.net video details when video aula is found
+  useEffect(() => {
+    const fetchBunnyVideoData = async () => {
+      if (!currentVideoAula?.bunny_video_id) {
+        logger.warn('📹 [VideoLesson] No bunny_video_id found for this video aula');
+        return;
+      }
+
+      setIsLoadingBunnyData(true);
+      logger.info('📹 [VideoLesson] Fetching Bunny.net data for video:', { bunnyVideoId: currentVideoAula.bunny_video_id });
+
+      try {
+        const bunnyData = await fetchVideoDetails(currentVideoAula.bunny_video_id);
+        if (bunnyData) {
+          setBunnyVideoData(bunnyData);
+          logger.info('📹 [VideoLesson] Bunny.net data loaded successfully:', {
+            title: bunnyData.title,
+            hasPlayUrl: !!bunnyData.playUrl,
+            hasThumbnailUrl: !!bunnyData.thumbnailUrl
+          });
+        }
+      } catch (error) {
+        logger.error('📹 [VideoLesson] Error fetching Bunny.net data:', error);
+      } finally {
+        setIsLoadingBunnyData(false);
+      }
+    };
+
+    if (currentVideoAula) {
+      fetchBunnyVideoData();
+    }
+  }, [currentVideoAula, fetchVideoDetails]);
 
   // Loading state
   if (isLoading) {
@@ -166,10 +223,21 @@ const VideoLesson = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Video Player */}
               <div className="glass-effect rounded-2xl overflow-hidden shadow-modern">
-                <VideoPlayer 
-                  videoUrl={currentVideoAula.url_video} 
-                  title={currentVideoAula.titulo}
-                />
+                {isLoadingBunnyData ? (
+                  <div className="w-full aspect-video bg-gray-900 flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                      <p className="text-gray-400">Carregando player de vídeo...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <VideoPlayer 
+                    videoUrl={bunnyVideoData?.playUrl || ''} 
+                    title={bunnyVideoData?.title || currentVideoAula.titulo}
+                    thumbnailUrl={bunnyVideoData?.thumbnailUrl}
+                    duration={bunnyVideoData?.duration}
+                  />
+                )}
               </div>
               
               {/* Lesson Information */}
@@ -194,7 +262,12 @@ const VideoLesson = () => {
                       <div className="flex items-center space-x-8 text-gray-400">
                         <div className="flex items-center">
                           <Clock className="h-5 w-5 mr-2" />
-                          <span className="text-lg">Vídeo disponível</span>
+                          <span className="text-lg">
+                            {bunnyVideoData?.duration ? 
+                              `${Math.floor(bunnyVideoData.duration / 60)}:${(bunnyVideoData.duration % 60).toString().padStart(2, '0')}` : 
+                              'Vídeo disponível'
+                            }
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-5 w-5 mr-2" />
@@ -226,7 +299,7 @@ const VideoLesson = () => {
                     <h3 className="text-xl font-semibold mb-4 text-white">Seu Progresso</h3>
                     <ProgressDisplay
                       progressSegundos={0} // This would come from user progress data
-                      duracaoSegundos={0} // This would come from video metadata
+                      duracaoSegundos={bunnyVideoData?.duration || 0}
                       completo={false}
                       size="lg"
                     />
