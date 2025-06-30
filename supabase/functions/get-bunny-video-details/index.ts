@@ -198,8 +198,8 @@ serve(async (req) => {
       library: LIBRARY_ID
     });
 
-    // Generate URLs - UPDATED: Use embed URL for playUrl instead of HLS
-    const playUrl = `https://iframe.mediadelivery.net/play/${LIBRARY_ID}/${videoData.guid}`;
+    // Generate URLs - UPDATED: Use correct embed URL format with parameters
+    const playUrl = `https://iframe.mediadelivery.net/embed/${LIBRARY_ID}/${videoData.guid}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
     const thumbnailUrl = videoData.thumbnailCount > 0 
       ? `https://${CDN_HOSTNAME}/${videoData.guid}/${videoData.thumbnailFileName}`
       : null;
