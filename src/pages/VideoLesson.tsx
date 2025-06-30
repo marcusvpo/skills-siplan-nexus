@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
@@ -307,7 +306,7 @@ const VideoLesson: React.FC = () => {
 
           {/* AI Chat Section */}
           <div className="lg:col-span-1">
-            <AIChat />
+            <AIChat lessonTitle={videoAula.titulo} />
           </div>
         </div>
       </div>
