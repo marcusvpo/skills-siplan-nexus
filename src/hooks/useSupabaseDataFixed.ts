@@ -371,50 +371,59 @@ export const useDeleteProduto = () => {
 // Hook para criar videoaula com tratamento robusto de erros
 export const useCreateVideoAula = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: async (data: CreateVideoAulaData) => {
-      logger.info('📹 [useCreateVideoAula] Starting video aula creation:', { titulo: data.titulo });
+    mutationFn: async (videoAulaData: {
+      titulo: string;
+      descricao?: string;
+      url_video: string;
+      id_video_bunny?: string;
+      url_thumbnail?: string;
+      ordem: number;
+      produto_id: string;
+    }) => {
+      logger.info('📹 [useCreateVideoAula] Starting video aula creation:', {
+        titulo: videoAulaData.titulo
+      });
 
-      try {
-        const { data: result, error } = await supabase
-          .from('video_aulas')
-          .insert({
-            titulo: data.titulo,
-            descricao: data.descricao || null,
-            url_video: data.url_video,
-            id_video_bunny: data.id_video_bunny || null,
-            url_thumbnail: data.url_thumbnail || null,
-            ordem: data.ordem,
-            produto_id: data.produto_id
-          })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .insert([videoAulaData])
+        .select()
+        .single();
 
-        if (error) {
-          logger.error('❌ [useCreateVideoAula] Database error:', { error });
-          throw new Error(`Erro ao criar videoaula: ${error.message}`);
-        }
-
-        logger.info('✅ [useCreateVideoAula] Video aula created successfully:', { id: result.id });
-        return result;
-      } catch (error) {
-        logger.error('❌ [useCreateVideoAula] Unexpected error:', { error });
-        throw error;
+      if (error) {
+        logger.error('❌ [useCreateVideoAula] Database error:', { error });
+        throw new Error(`Erro ao criar videoaula: ${error.message}`);
       }
+
+      logger.info('✅ [useCreateVideoAula] Video aula created successfully:', {
+        id: data.id,
+        titulo: data.titulo
+      });
+
+      return data;
     },
     onSuccess: (data) => {
-      // Invalidar queries de forma mais específica
-      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
-      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      logger.info('✅ [useCreateVideoAula] Mutation successful, invalidating queries');
       
-      // Invalidar queries específicas do produto
-      queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['video-aulas', data.produto_id] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-videoaulas'] });
       
-      logger.info('✅ [useCreateVideoAula] Queries invalidated successfully');
+      toast({
+        title: "Videoaula criada!",
+        description: `"${data.titulo}" foi criada com sucesso.`,
+      });
     },
     onError: (error) => {
-      logger.error('❌ [useCreateVideoAula] Mutation failed:', { error });
+      logger.error('❌ [useCreateVideoAula] Mutation error:', { error });
+      toast({
+        title: "Erro ao criar videoaula",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
     }
   });
 };
@@ -422,51 +431,64 @@ export const useCreateVideoAula = () => {
 // Hook para atualizar videoaula
 export const useUpdateVideoAula = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: async (data: UpdateVideoAulaData) => {
-      logger.info('📹 [useUpdateVideoAula] Starting video aula update:', { id: data.id, titulo: data.titulo });
+    mutationFn: async (videoAulaData: {
+      id: string;
+      titulo: string;
+      descricao?: string;
+      url_video: string;
+      id_video_bunny?: string;
+      url_thumbnail?: string;
+      ordem: number;
+    }) => {
+      logger.info('📹 [useUpdateVideoAula] Starting video aula update:', {
+        id: videoAulaData.id,
+        titulo: videoAulaData.titulo
+      });
 
-      try {
-        const { data: result, error } = await supabase
-          .from('video_aulas')
-          .update({
-            titulo: data.titulo,
-            descricao: data.descricao || null,
-            url_video: data.url_video,
-            id_video_bunny: data.id_video_bunny || null,
-            url_thumbnail: data.url_thumbnail || null,
-            ordem: data.ordem,
-            produto_id: data.produto_id
-          })
-          .eq('id', data.id)
-          .select()
-          .single();
+      const { id, ...updateData } = videoAulaData;
 
-        if (error) {
-          logger.error('❌ [useUpdateVideoAula] Database error:', { error });
-          throw new Error(`Erro ao atualizar videoaula: ${error.message}`);
-        }
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
 
-        logger.info('✅ [useUpdateVideoAula] Video aula updated successfully:', { id: result.id });
-        return result;
-      } catch (error) {
-        logger.error('❌ [useUpdateVideoAula] Unexpected error:', { error });
-        throw error;
+      if (error) {
+        logger.error('❌ [useUpdateVideoAula] Database error:', { error });
+        throw new Error(`Erro ao atualizar videoaula: ${error.message}`);
       }
+
+      logger.info('✅ [useUpdateVideoAula] Video aula updated successfully:', {
+        id: data.id,
+        titulo: data.titulo
+      });
+
+      return data;
     },
     onSuccess: (data) => {
-      // Invalidar queries de forma mais específica
-      queryClient.invalidateQueries({ queryKey: ['sistemas-with-video-aulas'] });
-      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio'] });
+      logger.info('✅ [useUpdateVideoAula] Mutation successful, invalidating queries');
       
-      // Invalidar queries específicas do produto
-      queryClient.invalidateQueries({ queryKey: ['produto', data.produto_id] });
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['video-aulas'] });
+      queryClient.invalidateQueries({ queryKey: ['video-aulas', data.produto_id] });
+      queryClient.invalidateQueries({ queryKey: ['video-aula', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['sistemas-with-videoaulas'] });
       
-      logger.info('✅ [useUpdateVideoAula] Queries invalidated successfully');
+      toast({
+        title: "Videoaula atualizada!",
+        description: `"${data.titulo}" foi atualizada com sucesso.`,
+      });
     },
     onError: (error) => {
-      logger.error('❌ [useUpdateVideoAula] Mutation failed:', { error });
+      logger.error('❌ [useUpdateVideoAula] Mutation error:', { error });
+      toast({
+        title: "Erro ao atualizar videoaula",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
     }
   });
 };

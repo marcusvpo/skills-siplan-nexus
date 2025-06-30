@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,12 +52,12 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
   onCancel
 }) => {
   const [formData, setFormData] = useState({
-    titulo: videoAula?.titulo || '',
-    descricao: videoAula?.descricao || '',
-    url_video: videoAula?.url_video || '',
-    id_video_bunny: videoAula?.id_video_bunny || '',
-    url_thumbnail: videoAula?.url_thumbnail || '',
-    ordem: videoAula?.ordem || 1
+    titulo: '',
+    descricao: '',
+    url_video: '',
+    id_video_bunny: '',
+    url_thumbnail: '',
+    ordem: 1
   });
 
   const createVideoAula = useCreateVideoAula();
@@ -64,7 +65,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
   const isLoading = createVideoAula.isPending || updateVideoAula.isPending;
 
-  // Atualizar form data quando videoAula mudar
+  // Inicializar dados do formulário
   useEffect(() => {
     if (videoAula) {
       setFormData({
@@ -75,12 +76,29 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
         url_thumbnail: videoAula.url_thumbnail || '',
         ordem: videoAula.ordem || 1
       });
+    } else {
+      // Para nova videoaula, usar valores padrão
+      setFormData({
+        titulo: '',
+        descricao: '',
+        url_video: '',
+        id_video_bunny: '',
+        url_thumbnail: '',
+        ordem: 1
+      });
     }
   }, [videoAula]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    logger.info('📹 [VideoAulaFormFixed] Form submission started:', {
+      titulo: formData.titulo,
+      produto_id: produto.id,
+      isEditing: !!videoAula
+    });
+
+    // Validações básicas
     if (!formData.titulo.trim()) {
       toast({
         title: "Título obrigatório",
@@ -90,68 +108,40 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       return;
     }
 
-    if (!formData.url_video.trim()) {
-      toast({
-        title: "URL do vídeo obrigatória",
-        description: "Digite a URL do vídeo",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    logger.info('📹 [VideoAulaFormFixed] Submitting form:', {
-      titulo: formData.titulo,
-      produto_id: produto.id,
-      sistema_id: sistema.id,
-      isEditing: !!videoAula
-    });
-
     try {
       const videoAulaData = {
         titulo: formData.titulo.trim(),
         descricao: formData.descricao.trim() || undefined,
-        url_video: formData.url_video.trim(),
+        url_video: formData.url_video.trim() || '',
         id_video_bunny: formData.id_video_bunny.trim() || undefined,
         url_thumbnail: formData.url_thumbnail.trim() || undefined,
-        produto_id: produto.id,
-        ordem: formData.ordem
+        ordem: formData.ordem,
+        produto_id: produto.id
       };
 
+      logger.info('📹 [VideoAulaFormFixed] Submitting data:', videoAulaData);
+
       if (videoAula) {
-        // Editing existing videoaula
+        // Editando videoaula existente
         await updateVideoAula.mutateAsync({
           id: videoAula.id,
           ...videoAulaData
         });
-        
-        toast({
-          title: "Videoaula atualizada!",
-          description: "A videoaula foi atualizada com sucesso.",
-        });
       } else {
-        // Creating new videoaula
+        // Criando nova videoaula
         await createVideoAula.mutateAsync(videoAulaData);
-        
-        toast({
-          title: "Videoaula criada!",
-          description: "A videoaula foi criada com sucesso.",
-        });
       }
 
       logger.info('✅ [VideoAulaFormFixed] Form submitted successfully');
       
-      // Aguardar um pouco antes de chamar onSuccess para garantir que as queries foram invalidadas
+      // Aguardar um pouco e chamar onSuccess
       setTimeout(() => {
         onSuccess();
-      }, 500);
+      }, 1000);
       
     } catch (error) {
       logger.error('❌ [VideoAulaFormFixed] Form submission failed:', { error });
-      toast({
-        title: "Erro ao salvar videoaula",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
-      });
+      // O erro já é tratado nos hooks, não precisamos fazer nada aqui
     }
   };
 
@@ -207,7 +197,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
           <div>
             <Label htmlFor="url_video" className="text-gray-300">
-              URL do Vídeo *
+              URL do Vídeo
             </Label>
             <Input
               id="url_video"
@@ -216,7 +206,6 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               className="bg-gray-700 border-gray-600 text-white"
               placeholder="https://..."
               disabled={isLoading}
-              required
             />
           </div>
 
@@ -268,7 +257,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           <div className="flex space-x-4">
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !formData.titulo.trim()}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isLoading ? (
