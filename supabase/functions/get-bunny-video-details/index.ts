@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,16 +77,16 @@ serve(async (req) => {
       );
     }
 
-    // Get Bunny.net credentials from environment
-    const BUNNY_API_KEY = Deno.env.get('BUNNY_API_KEY');
+    // Get Bunny.net credentials from environment - USANDO A API KEY DA BIBLIOTECA DE VÍDEOS
+    const BUNNY_VIDEO_LIBRARY_API_KEY = Deno.env.get('BUNNY_API_KEY');
     const LIBRARY_ID = '461543';
     const CDN_HOSTNAME = 'vz-2e72e0ff-de5.b-cdn.net';
 
-    if (!BUNNY_API_KEY) {
-      console.error('❌ [get-bunny-video-details] BUNNY_API_KEY not found in environment');
+    if (!BUNNY_VIDEO_LIBRARY_API_KEY) {
+      console.error('❌ [get-bunny-video-details] BUNNY_API_KEY (Video Library) not found in environment');
       return new Response(
         JSON.stringify({ 
-          error: 'Configuração da API Bunny.net não encontrada',
+          error: 'Configuração da API Bunny.net (Video Library) não encontrada',
           success: false 
         }),
         {
@@ -96,15 +96,16 @@ serve(async (req) => {
       );
     }
 
-    console.log('🔑 [get-bunny-video-details] Making request to Bunny.net API');
+    console.log('🔑 [get-bunny-video-details] Making request to Bunny.net Video Library API');
+    console.log('📚 [get-bunny-video-details] Using Library ID:', LIBRARY_ID);
 
-    // Make request to Bunny.net API with corrected headers
+    // Make request to Bunny.net Video Library API com a API Key CORRETA
     const bunnyApiUrl = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`;
     
     const response = await fetch(bunnyApiUrl, {
       method: 'GET',
       headers: {
-        'AccessKey': BUNNY_API_KEY,
+        'AccessKey': BUNNY_VIDEO_LIBRARY_API_KEY, // USANDO A API KEY DA BIBLIOTECA
         'accept': 'application/json'
       }
     });
@@ -116,7 +117,8 @@ serve(async (req) => {
       console.error('❌ [get-bunny-video-details] Bunny.net API error:', { 
         status: response.status, 
         statusText: response.statusText,
-        errorText 
+        errorText,
+        url: bunnyApiUrl
       });
 
       if (response.status === 404) {
@@ -135,7 +137,7 @@ serve(async (req) => {
       if (response.status === 401 || response.status === 403) {
         return new Response(
           JSON.stringify({ 
-            error: 'Erro de autenticação com a API da Bunny.net. Verifique a configuração da API Key.',
+            error: 'Erro de autenticação com a API da Bunny.net. Verifique se a API Key da Video Library está configurada corretamente.',
             success: false 
           }),
           {
@@ -163,10 +165,11 @@ serve(async (req) => {
       guid: videoData.guid,
       title: videoData.title,
       status: videoData.status,
-      encodeProgress: videoData.encodeProgress
+      encodeProgress: videoData.encodeProgress,
+      library: LIBRARY_ID
     });
 
-    // Generate URLs
+    // Generate URLs usando o CDN correto
     const playUrl = `https://${CDN_HOSTNAME}/${videoData.guid}/playlist.m3u8`;
     const thumbnailUrl = videoData.thumbnailCount > 0 
       ? `https://${CDN_HOSTNAME}/${videoData.guid}/${videoData.thumbnailFileName}`
@@ -196,7 +199,8 @@ serve(async (req) => {
       success: result.success,
       title: result.title.substring(0, 50) + '...',
       hasPlayUrl: !!result.playUrl,
-      hasThumbnailUrl: !!result.thumbnailUrl
+      hasThumbnailUrl: !!result.thumbnailUrl,
+      library: LIBRARY_ID
     });
 
     return new Response(
