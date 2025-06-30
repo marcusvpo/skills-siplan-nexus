@@ -36,6 +36,11 @@ export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
   const fetchVideoDetails = async (videoId: string): Promise<BunnyVideoDetails | null> => {
     if (!videoId?.trim()) {
       setError('ID do vídeo é obrigatório');
+      toast({
+        title: "ID do vídeo é obrigatório",
+        description: "Digite um ID válido do vídeo Bunny.net",
+        variant: "destructive",
+      });
       return null;
     }
 
@@ -51,6 +56,11 @@ export const useBunnyVideoDetails = (): UseBunnyVideoDetailsReturn => {
           body: { videoId: videoId.trim() }
         }
       );
+
+      logger.info('🎥 [useBunnyVideoDetails] Function response', { 
+        data: data ? { success: data.success, hasError: !!data.error } : null, 
+        functionError 
+      });
 
       if (functionError) {
         logger.error('❌ [useBunnyVideoDetails] Function error:', functionError);

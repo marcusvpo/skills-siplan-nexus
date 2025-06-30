@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useBunnyVideoDetails } from '@/hooks/useBunnyVideoDetails';
-import { Loader2, Search, Video, Clock, Eye, HardDrive } from 'lucide-react';
+import { Loader2, Search, Video, Clock, Eye, HardDrive, CheckCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface BunnyVideoDetails {
@@ -43,8 +43,18 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
   
   const { fetchVideoDetails, isLoading, error } = useBunnyVideoDetails();
 
+  const validateVideoId = (id: string): boolean => {
+    // UUID format validation (Bunny.net video IDs are UUIDs)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id.trim());
+  };
+
   const handleFetchVideo = async () => {
     if (!videoId.trim()) {
+      return;
+    }
+
+    if (!validateVideoId(videoId)) {
       return;
     }
 
@@ -52,6 +62,14 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
     if (details) {
       setVideoDetails(details);
       onVideoSelect(details);
+    }
+  };
+
+  const handleInputChange = (value: string) => {
+    setVideoId(value);
+    // Clear video details when input changes
+    if (videoDetails && value !== videoDetails.videoId) {
+      setVideoDetails(null);
     }
   };
 
@@ -71,40 +89,62 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
 
   const getStatusBadge = (status: number, encodeProgress: number) => {
     if (status === 4) {
-      return <Badge variant="default" className="bg-green-600">Pronto</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-600">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Pronto
+        </Badge>
+      );
     }
     if (status === 3) {
-      return <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-        Processando ({encodeProgress}%)
-      </Badge>;
+      return (
+        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Processando ({encodeProgress}%)
+        </Badge>
+      );
     }
     if (status === 5) {
-      return <Badge variant="destructive">Erro</Badge>;
+      return (
+        <Badge variant="destructive">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Erro
+        </Badge>
+      );
     }
     return <Badge variant="secondary">Status {status}</Badge>;
   };
+
+  const isValidId = videoId.trim() && validateVideoId(videoId);
 
   return (
     <div className="space-y-4">
       <div className="flex space-x-2">
         <div className="flex-1">
           <Label htmlFor="bunny-video-id" className="text-gray-300">
-            ID do Vídeo Bunny.net
+            ID do Vídeo Bunny.net *
           </Label>
           <Input
             id="bunny-video-id"
             value={videoId}
-            onChange={(e) => setVideoId(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             placeholder="Ex: 12345678-abcd-efgh-ijkl-123456789012"
-            className="bg-gray-700 border-gray-600 text-white"
+            className={`bg-gray-700 border-gray-600 text-white ${
+              videoId && !isValidId ? 'border-red-500' : ''
+            }`}
             disabled={disabled || isLoading}
           />
+          {videoId && !isValidId && (
+            <p className="text-red-400 text-sm mt-1">
+              ID deve estar no formato UUID (ex: 12345678-abcd-efgh-ijkl-123456789012)
+            </p>
+          )}
         </div>
         <div className="flex items-end">
           <Button
             onClick={handleFetchVideo}
-            disabled={!videoId.trim() || disabled || isLoading}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            disabled={!isValidId || disabled || isLoading}
+            className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -123,6 +163,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
 
       {error && (
         <div className="p-3 bg-red-900/30 border border-red-700 rounded text-red-400 text-sm">
+          <AlertCircle className="h-4 w-4 inline mr-2" />
           {error}
         </div>
       )}
@@ -167,11 +208,12 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
                   </div>
                 </div>
 
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 space-y-1">
                   <p><strong>Play URL:</strong> {videoDetails.playUrl}</p>
                   {videoDetails.thumbnailUrl && (
                     <p><strong>Thumbnail URL:</strong> {videoDetails.thumbnailUrl}</p>
                   )}
+                  <p><strong>Público:</strong> {videoDetails.isPublic ? 'Sim' : 'Não'}</p>
                 </div>
               </div>
             </div>

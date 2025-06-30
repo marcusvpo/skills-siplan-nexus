@@ -98,21 +98,27 @@ serve(async (req) => {
 
     console.log('🔑 [get-bunny-video-details] Making request to Bunny.net API');
 
-    // Make request to Bunny.net API
+    // Make request to Bunny.net API with corrected headers
     const bunnyApiUrl = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`;
     
     const response = await fetch(bunnyApiUrl, {
       method: 'GET',
       headers: {
         'AccessKey': BUNNY_API_KEY,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'accept': 'application/json'
       }
     });
 
     console.log('📡 [get-bunny-video-details] Bunny.net API response status:', response.status);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [get-bunny-video-details] Bunny.net API error:', { 
+        status: response.status, 
+        statusText: response.statusText,
+        errorText 
+      });
+
       if (response.status === 404) {
         return new Response(
           JSON.stringify({ 
@@ -129,7 +135,7 @@ serve(async (req) => {
       if (response.status === 401 || response.status === 403) {
         return new Response(
           JSON.stringify({ 
-            error: 'Erro de autenticação com a API da Bunny.net',
+            error: 'Erro de autenticação com a API da Bunny.net. Verifique a configuração da API Key.',
             success: false 
           }),
           {
@@ -138,13 +144,10 @@ serve(async (req) => {
           }
         );
       }
-
-      const errorText = await response.text();
-      console.error('❌ [get-bunny-video-details] Bunny.net API error:', errorText);
       
       return new Response(
         JSON.stringify({ 
-          error: `Erro da API Bunny.net: ${response.status}`,
+          error: `Erro da API Bunny.net (${response.status}): ${errorText}`,
           success: false 
         }),
         {
