@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -168,7 +169,11 @@ const VideoLesson: React.FC = () => {
   };
 
   const handleProgressUpdate = (progress: { progressoSegundos: number; completo: boolean }) => {
-    setVisualizacao(progress);
+    // Convert camelCase to snake_case for the database format
+    setVisualizacao({
+      progresso_segundos: progress.progressoSegundos,
+      completo: progress.completo
+    });
   };
 
   const currentVideoIndex = productVideoAulas.findIndex(v => v.id === videoId);
