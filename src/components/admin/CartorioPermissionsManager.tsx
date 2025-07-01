@@ -95,51 +95,56 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         permissoes: Array.from(permissoesSelecionadas)
       });
 
-      // Preparar array de permissões no formato correto com UUIDs completos
+      // Preparar array de permissões no formato correto
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
         const [tipo, idCompleto] = selection.split('-');
         
-        // CORREÇÃO CRÍTICA: Garantir que enviamos UUIDs completos
         if (tipo === 'sistema' && idCompleto && idCompleto.length === 36) {
           permissoes.push({
             sistema_id: idCompleto,
             produto_id: null
           });
         } else if (tipo === 'produto' && idCompleto && idCompleto.length === 36) {
-          // Para produtos, encontrar o sistema pai
-          const produto = todosOsSistemas
-            .flatMap(s => s.produtos || [])
-            .find(p => p.id === idCompleto);
-          
-          if (produto) {
-            permissoes.push({
-              sistema_id: null, // Para permissão granular de produto, sistema_id é null
-              produto_id: idCompleto
-            });
-          }
+          // Para produtos, não incluir sistema_id já que é permissão granular
+          permissoes.push({
+            sistema_id: null,
+            produto_id: idCompleto
+          });
         }
       });
 
       logger.info('🔐 [CartorioPermissionsManager] Permissões formatadas para envio:', { permissoes });
 
-      // Usar a Edge Function para atualizar as permissões
-      const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {
-        body: {
-          cartorioId: cartorio.id,
-          permissoes: permissoes
-        }
-      });
+      // Usar direct database access para atualizar as permissões (sem Edge Function)
+      // Primeiro, deletar permissões existentes
+      const { error: deleteError } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .delete()
+        .eq('cartorio_id', cartorio.id);
 
-      if (error) {
-        logger.error('❌ [CartorioPermissionsManager] Function error:', { error });
-        throw new Error(`Erro ao salvar permissões: ${error.message}`);
+      if (deleteError) {
+        throw new Error(`Erro ao deletar permissões antigas: ${deleteError.message}`);
       }
 
-      if (!data?.success) {
-        logger.error('❌ [CartorioPermissionsManager] API error:', { error: data?.error });
-        throw new Error(data?.error || 'Erro na resposta da API');
+      // Inserir novas permissões se houver alguma
+      if (permissoes.length > 0) {
+        const novasPermissoes = permissoes.map(p => ({
+          cartorio_id: cartorio.id,
+          sistema_id: p.sistema_id,
+          produto_id: p.produto_id,
+          ativo: true,
+          nivel_acesso: 'completo'
+        }));
+
+        const { error: insertError } = await supabase
+          .from('cartorio_acesso_conteudo')
+          .insert(novasPermissoes);
+
+        if (insertError) {
+          throw new Error(`Erro ao inserir novas permissões: ${insertError.message}`);
+        }
       }
       
       toast({

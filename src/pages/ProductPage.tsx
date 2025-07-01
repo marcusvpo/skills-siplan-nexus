@@ -7,9 +7,8 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, CheckCircle, Circle, ArrowRight, AlertCircle } from 'lucide-react';
-import { useSistemasCartorio } from '@/hooks/useSupabaseDataSimplified';
+import { BookOpen, Play, Clock, ArrowRight, AlertCircle } from 'lucide-react';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
 
 const ProductPage = () => {
@@ -17,7 +16,8 @@ const ProductPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: sistemas, isLoading, error } = useSistemasCartorio();
+  // Now using the RLS-enabled hook that automatically filters content
+  const { data: sistemas, isLoading, error } = useSistemasCartorioWithAccess();
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -33,7 +33,7 @@ const ProductPage = () => {
     });
   }, [systemId, productId, sistemas]);
 
-  // Find the current system and product
+  // Find the current system and product - RLS will ensure we only see allowed content
   let currentSystem = null;
   let currentProduct = null;
   
