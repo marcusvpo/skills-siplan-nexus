@@ -30,9 +30,8 @@ interface VideoAula {
   descricao?: string;
   url_video: string;
   id_video_bunny: string;
-  duracao_segundos: number;
   ordem: number;
-  modulo_id: string;
+  produto_id: string;
 }
 
 interface VideoAulaFormProps {
@@ -55,7 +54,6 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
     descricao: videoAula?.descricao || '',
     url_video: videoAula?.url_video || '',
     id_video_bunny: videoAula?.id_video_bunny || '',
-    duracao_segundos: videoAula?.duracao_segundos || 0,
     ordem: videoAula?.ordem || 1
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -74,31 +72,6 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
 
     setIsLoading(true);
     try {
-      // Find or create module for the product
-      let { data: modulo } = await supabase
-        .from('modulos')
-        .select('id')
-        .eq('produto_id', produto.id)
-        .single();
-
-      if (!modulo) {
-        // Create module automatically
-        const { data: novoModulo, error: moduloError } = await supabase
-          .from('modulos')
-          .insert({
-            titulo: `Módulo Principal - ${produto.nome}`,
-            descricao: `Módulo principal do produto ${produto.nome}`,
-            produto_id: produto.id,
-            ordem: 1,
-            tempo_estimado_min: 0
-          })
-          .select()
-          .single();
-
-        if (moduloError) throw moduloError;
-        modulo = novoModulo;
-      }
-
       if (videoAula) {
         // Update existing video aula
         const { error } = await supabase
@@ -107,8 +80,7 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
             titulo: formData.titulo.trim(),
             descricao: formData.descricao.trim() || null,
             url_video: formData.url_video.trim(),
-            id_video_bunny: formData.id_video_bunny.trim(),
-            duracao_segundos: formData.duracao_segundos,
+            id_video_bunny: formData.id_video_bunny.trim() || null,
             ordem: formData.ordem
           })
           .eq('id', videoAula.id);
@@ -120,17 +92,16 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
           description: `Videoaula "${formData.titulo}" foi atualizada com sucesso.`,
         });
       } else {
-        // Create new video aula
+        // Create new video aula - directly linked to produto
         const { error } = await supabase
           .from('video_aulas')
           .insert({
             titulo: formData.titulo.trim(),
             descricao: formData.descricao.trim() || null,
-            modulo_id: modulo.id,
+            produto_id: produto.id,
             ordem: formData.ordem,
             url_video: formData.url_video.trim(),
-            id_video_bunny: formData.id_video_bunny.trim(),
-            duracao_segundos: formData.duracao_segundos
+            id_video_bunny: formData.id_video_bunny.trim() || null
           });
 
         if (error) throw error;
@@ -184,7 +155,7 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
                 id="titulo"
                 value={formData.titulo}
                 onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
                 placeholder="Ex: Introdução ao Sistema"
                 required
               />
@@ -196,7 +167,7 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
                 type="number"
                 value={formData.ordem}
                 onChange={(e) => setFormData({ ...formData, ordem: parseInt(e.target.value) || 1 })}
-                className="bg-gray-700/50 border-gray-600 text-white focus:border-orange-500 focus:ring-orange-500/20"
+                className="bg-gray-700/50 border-gray-600 text-white focus:border-red-500 focus:ring-red-500/20"
                 min="1"
               />
             </div>
@@ -208,34 +179,21 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
               id="url_video"
               value={formData.url_video}
               onChange={(e) => setFormData({ ...formData, url_video: e.target.value })}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
               placeholder="https://exemplo.com/video"
               required
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="id_video_bunny" className="text-gray-300">ID Bunny</Label>
-              <Input
-                id="id_video_bunny"
-                value={formData.id_video_bunny}
-                onChange={(e) => setFormData({ ...formData, id_video_bunny: e.target.value })}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
-                placeholder="ID do vídeo no Bunny.net"
-              />
-            </div>
-            <div>
-              <Label htmlFor="duracao_segundos" className="text-gray-300">Duração (segundos)</Label>
-              <Input
-                id="duracao_segundos"
-                type="number"
-                value={formData.duracao_segundos}
-                onChange={(e) => setFormData({ ...formData, duracao_segundos: parseInt(e.target.value) || 0 })}
-                className="bg-gray-700/50 border-gray-600 text-white focus:border-orange-500 focus:ring-orange-500/20"
-                min="0"
-              />
-            </div>
+          <div>
+            <Label htmlFor="id_video_bunny" className="text-gray-300">ID Bunny</Label>
+            <Input
+              id="id_video_bunny"
+              value={formData.id_video_bunny}
+              onChange={(e) => setFormData({ ...formData, id_video_bunny: e.target.value })}
+              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
+              placeholder="ID do vídeo no Bunny.net"
+            />
           </div>
           
           <div>
@@ -244,7 +202,7 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
               id="descricao"
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
               placeholder="Descrição da videoaula..."
               rows={3}
             />
@@ -262,7 +220,7 @@ export const VideoAulaForm: React.FC<VideoAulaFormProps> = ({
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
