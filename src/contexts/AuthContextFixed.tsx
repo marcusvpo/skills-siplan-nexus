@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -43,13 +42,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData = JSON.parse(savedUser);
         logger.info('🔐 [AuthContextFixed] Restored user from localStorage:', { 
           type: userData.type, 
-          cartorio_id: userData.cartorio_id 
+          cartorio_id: userData.cartorio_id,
+          token: userData.token ? 'present' : 'missing'
         });
         
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           const authClient = createAuthenticatedClient(userData.token);
           setAuthenticatedClient(authClient);
+          
+          // Log the authenticated client setup
+          logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
+            cartorio_id: userData.cartorio_id,
+            hasClient: !!authClient
+          });
         }
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
@@ -89,7 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
   const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('🔐 [AuthContextFixed] Login called:', { type, userData: !!userData });
+    logger.info('🔐 [AuthContextFixed] Login called:', { 
+      type, 
+      userData: !!userData,
+      cartorio_id: userData?.cartorio_id,
+      token: token ? 'present' : 'missing'
+    });
     
     const newUser: User = {
       id: userData?.id || '1',
@@ -108,6 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
       const authClient = createAuthenticatedClient(token);
       setAuthenticatedClient(authClient);
+      
+      logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
+        cartorio_id: newUser.cartorio_id,
+        hasAuthClient: !!authClient,
+        tokenLength: token.length
+      });
     }
     
     logger.info('✅ [AuthContextFixed] User logged in successfully:', { 

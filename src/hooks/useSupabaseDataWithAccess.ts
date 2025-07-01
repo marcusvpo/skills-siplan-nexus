@@ -12,43 +12,94 @@ export const useSistemasCartorioWithAccess = () => {
   return useQuery({
     queryKey: ['sistemas-cartorio-with-access', user?.cartorio_id],
     queryFn: async () => {
-      logger.info('🏢 [useSistemasCartorioWithAccess] Fetching sistemas filtered by RLS');
+      logger.info('🏢 [useSistemasCartorioWithAccess] Starting fetch', {
+        userType: user?.type,
+        cartorioId: user?.cartorio_id,
+        hasAuthClient: !!authenticatedClient
+      });
 
-      if (!user?.cartorio_id) {
-        logger.warn('❌ [useSistemasCartorioWithAccess] No cartorio_id available, returning empty.');
-        return []; 
+      if (!user) {
+        logger.warn('❌ [useSistemasCartorioWithAccess] No user found');
+        throw new Error('Usuário não autenticado');
       }
 
-      // Use the authenticated client with the custom JWT token
+      if (user.type !== 'cartorio') {
+        logger.warn('❌ [useSistemasCartorioWithAccess] User is not cartorio type');
+        throw new Error('Tipo de usuário inválido');
+      }
+
+      if (!user.cartorio_id) {
+        logger.warn('❌ [useSistemasCartorioWithAccess] No cartorio_id available');
+        throw new Error('ID do cartório não encontrado');
+      }
+
+      // Use authenticated client if available, otherwise fall back to regular client
       const client = authenticatedClient || supabase;
-
-      // The SELECT query relies on RLS policies to filter the data
-      const { data: sistemas, error: sistemasError } = await client
-        .from('sistemas')
-        .select(`
-          *,
-          produtos (
-            *,
-            video_aulas (*)
-          )
-        `)
-        .order('ordem', { ascending: true });
-
-      if (sistemasError) {
-        logger.error('❌ [useSistemasCartorioWithAccess] Error fetching sistemas from RLS:', { sistemasError });
-        throw new Error(`Erro ao carregar sistemas: ${sistemasError.message}`);
-      }
-
-      logger.info('✅ [useSistemasCartorioWithAccess] Successfully fetched RLS-filtered sistemas:', { 
-        count: sistemas?.length || 0,
+      
+      logger.info('🏢 [useSistemasCartorioWithAccess] Using client type:', {
+        clientType: authenticatedClient ? 'authenticated' : 'regular',
         cartorioId: user.cartorio_id
       });
 
-      return sistemas || [];
+      try {
+        // Try to fetch systems with RLS policies applied
+        logger.info('🏢 [useSistemasCartorioWithAccess] Executing query...');
+        
+        const { data: sistemas, error: sistemasError } = await client
+          .from('sistemas')
+          .select(`
+            *,
+            produtos (
+              *,
+              video_aulas (*)
+            )
+          `)
+          .order('ordem', { ascending: true });
+
+        if (sistemasError) {
+          logger.error('❌ [useSistemasCartorioWithAccess] Supabase error:', {
+            error: sistemasError,
+            code: sistemasError.code,
+            message: sistemasError.message,
+            details: sistemasError.details
+          });
+          
+          // Provide user-friendly error message
+          if (sistemasError.code === 'PGRST116') {
+            throw new Error('Erro de permissão: Verifique se você tem acesso aos sistemas.');
+          } else if (sistemasError.code === '42501') {
+            throw new Error('Permissão negada: Contate o administrador.');
+          } else {
+            throw new Error(`Erro ao carregar sistemas: ${sistemasError.message}`);
+          }
+        }
+
+        logger.info('✅ [useSistemasCartorioWithAccess] Successfully fetched sistemas:', { 
+          count: sistemas?.length || 0,
+          cartorioId: user.cartorio_id,
+          sistemas: sistemas?.map(s => ({ id: s.id, nome: s.nome, produtos: s.produtos?.length || 0 }))
+        });
+
+        return sistemas || [];
+        
+      } catch (error: any) {
+        logger.error('❌ [useSistemasCartorioWithAccess] Fetch error:', {
+          error: error.message,
+          stack: error.stack,
+          cartorioId: user.cartorio_id
+        });
+        throw error;
+      }
     },
-    enabled: !!user?.cartorio_id,
-    retry: 1,
-    retryDelay: 2000,
+    enabled: !!user?.cartorio_id && user?.type === 'cartorio',
+    retry: (failureCount, error: any) => {
+      // Don't retry permission errors
+      if (error?.message?.includes('permissão') || error?.message?.includes('Permissão')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: 1000,
     staleTime: 30000,
     gcTime: 300000,
   });

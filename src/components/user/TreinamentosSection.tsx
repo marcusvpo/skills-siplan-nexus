@@ -7,18 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContextFixed';
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
 
   React.useEffect(() => {
-    logger.info('📚 [TreinamentosSection] Component mounted', {
+    logger.info('📚 [TreinamentosSection] Component state:', {
       sistemasCount: sistemas.length,
       isLoading,
-      hasError: !!error
+      hasError: !!error,
+      errorMessage: error?.message,
+      userType: user?.type,
+      cartorioId: user?.cartorio_id
     });
-  }, [sistemas.length, isLoading, error]);
+  }, [sistemas.length, isLoading, error, user]);
 
   if (isLoading) {
     return (
@@ -32,24 +37,34 @@ export const TreinamentosSection: React.FC = () => {
   }
 
   if (error) {
-    logger.error('❌ [TreinamentosSection] Error:', error);
+    logger.error('❌ [TreinamentosSection] Error details:', { 
+      error: error.message,
+      stack: error.stack
+    });
     
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">Erro ao carregar sistemas</h3>
-          <p className="text-gray-400 text-center mb-4">
-            Não foi possível carregar os sistemas de treinamento.
-          </p>
-          <Button
-            onClick={() => refetch()}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Tentar Novamente
-          </Button>
-        </div>
+        <Card className="bg-gray-800/50 border-red-600 max-w-lg">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar sistemas</h3>
+            <p className="text-gray-400 text-center mb-6">
+              {error.message || 'Não foi possível carregar os sistemas de treinamento.'}
+            </p>
+            <div className="space-y-3">
+              <Button
+                onClick={() => refetch()}
+                className="bg-red-600 hover:bg-red-700 text-white w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar Novamente
+              </Button>
+              <p className="text-xs text-gray-500">
+                Se o problema persistir, contate o administrador
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -57,11 +72,18 @@ export const TreinamentosSection: React.FC = () => {
   if (sistemas.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-6xl mb-6">📚</div>
-        <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhum sistema disponível</h3>
-        <p className="text-gray-400 mb-6">
-          Os sistemas de treinamento aparecerão aqui quando estiverem disponíveis para seu cartório.
-        </p>
+        <Card className="bg-gray-800/50 border-yellow-600 max-w-lg mx-auto">
+          <CardContent className="p-8 text-center">
+            <div className="text-6xl mb-6">📚</div>
+            <h3 className="text-2xl font-semibold text-yellow-400 mb-3">Nenhum sistema disponível</h3>
+            <p className="text-gray-400 mb-6">
+              Os sistemas de treinamento aparecerão aqui quando estiverem disponíveis para seu cartório.
+            </p>
+            <p className="text-sm text-gray-500">
+              Entre em contato com o administrador para mais informações.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
