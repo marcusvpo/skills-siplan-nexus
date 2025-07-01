@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
@@ -139,8 +139,8 @@ const ProductPage = () => {
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
-            { label: currentSystem.nome, href: `/system/${systemId}` },
-            { label: currentProduct.nome }
+            { label: currentSystem?.nome || 'Sistema', href: `/system/${systemId}` },
+            { label: currentProduct?.nome || 'Produto' }
           ]} />
           
           <div className="mt-6 mb-8">

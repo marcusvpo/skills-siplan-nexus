@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();

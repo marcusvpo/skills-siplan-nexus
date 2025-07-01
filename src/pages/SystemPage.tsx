@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SystemHeader from '@/components/system/SystemHeader';
@@ -89,7 +89,7 @@ const SystemPage = () => {
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
-            { label: currentSystem.nome }
+            { label: currentSystem?.nome || 'Sistema' }
           ]} />
           
           <div className="mt-6 mb-8">
