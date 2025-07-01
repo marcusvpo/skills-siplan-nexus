@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, RefreshCw, Trash2, Users, Shield, Edit, Calendar, MapPin } from 'lucide-react';
+import { Plus, AlertCircle, RefreshCw, Trash2, Users, Shield, Edit, Calendar, MapPin, Copy, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@/utils/logger';
@@ -17,6 +17,7 @@ const CartorioManagerRestored: React.FC = () => {
   const [selectedCartorioForUsers, setSelectedCartorioForUsers] = useState<any>(null);
   const [selectedCartorioForEdit, setSelectedCartorioForEdit] = useState<any>(null);
   const [selectedCartorioForPermissions, setSelectedCartorioForPermissions] = useState<any>(null);
+  const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
 
   const { cartorios, isLoading, error, refetch, deleteCartorio } = useCartoriosAdminFixed();
 
@@ -30,6 +31,34 @@ const CartorioManagerRestored: React.FC = () => {
     } catch (error) {
       // Error handling is done in the hook
     }
+  };
+
+  const handleCopyToken = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      toast({
+        title: "Token copiado!",
+        description: "O token foi copiado para a área de transferência.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o token.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleTokenVisibility = (tokenId: string) => {
+    setVisibleTokens(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenId)) {
+        newSet.delete(tokenId);
+      } else {
+        newSet.add(tokenId);
+      }
+      return newSet;
+    });
   };
 
   // Loading state
@@ -126,25 +155,56 @@ const CartorioManagerRestored: React.FC = () => {
                     <div className="mb-3">
                       <p className="text-sm text-gray-300 mb-2">Tokens de Acesso:</p>
                       {cartorio.acessos_cartorio?.length > 0 ? (
-                        <div className="space-y-1">
-                          {cartorio.acessos_cartorio.map((acesso) => (
-                            <div key={acesso.id} className="flex items-center justify-between bg-gray-700/50 rounded px-2 py-1">
-                              <span className="text-xs font-mono text-gray-300">
-                                {acesso.login_token.substring(0, 20)}...
-                              </span>
-                              <div className="flex space-x-2">
-                                <Badge 
-                                  variant={acesso.ativo ? 'secondary' : 'destructive'}
-                                  className={`text-xs ${acesso.ativo ? 'bg-green-600' : ''}`}
-                                >
-                                  {acesso.ativo ? 'Ativo' : 'Inativo'}
-                                </Badge>
-                                <span className="text-xs text-gray-400">
-                                  {new Date(acesso.data_expiracao).toLocaleDateString('pt-BR')}
-                                </span>
+                        <div className="space-y-2">
+                          {cartorio.acessos_cartorio.map((acesso) => {
+                            const isVisible = visibleTokens.has(acesso.id);
+                            return (
+                              <div key={acesso.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center space-x-2">
+                                    <Badge 
+                                      variant={acesso.ativo ? 'secondary' : 'destructive'}
+                                      className={`text-xs ${acesso.ativo ? 'bg-green-600' : ''}`}
+                                    >
+                                      {acesso.ativo ? 'Ativo' : 'Inativo'}
+                                    </Badge>
+                                    <span className="text-xs text-gray-400">
+                                      Expira: {new Date(acesso.data_expiracao).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleTokenVisibility(acesso.id)}
+                                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                                    >
+                                      {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleCopyToken(acesso.login_token)}
+                                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                <div className="bg-gray-800/50 rounded p-2 font-mono text-xs text-gray-300 break-all">
+                                  {isVisible ? acesso.login_token : `${acesso.login_token.substring(0, 20)}...`}
+                                </div>
+                                
+                                {acesso.email_contato && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    Contato: {acesso.email_contato}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-gray-500">Nenhum token configurado</p>

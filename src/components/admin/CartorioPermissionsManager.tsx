@@ -37,19 +37,19 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsLoading(true);
       
-      logger.info('🔐 [CartorioPermissionsManager] Fetching permissions for:', cartorio.id);
+      logger.info('🔐 [CartorioPermissionsManager] Fetching permissions for:', { cartorioId: cartorio.id });
 
       const { data, error } = await supabase.functions.invoke('get-cartorio-permissions', {
         body: { cartorioId: cartorio.id }
       });
 
       if (error) {
-        logger.error('❌ [CartorioPermissionsManager] Function error:', error);
+        logger.error('❌ [CartorioPermissionsManager] Function error:', { error });
         throw new Error(error.message || 'Erro ao buscar permissões');
       }
 
       if (!data?.success) {
-        logger.error('❌ [CartorioPermissionsManager] API error:', data?.error);
+        logger.error('❌ [CartorioPermissionsManager] API error:', { error: data?.error });
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
@@ -71,7 +71,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      logger.error('❌ [CartorioPermissionsManager] Error:', err);
+      logger.error('❌ [CartorioPermissionsManager] Error:', { error: err });
       
       toast({
         title: "Erro ao carregar permissões",
@@ -123,12 +123,12 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       });
 
       if (error) {
-        logger.error('❌ [CartorioPermissionsManager] Save function error:', error);
+        logger.error('❌ [CartorioPermissionsManager] Save function error:', { error });
         throw new Error(error.message || 'Erro ao salvar permissões');
       }
 
       if (!data?.success) {
-        logger.error('❌ [CartorioPermissionsManager] Save API error:', data?.error);
+        logger.error('❌ [CartorioPermissionsManager] Save API error:', { error: data?.error });
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
@@ -144,7 +144,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      logger.error('❌ [CartorioPermissionsManager] Save error:', err);
+      logger.error('❌ [CartorioPermissionsManager] Save error:', { error: err });
       
       toast({
         title: "Erro ao salvar permissões",

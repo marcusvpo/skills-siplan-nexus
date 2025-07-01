@@ -24,8 +24,7 @@ serve(async (req) => {
       }
     )
 
-    const url = new URL(req.url)
-    const cartorioId = url.searchParams.get('cartorioId')
+    const { cartorioId } = await req.json()
 
     console.log('🔐 [get-cartorio-permissions] Permissions request for:', cartorioId)
 

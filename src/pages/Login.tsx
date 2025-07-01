@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
