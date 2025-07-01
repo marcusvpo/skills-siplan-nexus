@@ -4,33 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { useSistemasCartorio } from '@/hooks/useSupabaseDataFixed';
+import { Play, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { useSistemasCartorio } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
-
-interface VideoAula {
-  id: string;
-  titulo: string;
-  descricao?: string;
-  url_video: string;
-  ordem: number;
-}
-
-interface Produto {
-  id: string;
-  nome: string;
-  descricao?: string;
-  ordem: number;
-  video_aulas: VideoAula[];
-}
-
-interface Sistema {
-  id: string;
-  nome: string;
-  descricao?: string;
-  ordem: number;
-  produtos: Produto[];
-}
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +24,7 @@ export const TreinamentosSection: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
           <p className="text-gray-400">Carregando treinamentos...</p>
         </div>
       </div>
@@ -56,7 +32,7 @@ export const TreinamentosSection: React.FC = () => {
   }
 
   if (error) {
-    logger.error('❌ [TreinamentosSection] Error loading treinamentos:', { error });
+    logger.error('❌ [TreinamentosSection] Error:', error);
     
     return (
       <div className="flex items-center justify-center h-64">
@@ -64,11 +40,11 @@ export const TreinamentosSection: React.FC = () => {
           <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-white mb-2">Erro ao carregar treinamentos</h3>
           <p className="text-gray-400 text-center mb-4">
-            Não foi possível carregar os sistemas de treinamento. Verifique sua conexão.
+            Não foi possível carregar os sistemas de treinamento.
           </p>
           <Button
             onClick={() => refetch()}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
@@ -98,14 +74,8 @@ export const TreinamentosSection: React.FC = () => {
     0
   );
 
-  logger.info('✅ [TreinamentosSection] Displaying treinamentos', {
-    sistemasCount: sistemas.length,
-    totalVideoAulas
-  });
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Meus Treinamentos</h2>
@@ -115,14 +85,13 @@ export const TreinamentosSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Sistemas Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {sistemas.map((sistema) => (
-          <Card key={sistema.id} className="bg-gray-800/50 border-gray-600 hover:border-orange-500/50 transition-colors">
+          <Card key={sistema.id} className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-colors">
             <CardHeader>
               <CardTitle className="text-white flex items-center justify-between">
                 <span>{sistema.nome}</span>
-                <Badge variant="secondary" className="bg-orange-600/20 text-orange-400">
+                <Badge variant="secondary" className="bg-red-600/20 text-red-400">
                   {sistema.produtos?.length || 0} produto(s)
                 </Badge>
               </CardTitle>
@@ -136,11 +105,9 @@ export const TreinamentosSection: React.FC = () => {
                   <div key={produto.id} className="border border-gray-600 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-white font-medium">{produto.nome}</h4>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="border-gray-500 text-gray-300">
-                          {produto.video_aulas?.length || 0} aula(s)
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="border-gray-500 text-gray-300">
+                        {produto.video_aulas?.length || 0} aula(s)
+                      </Badge>
                     </div>
                     
                     {produto.descricao && (
@@ -151,11 +118,11 @@ export const TreinamentosSection: React.FC = () => {
                       <div className="space-y-2">
                         {produto.video_aulas
                           .sort((a, b) => a.ordem - b.ordem)
-                          .slice(0, 3) // Mostrar apenas as 3 primeiras
+                          .slice(0, 3)
                           .map((videoAula) => (
                             <div key={videoAula.id} className="flex items-center justify-between p-2 bg-gray-700/30 rounded">
                               <div className="flex items-center space-x-2">
-                                <Play className="h-3 w-3 text-orange-400" />
+                                <Play className="h-3 w-3 text-red-400" />
                                 <span className="text-gray-300 text-xs truncate">
                                   {videoAula.titulo}
                                 </span>
@@ -174,7 +141,7 @@ export const TreinamentosSection: React.FC = () => {
 
                         <Button 
                           size="sm" 
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white mt-2"
+                          className="w-full bg-red-600 hover:bg-red-700 text-white mt-2"
                           onClick={() => navigate(`/system/${sistema.id}/product/${produto.id}`)}
                         >
                           <Play className="h-3 w-3 mr-1" />

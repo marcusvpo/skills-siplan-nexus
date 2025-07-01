@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -36,65 +37,48 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsLoading(true);
       
-      console.log('🔐 [CartorioPermissionsManager] Fetching permissions for cartorio:', cartorio.id);
+      // Buscar todos os sistemas
+      const { data: sistemas, error: sistemasError } = await supabase
+        .from('sistemas')
+        .select(`
+          *,
+          produtos (*)
+        `)
+        .order('ordem');
 
-      const { data, error } = await supabase.functions.invoke('get-cartorio-permissions', {
-        body: { cartorioId: cartorio.id }
-      });
-
-      console.log('🔐 [CartorioPermissionsManager] Response received:', {
-        data: data ? { success: data.success, hasData: !!data.data } : null,
-        error: error ? { message: error.message, context: error.context } : null
-      });
-
-      if (error) {
-        console.error('❌ [CartorioPermissionsManager] Function error:', {
-          error,
-          message: error.message,
-          context: error.context || 'No context available'
-        });
-        throw new Error(error.message || 'Erro ao buscar permissões');
+      if (sistemasError) {
+        throw new Error(`Erro ao buscar sistemas: ${sistemasError.message}`);
       }
 
-      if (!data?.success) {
-        console.error('❌ [CartorioPermissionsManager] API error:', data?.error);
-        throw new Error(data?.error || 'Erro na resposta da API');
+      setTodosOsSistemas(sistemas || []);
+
+      // Buscar permissões atuais
+      const { data: permissoes, error: permissoesError } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .select('*')
+        .eq('cartorio_id', cartorio.id)
+        .eq('ativo', true);
+
+      if (permissoesError) {
+        throw new Error(`Erro ao buscar permissões: ${permissoesError.message}`);
       }
 
-      console.log('✅ [CartorioPermissionsManager] Data received successfully:', {
-        sistemas: data.data.todosOsSistemas?.length || 0,
-        permissoes: data.data.permissoes?.length || 0
-      });
+      setPermissoesAtuais(permissoes || []);
 
-      setTodosOsSistemas(data.data.todosOsSistemas || []);
-      setPermissoesAtuais(data.data.permissoes || []);
-
-      // Configurar permissões selecionadas com granularidade correta
+      // Configurar seleções
       const selected = new Set<string>();
-      
-      data.data.permissoes?.forEach((p: any) => {
-        if (p.produto_id && !p.sistema_id) {
-          // Produto específico selecionado
-          selected.add(`produto-${p.produto_id}`);
-          console.log('🔐 Permission loaded (produto específico):', p.produto_id);
-        } else if (p.sistema_id && !p.produto_id) {
-          // Sistema completo selecionado
+      permissoes?.forEach((p: any) => {
+        if (p.sistema_id && !p.produto_id) {
           selected.add(`sistema-${p.sistema_id}`);
-          console.log('🔐 Permission loaded (sistema completo):', p.sistema_id);
+        } else if (p.produto_id) {
+          selected.add(`produto-${p.produto_id}`);
         }
       });
       
       setPermissoesSelecionadas(selected);
-      console.log('🔐 [CartorioPermissionsManager] Permissions loaded:', Array.from(selected));
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ [CartorioPermissionsManager] Error:', {
-        error: err,
-        message: errorMessage,
-        stack: err instanceof Error ? err.stack : 'No stack available'
-      });
-      
       toast({
         title: "Erro ao carregar permissões",
         description: errorMessage,
@@ -109,64 +93,48 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsSaving(true);
       
-      console.log('💾 [CartorioPermissionsManager] Starting save process...');
-      console.log('💾 [CartorioPermissionsManager] Selected permissions:', Array.from(permissoesSelecionadas));
+      // Deletar permissões existentes
+      const { error: deleteError } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .delete()
+        .eq('cartorio_id', cartorio.id);
 
-      // CORREÇÃO CRÍTICA: Manter UUIDs completos
-      const permissoes: any[] = [];
-      
-      permissoesSelecionadas.forEach(selection => {
-        const [tipo, id] = selection.split('-');
+      if (deleteError) {
+        throw new Error(`Erro ao deletar permissões antigas: ${deleteError.message}`);
+      }
+
+      // Inserir novas permissões
+      if (permissoesSelecionadas.size > 0) {
+        const permissoes: any[] = [];
         
-        if (tipo === 'sistema') {
-          // Sistema completo - inserir apenas sistema_id (produto_id = null)
-          permissoes.push({
-            sistema_id: id, // UUID COMPLETO
-            produto_id: null
-          });
-          console.log('🔐 Adding sistema completo:', id);
-        } else if (tipo === 'produto') {
-          // Produto específico - inserir apenas produto_id (sistema_id = null)
-          permissoes.push({
-            sistema_id: null,
-            produto_id: id // UUID COMPLETO
-          });
-          console.log('🔐 Adding produto específico:', id);
-        }
-      });
-
-      console.log('🔐 [CartorioPermissionsManager] Final permissions payload:', {
-        cartorioId: cartorio.id,
-        permissoes: permissoes
-      });
-
-      const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {
-        body: {
-          cartorioId: cartorio.id,
-          permissoes
-        }
-      });
-
-      console.log('🔐 [CartorioPermissionsManager] Save response:', {
-        data: data ? { success: data.success, message: data.message } : null,
-        error: error ? { message: error.message, context: error.context } : null
-      });
-
-      if (error) {
-        console.error('❌ [CartorioPermissionsManager] Save function error:', {
-          error,
-          message: error.message,
-          context: error.context || 'No context available'
+        permissoesSelecionadas.forEach(selection => {
+          const [tipo, id] = selection.split('-');
+          
+          if (tipo === 'sistema') {
+            permissoes.push({
+              cartorio_id: cartorio.id,
+              sistema_id: id,
+              produto_id: null,
+              ativo: true
+            });
+          } else if (tipo === 'produto') {
+            permissoes.push({
+              cartorio_id: cartorio.id,
+              sistema_id: null,
+              produto_id: id,
+              ativo: true
+            });
+          }
         });
-        throw new Error(error.message || 'Erro ao salvar permissões');
-      }
 
-      if (!data?.success) {
-        console.error('❌ [CartorioPermissionsManager] Save API error:', data?.error);
-        throw new Error(data?.error || 'Erro na resposta da API');
-      }
+        const { error: insertError } = await supabase
+          .from('cartorio_acesso_conteudo')
+          .insert(permissoes);
 
-      console.log('✅ [CartorioPermissionsManager] Permissions saved successfully');
+        if (insertError) {
+          throw new Error(`Erro ao salvar permissões: ${insertError.message}`);
+        }
+      }
       
       toast({
         title: "Sucesso",
@@ -178,12 +146,6 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ [CartorioPermissionsManager] Save error:', {
-        error: err,
-        message: errorMessage,
-        stack: err instanceof Error ? err.stack : 'No stack available'
-      });
-      
       toast({
         title: "Erro ao salvar permissões",
         description: errorMessage,
@@ -202,20 +164,10 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     
     if (newSelected.has(sistemaKey)) {
-      // Desmarcar sistema completo
       newSelected.delete(sistemaKey);
-      console.log('🔐 Deselecting sistema completo:', sistemaId);
     } else {
-      // Marcar sistema completo
       newSelected.add(sistemaKey);
-      // Remover produtos individuais deste sistema se existirem
-      produtoKeys.forEach(key => {
-        if (newSelected.has(key)) {
-          newSelected.delete(key);
-          console.log('🔐 Removing individual produto when selecting sistema:', key);
-        }
-      });
-      console.log('🔐 Selecting sistema completo:', sistemaId);
+      produtoKeys.forEach(key => newSelected.delete(key));
     }
     
     setPermissoesSelecionadas(newSelected);
@@ -228,18 +180,12 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     
     if (newSelected.has(produtoKey)) {
-      // Desmarcar produto
       newSelected.delete(produtoKey);
-      console.log('🔐 Deselecting produto:', produtoId);
     } else {
-      // Marcar produto
       newSelected.add(produtoKey);
-      // Se o sistema completo estava marcado, remover
       if (newSelected.has(sistemaKey)) {
         newSelected.delete(sistemaKey);
-        console.log('🔐 Removing sistema completo when selecting individual produto');
       }
-      console.log('🔐 Selecting produto:', produtoId);
     }
     
     setPermissoesSelecionadas(newSelected);
@@ -256,7 +202,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center">
-            <Shield className="h-5 w-5 mr-2 text-blue-400" />
+            <Shield className="h-5 w-5 mr-2 text-red-400" />
             Gerenciar Permissões - {cartorio?.nome}
           </DialogTitle>
         </DialogHeader>
@@ -264,22 +210,21 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
               <p className="text-gray-400">Carregando permissões...</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
               <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-300">Granularidade de Permissões:</h4>
-                  <ul className="text-sm text-blue-200 mt-1 space-y-1">
+                  <h4 className="text-sm font-medium text-red-300">Como funciona:</h4>
+                  <ul className="text-sm text-red-200 mt-1 space-y-1">
                     <li>• Marque um <strong>Sistema</strong> para dar acesso completo a todos os produtos</li>
-                    <li>• Marque <strong>Produtos</strong> específicos para acesso granular (independente do sistema)</li>
+                    <li>• Marque <strong>Produtos</strong> específicos para acesso granular</li>
                     <li>• Se nenhuma permissão for marcada, o cartório terá acesso a tudo</li>
-                    <li>• <span className="text-yellow-300">Novo:</span> Você pode misturar sistemas completos com produtos específicos</li>
                   </ul>
                 </div>
               </div>
@@ -308,19 +253,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                           </span>
                         )}
                       </div>
-                      {sistema.descricao && (
-                        <p className="text-sm text-gray-400 ml-8">
-                          {sistema.descricao}
-                        </p>
-                      )}
                     </CardHeader>
                     
                     {sistema.produtos && sistema.produtos.length > 0 && (
                       <CardContent className="pt-0">
                         <div className="ml-6 space-y-2">
-                          <p className="text-sm font-medium text-gray-300">
-                            Produtos {sistemaSelected ? '(incluídos automaticamente)' : '(selecione individualmente)'}:
-                          </p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {sistema.produtos.map((produto: any) => {
                               const produtoKey = `produto-${produto.id}`;
@@ -338,9 +275,6 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                                     sistemaSelected ? 'text-green-300' : 'text-gray-300'
                                   }`}>
                                     {produto.nome}
-                                    {produtoSelected && !sistemaSelected && (
-                                      <span className="text-blue-400 ml-1">(específico)</span>
-                                    )}
                                   </label>
                                 </div>
                               );
@@ -366,7 +300,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {isSaving ? (
                   <>
@@ -377,7 +311,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                   <>
                     <Save className="h-4 w-4 mr-2" />
                     Salvar Permissões
-                  </>
+                  </Button>
                 )}
               </Button>
             </div>
