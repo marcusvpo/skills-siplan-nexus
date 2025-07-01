@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -90,6 +91,7 @@ serve(async (req) => {
         .order('ordem', { ascending: true });
       
       if (systemsError) {
+        console.error('Error fetching all systems:', systemsError);
         throw new Error('Erro ao carregar sistemas');
       }
       
@@ -114,8 +116,8 @@ serve(async (req) => {
     console.log('Allowed system IDs:', systemIds);
     console.log('Allowed product IDs:', productIds);
     
-    // Get systems that are either directly allowed or have allowed products
-    const { data: allowedSystems, error: systemsError } = await supabase
+    // Build the query based on what permissions exist
+    let query = supabase
       .from('sistemas')
       .select(`
         *,
@@ -123,21 +125,69 @@ serve(async (req) => {
           *,
           video_aulas (*)
         )
-      `)
-      .or(`id.in.(${systemIds.join(',')}),produtos.id.in.(${productIds.join(',')})`)
-      .order('ordem', { ascending: true });
+      `);
+    
+    // Apply filters only if we have IDs to filter by
+    if (systemIds.length > 0 && productIds.length > 0) {
+      // Both system and product permissions exist
+      query = query.or(`id.in.(${systemIds.join(',')}),produtos.id.in.(${productIds.join(',')})`);
+    } else if (systemIds.length > 0) {
+      // Only system permissions exist
+      query = query.in('id', systemIds);
+    } else if (productIds.length > 0) {
+      // Only product permissions exist - we need systems that contain these products
+      const { data: productsWithSystems, error: prodError } = await supabase
+        .from('produtos')
+        .select('sistema_id')
+        .in('id', productIds);
+      
+      if (prodError) {
+        console.error('Error fetching products for system lookup:', prodError);
+        throw new Error('Erro ao processar permissões de produtos');
+      }
+      
+      const systemIdsFromProducts = [...new Set(productsWithSystems?.map(p => p.sistema_id) || [])];
+      
+      if (systemIdsFromProducts.length > 0) {
+        query = query.in('id', systemIdsFromProducts);
+      } else {
+        // No systems found for the given products
+        return new Response(JSON.stringify({
+          sistemas: [],
+          hasPermissions: true,
+          permissions: permissions
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      // No valid permissions found
+      return new Response(JSON.stringify({
+        sistemas: [],
+        hasPermissions: true,
+        permissions: permissions
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    query = query.order('ordem', { ascending: true });
+    
+    const { data: allowedSystems, error: systemsError } = await query;
     
     if (systemsError) {
-      console.error('Error fetching systems:', systemsError);
+      console.error('Error fetching filtered systems:', systemsError);
       throw new Error('Erro ao carregar sistemas permitidos');
     }
     
-    // Filter products within systems if needed
+    // Filter products within systems if we have specific product permissions
     const filteredSystems = allowedSystems?.map(system => {
       if (systemIds.includes(system.id)) {
         // System is fully allowed, return all products
         return system;
-      } else {
+      } else if (productIds.length > 0) {
         // Only specific products are allowed
         const allowedProducts = system.produtos?.filter(product => 
           productIds.includes(product.id)
@@ -148,10 +198,14 @@ serve(async (req) => {
           produtos: allowedProducts
         };
       }
+      
+      return system;
     }).filter(system => 
       // Keep systems that either have allowed products or are fully allowed
       systemIds.includes(system.id) || (system.produtos && system.produtos.length > 0)
     );
+    
+    console.log('Final filtered systems count:', filteredSystems?.length || 0);
     
     return new Response(JSON.stringify({
       sistemas: filteredSystems || [],
