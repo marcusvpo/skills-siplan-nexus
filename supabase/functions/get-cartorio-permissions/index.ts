@@ -57,6 +57,8 @@ serve(async (req) => {
       throw permissoesError
     }
 
+    console.log('🔐 [get-cartorio-permissions] Raw permissions found:', permissoes?.length || 0)
+
     // Buscar todos os sistemas e produtos disponíveis
     const { data: todosOsSistemas, error: sistemasError } = await supabaseClient
       .from('sistemas')
@@ -71,7 +73,20 @@ serve(async (req) => {
       throw sistemasError
     }
 
-    console.log(`✅ [get-cartorio-permissions] Found ${permissoes?.length || 0} permissions`)
+    console.log('🔐 [get-cartorio-permissions] Total sistemas found:', todosOsSistemas?.length || 0)
+
+    // Log detalhado das permissões para debug
+    if (permissoes) {
+      permissoes.forEach(p => {
+        console.log('🔐 Permission:', {
+          id: p.id,
+          cartorio_id: p.cartorio_id,
+          sistema_id: p.sistema_id,
+          produto_id: p.produto_id,
+          ativo: p.ativo
+        })
+      })
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -91,7 +106,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Erro interno do servidor' 
+        error: `Erro interno do servidor: ${error.message}` 
       }),
       { 
         status: 500, 

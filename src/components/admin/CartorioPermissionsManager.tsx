@@ -37,41 +37,56 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsLoading(true);
       
-      logger.info('🔐 [CartorioPermissionsManager] Fetching permissions for:', { cartorioId: cartorio.id });
+      console.log('🔐 [CartorioPermissionsManager] Fetching permissions for:', cartorio.id);
 
       const { data, error } = await supabase.functions.invoke('get-cartorio-permissions', {
         body: { cartorioId: cartorio.id }
       });
 
       if (error) {
-        logger.error('❌ [CartorioPermissionsManager] Function error:', { error });
+        console.error('❌ [CartorioPermissionsManager] Function error:', error);
         throw new Error(error.message || 'Erro ao buscar permissões');
       }
 
       if (!data?.success) {
-        logger.error('❌ [CartorioPermissionsManager] API error:', { error: data?.error });
+        console.error('❌ [CartorioPermissionsManager] API error:', data?.error);
         throw new Error(data?.error || 'Erro na resposta da API');
       }
+
+      console.log('✅ [CartorioPermissionsManager] Data received:', {
+        sistemas: data.data.todosOsSistemas?.length || 0,
+        permissoes: data.data.permissoes?.length || 0
+      });
 
       setTodosOsSistemas(data.data.todosOsSistemas || []);
       setPermissoesAtuais(data.data.permissoes || []);
 
-      // Configurar permissões selecionadas
+      // Configurar permissões selecionadas com granularidade correta
       const selected = new Set<string>();
+      
       data.data.permissoes?.forEach((p: any) => {
-        if (p.produto_id) {
+        if (p.produto_id && !p.sistema_id) {
+          // Produto específico selecionado
           selected.add(`produto-${p.produto_id}`);
-        } else if (p.sistema_id) {
+        } else if (p.sistema_id && !p.produto_id) {
+          // Sistema completo selecionado
           selected.add(`sistema-${p.sistema_id}`);
         }
+        
+        console.log('🔐 Permission loaded:', {
+          sistema_id: p.sistema_id,
+          produto_id: p.produto_id,
+          type: p.produto_id && !p.sistema_id ? 'produto específico' : 
+                p.sistema_id && !p.produto_id ? 'sistema completo' : 'indefinido'
+        });
       });
+      
       setPermissoesSelecionadas(selected);
-
-      logger.info('✅ [CartorioPermissionsManager] Data loaded successfully');
+      console.log('🔐 [CartorioPermissionsManager] Permissions loaded:', Array.from(selected));
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      logger.error('❌ [CartorioPermissionsManager] Error:', { error: err });
+      console.error('❌ [CartorioPermissionsManager] Error:', err);
       
       toast({
         title: "Erro ao carregar permissões",
@@ -87,33 +102,32 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsSaving(true);
       
-      logger.info('💾 [CartorioPermissionsManager] Saving permissions');
+      console.log('💾 [CartorioPermissionsManager] Saving permissions:', Array.from(permissoesSelecionadas));
 
-      // Converter seleções para formato da API
+      // Converter seleções para formato da API com granularidade correta
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
         const [tipo, id] = selection.split('-');
         
         if (tipo === 'sistema') {
+          // Sistema completo - inserir apenas sistema_id (produto_id = null)
           permissoes.push({
             sistema_id: id,
             produto_id: null
           });
+          console.log('🔐 Adding sistema completo:', id);
         } else if (tipo === 'produto') {
-          // Encontrar o sistema do produto
-          const produto = todosOsSistemas
-            .flatMap(s => s.produtos || [])
-            .find(p => p.id === id);
-          
-          if (produto) {
-            permissoes.push({
-              sistema_id: produto.sistema_id,
-              produto_id: id
-            });
-          }
+          // Produto específico - inserir apenas produto_id (sistema_id = null)
+          permissoes.push({
+            sistema_id: null,
+            produto_id: id
+          });
+          console.log('🔐 Adding produto específico:', id);
         }
       });
+
+      console.log('🔐 [CartorioPermissionsManager] Final permissions to save:', permissoes);
 
       const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {
         body: {
@@ -123,20 +137,20 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       });
 
       if (error) {
-        logger.error('❌ [CartorioPermissionsManager] Save function error:', { error });
+        console.error('❌ [CartorioPermissionsManager] Save function error:', error);
         throw new Error(error.message || 'Erro ao salvar permissões');
       }
 
       if (!data?.success) {
-        logger.error('❌ [CartorioPermissionsManager] Save API error:', { error: data?.error });
+        console.error('❌ [CartorioPermissionsManager] Save API error:', data?.error);
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
-      logger.info('✅ [CartorioPermissionsManager] Permissions saved successfully');
+      console.log('✅ [CartorioPermissionsManager] Permissions saved successfully:', data);
       
       toast({
         title: "Sucesso",
-        description: data.message || "Permissões atualizadas com sucesso!",
+        description: `Permissões atualizadas com sucesso! (${data.savedCount || 0} registros salvos)`,
       });
 
       onUpdate();
@@ -144,7 +158,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      logger.error('❌ [CartorioPermissionsManager] Save error:', { error: err });
+      console.error('❌ [CartorioPermissionsManager] Save error:', err);
       
       toast({
         title: "Erro ao salvar permissões",
@@ -160,8 +174,10 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     if (newSelected.has(key)) {
       newSelected.delete(key);
+      console.log('🔐 Deselected:', key);
     } else {
       newSelected.add(key);
+      console.log('🔐 Selected:', key);
     }
     setPermissoesSelecionadas(newSelected);
   };
@@ -174,14 +190,44 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     
     if (newSelected.has(sistemaKey)) {
-      // Desmarcar sistema e todos os produtos
+      // Desmarcar sistema completo
       newSelected.delete(sistemaKey);
-      produtoKeys.forEach(key => newSelected.delete(key));
+      console.log('🔐 Deselecting sistema completo:', sistemaId);
     } else {
-      // Marcar sistema (acesso completo)
+      // Marcar sistema completo
       newSelected.add(sistemaKey);
-      // Remover produtos individuais se existirem
-      produtoKeys.forEach(key => newSelected.delete(key));
+      // Remover produtos individuais deste sistema se existirem
+      produtoKeys.forEach(key => {
+        if (newSelected.has(key)) {
+          newSelected.delete(key);
+          console.log('🔐 Removing individual produto when selecting sistema:', key);
+        }
+      });
+      console.log('🔐 Selecting sistema completo:', sistemaId);
+    }
+    
+    setPermissoesSelecionadas(newSelected);
+  };
+
+  const toggleProduto = (produtoId: string, sistemaId: string) => {
+    const produtoKey = `produto-${produtoId}`;
+    const sistemaKey = `sistema-${sistemaId}`;
+    
+    const newSelected = new Set(permissoesSelecionadas);
+    
+    if (newSelected.has(produtoKey)) {
+      // Desmarcar produto
+      newSelected.delete(produtoKey);
+      console.log('🔐 Deselecting produto:', produtoId);
+    } else {
+      // Marcar produto
+      newSelected.add(produtoKey);
+      // Se o sistema completo estava marcado, remover
+      if (newSelected.has(sistemaKey)) {
+        newSelected.delete(sistemaKey);
+        console.log('🔐 Removing sistema completo when selecting individual produto');
+      }
+      console.log('🔐 Selecting produto:', produtoId);
     }
     
     setPermissoesSelecionadas(newSelected);
@@ -216,11 +262,12 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
               <div className="flex items-start space-x-3">
                 <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-300">Como funciona:</h4>
+                  <h4 className="text-sm font-medium text-blue-300">Granularidade de Permissões:</h4>
                   <ul className="text-sm text-blue-200 mt-1 space-y-1">
                     <li>• Marque um <strong>Sistema</strong> para dar acesso completo a todos os produtos</li>
-                    <li>• Marque <strong>Produtos</strong> específicos para acesso granular</li>
+                    <li>• Marque <strong>Produtos</strong> específicos para acesso granular (independente do sistema)</li>
                     <li>• Se nenhuma permissão for marcada, o cartório terá acesso a tudo</li>
+                    <li>• <span className="text-yellow-300">Novo:</span> Você pode misturar sistemas completos com produtos específicos</li>
                   </ul>
                 </div>
               </div>
@@ -256,22 +303,32 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                       )}
                     </CardHeader>
                     
-                    {!sistemaSelected && sistema.produtos && sistema.produtos.length > 0 && (
+                    {sistema.produtos && sistema.produtos.length > 0 && (
                       <CardContent className="pt-0">
                         <div className="ml-6 space-y-2">
-                          <p className="text-sm font-medium text-gray-300">Produtos:</p>
+                          <p className="text-sm font-medium text-gray-300">
+                            Produtos {sistemaSelected ? '(incluídos automaticamente)' : '(selecione individualmente)'}:
+                          </p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {sistema.produtos.map((produto: any) => {
                               const produtoKey = `produto-${produto.id}`;
+                              const produtoSelected = permissoesSelecionadas.has(produtoKey);
+                              
                               return (
                                 <div key={produto.id} className="flex items-center space-x-2">
                                   <Checkbox
-                                    checked={permissoesSelecionadas.has(produtoKey)}
-                                    onCheckedChange={() => toggleSelection(produtoKey)}
+                                    checked={produtoSelected || sistemaSelected}
+                                    disabled={sistemaSelected}
+                                    onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
                                     className="border-gray-600"
                                   />
-                                  <label className="text-sm text-gray-300 cursor-pointer">
+                                  <label className={`text-sm cursor-pointer ${
+                                    sistemaSelected ? 'text-green-300' : 'text-gray-300'
+                                  }`}>
                                     {produto.nome}
+                                    {produtoSelected && !sistemaSelected && (
+                                      <span className="text-blue-400 ml-1">(específico)</span>
+                                    )}
                                   </label>
                                 </div>
                               );

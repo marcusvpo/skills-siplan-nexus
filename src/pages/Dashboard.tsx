@@ -16,20 +16,21 @@ const Dashboard = () => {
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
-    logger.info('🎯 [Dashboard] Security check:', { 
+    console.log('🎯 [Dashboard] Current auth state:', { 
       isAuthenticated, 
       userType: user?.type,
-      cartorioId: user?.cartorio_id 
+      cartorioId: user?.cartorio_id,
+      user: user
     });
 
     if (!isAuthenticated) {
-      logger.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
+      console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
 
     if (user?.type !== 'cartorio') {
-      logger.warn('⚠️ [Dashboard] User is not cartorio type, redirecting');
+      console.warn('⚠️ [Dashboard] User is not cartorio type, redirecting');
       if (user?.type === 'admin') {
         navigate('/admin');
       } else {
@@ -39,7 +40,7 @@ const Dashboard = () => {
     }
 
     if (!user?.cartorio_id) {
-      logger.error('❌ [Dashboard] User has no cartorio_id');
+      console.error('❌ [Dashboard] User has no cartorio_id');
       toast({
         title: "Erro de configuração",
         description: "Usuário não está associado a um cartório.",
@@ -59,7 +60,7 @@ const Dashboard = () => {
       });
       navigate('/');
     } catch (error) {
-      logger.error('❌ [Dashboard] Logout error:', error);
+      console.error('❌ [Dashboard] Logout error:', error);
       toast({
         title: "Erro no logout",
         description: "Houve um problema ao fazer logout.",
@@ -69,17 +70,48 @@ const Dashboard = () => {
   };
 
   const handleSistemaClick = (sistema: any) => {
-    logger.info('🎯 [Dashboard] Sistema clicked:', sistema.id);
+    console.log('🎯 [Dashboard] Sistema clicked:', sistema.id);
     navigate(`/system/${sistema.id}`);
   };
 
-  // Não renderizar nada enquanto fazemos as verificações de segurança
-  if (!isAuthenticated || user?.type !== 'cartorio' || !user?.cartorio_id) {
+  // Loading state
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Verificando acesso...</p>
+          <p className="text-white">Carregando dados do usuário...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state with debug info
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="bg-red-500/10 border-red-500/20">
+            <CardContent className="py-8">
+              <div className="text-center">
+                <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-red-300 mb-2">Erro ao carregar sistemas</h3>
+                <p className="text-red-200 mb-4">{error}</p>
+                <div className="text-sm text-red-300 mb-4">
+                  <p>Debug Info:</p>
+                  <p>User ID: {user?.id}</p>
+                  <p>Cartório ID: {user?.cartorio_id}</p>
+                  <p>User Type: {user?.type}</p>
+                </div>
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Tentar Novamente
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -134,30 +166,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-              <p className="text-gray-400">Carregando sistemas disponíveis...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <Card className="bg-red-500/10 border-red-500/20">
-            <CardContent className="py-8">
-              <div className="text-center">
-                <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-red-300 mb-2">Erro ao carregar sistemas</h3>
-                <p className="text-red-200 mb-4">{error}</p>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Tentar Novamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : sistemas.length === 0 ? (
+        {sistemas.length === 0 ? (
           <Card className="bg-gray-800/50 border-gray-700">
             <CardContent className="py-12">
               <div className="text-center">
