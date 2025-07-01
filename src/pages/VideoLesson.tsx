@@ -4,13 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { VideoPlayer } from '@/components/VideoPlayer';
-import { AIChat } from '@/components/AIChat';
+import VideoPlayer from '@/components/VideoPlayer';
+import AIChat from '@/components/AIChat';
 import { ProgressTrackerFixed } from '@/components/ProgressTrackerFixed';
 import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
 
-export const VideoLesson: React.FC = () => {
+const VideoLesson: React.FC = () => {
   const { videoAulaId } = useParams<{ videoAulaId: string }>();
   const navigate = useNavigate();
   
@@ -18,7 +18,7 @@ export const VideoLesson: React.FC = () => {
 
   useEffect(() => {
     if (videoAulaId) {
-      logger.info('🎥 [VideoLesson] Page loaded for video:', videoAulaId);
+      logger.info('🎥 [VideoLesson] Page loaded for video', { videoId: videoAulaId });
     }
   }, [videoAulaId]);
 
@@ -112,7 +112,8 @@ export const VideoLesson: React.FC = () => {
             <div className="bg-gray-900 rounded-lg overflow-hidden">
               <VideoPlayer 
                 videoUrl={videoAulaData.url_video}
-                videoAulaId={videoAulaId}
+                title={videoAulaData.titulo}
+                thumbnailUrl={videoAulaData.url_thumbnail}
               />
             </div>
             
@@ -141,7 +142,7 @@ export const VideoLesson: React.FC = () => {
                 </p>
               </CardHeader>
               <CardContent className="h-full p-0">
-                <AIChat videoAulaId={videoAulaId} />
+                <AIChat lessonTitle={videoAulaData.titulo} />
               </CardContent>
             </Card>
           </div>
@@ -150,3 +151,5 @@ export const VideoLesson: React.FC = () => {
     </div>
   );
 };
+
+export default VideoLesson;

@@ -22,11 +22,13 @@ export const useSistemasCartorio = () => {
         .order('ordem', { ascending: true });
 
       if (error) {
-        logger.error('❌ [useSistemasCartorio] Error:', error);
+        logger.error('❌ [useSistemasCartorio] Error:', { error });
         throw new Error(`Erro ao carregar sistemas: ${error.message}`);
       }
 
-      logger.info('✅ [useSistemasCartorio] Sistemas loaded:', sistemas?.length || 0);
+      logger.info('✅ [useSistemasCartorio] Sistemas loaded:', { 
+        count: sistemas?.length || 0 
+      });
       return sistemas || [];
     },
     retry: 1,
@@ -39,7 +41,7 @@ export const useVideoAulaData = (videoAulaId: string) => {
   return useQuery({
     queryKey: ['video-aula-data', videoAulaId],
     queryFn: async () => {
-      logger.info('🎥 [useVideoAulaData] Fetching video aula:', videoAulaId);
+      logger.info('🎥 [useVideoAulaData] Fetching video aula:', { videoId: videoAulaId });
 
       const { data: videoAula, error } = await supabase
         .from('video_aulas')
@@ -54,11 +56,13 @@ export const useVideoAulaData = (videoAulaId: string) => {
         .single();
 
       if (error) {
-        logger.error('❌ [useVideoAulaData] Error:', error);
+        logger.error('❌ [useVideoAulaData] Error:', { error });
         throw new Error(`Erro ao carregar videoaula: ${error.message}`);
       }
 
-      logger.info('✅ [useVideoAulaData] Video aula loaded:', videoAula?.titulo);
+      logger.info('✅ [useVideoAulaData] Video aula loaded:', { 
+        titulo: videoAula?.titulo 
+      });
       return videoAula;
     },
     enabled: !!videoAulaId,
