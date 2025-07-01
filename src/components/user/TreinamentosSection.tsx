@@ -65,22 +65,13 @@ export const TreinamentosSection: React.FC = () => {
     );
   }
 
-  const totalVideoAulas = sistemas.reduce(
-    (total, sistema) => 
-      total + sistema.produtos.reduce(
-        (prodTotal, produto) => prodTotal + (produto.video_aulas?.length || 0), 
-        0
-      ), 
-    0
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Meus Treinamentos</h2>
+          <h2 className="text-2xl font-bold text-white">Sistemas de Treinamento</h2>
           <p className="text-gray-400">
-            {sistemas.length} sistema(s) disponível(is) • {totalVideoAulas} videoaula(s) total
+            {sistemas.length} sistema(s) disponível(is)
           </p>
         </div>
       </div>
@@ -101,61 +92,42 @@ export const TreinamentosSection: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {sistema.produtos?.map((produto) => (
-                  <div key={produto.id} className="border border-gray-600 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-white font-medium">{produto.nome}</h4>
-                      <Badge variant="outline" className="border-gray-500 text-gray-300">
-                        {produto.video_aulas?.length || 0} aula(s)
-                      </Badge>
-                    </div>
-                    
-                    {produto.descricao && (
-                      <p className="text-gray-400 text-xs mb-3">{produto.descricao}</p>
-                    )}
-
-                    {produto.video_aulas?.length > 0 ? (
-                      <div className="space-y-2">
-                        {produto.video_aulas
-                          .sort((a, b) => a.ordem - b.ordem)
-                          .slice(0, 3)
-                          .map((videoAula) => (
-                            <div key={videoAula.id} className="flex items-center justify-between p-2 bg-gray-700/30 rounded">
-                              <div className="flex items-center space-x-2">
-                                <Play className="h-3 w-3 text-red-400" />
-                                <span className="text-gray-300 text-xs truncate">
-                                  {videoAula.titulo}
-                                </span>
-                              </div>
-                              <Clock className="h-3 w-3 text-gray-500" />
-                            </div>
-                          ))}
+                {sistema.produtos && sistema.produtos.length > 0 ? (
+                  <>
+                    <div className="text-sm text-gray-400 mb-2">Produtos disponíveis:</div>
+                    {sistema.produtos.slice(0, 3).map((produto) => (
+                      <div key={produto.id} className="border border-gray-600 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-white font-medium">{produto.nome}</h4>
+                          <Badge variant="outline" className="border-gray-500 text-gray-300">
+                            {produto.video_aulas?.length || 0} aula(s)
+                          </Badge>
+                        </div>
                         
-                        {produto.video_aulas.length > 3 && (
-                          <div className="text-center">
-                            <span className="text-gray-500 text-xs">
-                              +{produto.video_aulas.length - 3} mais
-                            </span>
-                          </div>
+                        {produto.descricao && (
+                          <p className="text-gray-400 text-xs mb-3">{produto.descricao}</p>
                         )}
 
                         <Button 
                           size="sm" 
-                          className="w-full bg-red-600 hover:bg-red-700 text-white mt-2"
+                          className="w-full bg-red-600 hover:bg-red-700 text-white"
                           onClick={() => navigate(`/system/${sistema.id}/product/${produto.id}`)}
                         >
                           <Play className="h-3 w-3 mr-1" />
-                          Começar Treinamento
+                          Acessar Produto
                         </Button>
                       </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-                        <p className="text-gray-500 text-xs">Nenhuma videoaula disponível</p>
+                    ))}
+                    
+                    {sistema.produtos.length > 3 && (
+                      <div className="text-center">
+                        <span className="text-gray-500 text-xs">
+                          +{sistema.produtos.length - 3} produtos mais
+                        </span>
                       </div>
                     )}
-                  </div>
-                )) || (
+                  </>
+                ) : (
                   <div className="text-center py-4">
                     <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
                     <p className="text-gray-500 text-xs">Nenhum produto disponível</p>
@@ -168,7 +140,7 @@ export const TreinamentosSection: React.FC = () => {
                   className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 mt-2"
                   onClick={() => navigate(`/system/${sistema.id}`)}
                 >
-                  Ver Todos os Produtos
+                  Ver Sistema
                 </Button>
               </div>
             </CardContent>

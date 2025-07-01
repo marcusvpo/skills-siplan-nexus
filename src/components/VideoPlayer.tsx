@@ -43,18 +43,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // If no video URL or video error, show placeholder
+  // Se não há URL de vídeo ou há erro, mostrar placeholder
   if (!videoUrl || videoUrl === '' || isVideoError) {
     return (
-      <div className="w-full aspect-video bg-gray-900 flex items-center justify-center">
+      <div className="w-full aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🎥</div>
-          <p className="text-gray-400 text-lg">Player de Vídeo</p>
-          <p className="text-sm text-gray-500 mt-2">{title}</p>
+          <p className="text-gray-400 text-lg">{title}</p>
           {isVideoError ? (
-            <p className="text-xs text-red-400 mt-2">Erro ao carregar o vídeo</p>
+            <p className="text-xs text-red-400 mt-2">URL de vídeo inválida ou indisponível</p>
           ) : (
-            <p className="text-xs text-gray-600 mt-2">URL do vídeo não disponível</p>
+            <p className="text-xs text-gray-600 mt-2">Nenhum vídeo configurado</p>
           )}
         </div>
       </div>
@@ -97,14 +96,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
       
-      {/* Video Info Overlay (only shown when duration is available) */}
+      {/* Video Info Overlay */}
       {videoDuration && isVideoReady && (
         <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-md text-sm">
           {formatTime(videoDuration)}
         </div>
       )}
       
-      {/* Optional Controls Overlay */}
+      {/* Controls Overlay */}
       <div className="absolute bottom-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <Button 
           variant="ghost" 

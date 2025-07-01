@@ -30,7 +30,6 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [todosOsSistemas, setTodosOsSistemas] = useState<any[]>([]);
-  const [permissoesAtuais, setPermissoesAtuais] = useState<any[]>([]);
   const [permissoesSelecionadas, setPermissoesSelecionadas] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
@@ -63,8 +62,6 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         throw new Error(`Erro ao buscar permissões: ${permissoesError.message}`);
       }
 
-      setPermissoesAtuais(permissoes || []);
-
       // Configurar seleções
       const selected = new Set<string>();
       permissoes?.forEach((p: any) => {
@@ -93,47 +90,48 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsSaving(true);
       
-      // Deletar permissões existentes
-      const { error: deleteError } = await supabase
-        .from('cartorio_acesso_conteudo')
-        .delete()
-        .eq('cartorio_id', cartorio.id);
+      logger.info('🔐 [CartorioPermissionsManager] Salvando permissões para cartório:', { 
+        cartorioId: cartorio.id,
+        permissoes: Array.from(permissoesSelecionadas)
+      });
 
-      if (deleteError) {
-        throw new Error(`Erro ao deletar permissões antigas: ${deleteError.message}`);
+      // Preparar array de permissões no formato correto
+      const permissoes: any[] = [];
+      
+      permissoesSelecionadas.forEach(selection => {
+        const [tipo, id] = selection.split('-');
+        
+        if (tipo === 'sistema') {
+          permissoes.push({
+            sistema_id: id,
+            produto_id: null
+          });
+        } else if (tipo === 'produto') {
+          permissoes.push({
+            sistema_id: null,
+            produto_id: id
+          });
+        }
+      });
+
+      logger.info('🔐 [CartorioPermissionsManager] Permissões formatadas:', { permissoes });
+
+      // Usar a Edge Function para atualizar as permissões
+      const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {
+        body: {
+          cartorioId: cartorio.id,
+          permissoes: permissoes
+        }
+      });
+
+      if (error) {
+        logger.error('❌ [CartorioPermissionsManager] Function error:', { error });
+        throw new Error(`Erro ao salvar permissões: ${error.message}`);
       }
 
-      // Inserir novas permissões
-      if (permissoesSelecionadas.size > 0) {
-        const permissoes: any[] = [];
-        
-        permissoesSelecionadas.forEach(selection => {
-          const [tipo, id] = selection.split('-');
-          
-          if (tipo === 'sistema') {
-            permissoes.push({
-              cartorio_id: cartorio.id,
-              sistema_id: id,
-              produto_id: null,
-              ativo: true
-            });
-          } else if (tipo === 'produto') {
-            permissoes.push({
-              cartorio_id: cartorio.id,
-              sistema_id: null,
-              produto_id: id,
-              ativo: true
-            });
-          }
-        });
-
-        const { error: insertError } = await supabase
-          .from('cartorio_acesso_conteudo')
-          .insert(permissoes);
-
-        if (insertError) {
-          throw new Error(`Erro ao salvar permissões: ${insertError.message}`);
-        }
+      if (!data?.success) {
+        logger.error('❌ [CartorioPermissionsManager] API error:', { error: data?.error });
+        throw new Error(data?.error || 'Erro na resposta da API');
       }
       
       toast({
@@ -146,6 +144,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      logger.error('❌ [CartorioPermissionsManager] Save error:', { error: err });
       toast({
         title: "Erro ao salvar permissões",
         description: errorMessage,
