@@ -15,7 +15,7 @@ export const useSistemasCartorio = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('🎯 [useSistemasCartorio] Fetching sistemas for user:', {
+      console.log('🎯 [useSistemasCartorio] Starting fetch for user:', {
         userId: user?.id,
         cartorioId: user?.cartorio_id,
         userType: user?.type,
@@ -30,9 +30,16 @@ export const useSistemasCartorio = () => {
         throw new Error('Cliente autenticado não disponível');
       }
 
+      console.log('🎯 [useSistemasCartorio] Calling get-sistemas-cartorio Edge Function...');
+
       // Usar POST com body em vez de GET com query params
       const { data, error } = await supabase.functions.invoke('get-sistemas-cartorio', {
         body: { cartorioId: user.cartorio_id }
+      });
+
+      console.log('🎯 [useSistemasCartorio] Edge Function response:', {
+        data: data ? { success: data.success, dataLength: data.data?.length } : null,
+        error: error ? { message: error.message, context: error.context } : null
       });
 
       if (error) {
@@ -49,12 +56,17 @@ export const useSistemasCartorio = () => {
         throw new Error(data?.error || 'Erro na resposta da Edge Function');
       }
 
-      console.log('✅ [useSistemasCartorio] Sistemas loaded:', { 
-        count: data.data?.length || 0,
-        sistemas: data.data?.map((s: any) => ({ id: s.id, nome: s.nome })) || []
+      const sistemasData = data.data || [];
+      console.log('✅ [useSistemasCartorio] Sistemas loaded successfully:', { 
+        count: sistemasData.length,
+        sistemas: sistemasData.map((s: any) => ({ 
+          id: s.id, 
+          nome: s.nome, 
+          produtosCount: s.produtos?.length || 0 
+        }))
       });
 
-      setSistemas(data.data || []);
+      setSistemas(sistemasData);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -82,6 +94,7 @@ export const useSistemasCartorio = () => {
     if (user?.cartorio_id && user?.type === 'cartorio') {
       fetchSistemas();
     } else if (user && user.type !== 'cartorio') {
+      console.log('🎯 [useSistemasCartorio] User is not cartorio type:', user.type);
       setError('Usuário não é do tipo cartório');
       setIsLoading(false);
     }

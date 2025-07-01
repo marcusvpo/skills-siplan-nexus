@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🎯 [get-sistemas-cartorio] Function started')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -26,10 +28,10 @@ serve(async (req) => {
 
     // Pegar cartorioId do body da requisição
     const { cartorioId } = await req.json()
-
-    console.log('🎯 [get-sistemas-cartorio] Sistemas request for cartorio:', cartorioId)
+    console.log('🎯 [get-sistemas-cartorio] Request for cartorio:', cartorioId)
 
     if (!cartorioId) {
+      console.error('❌ [get-sistemas-cartorio] Missing cartorioId')
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -42,101 +44,106 @@ serve(async (req) => {
       )
     }
 
+    // Buscar todos os sistemas com produtos e videoaulas
+    console.log('🎯 [get-sistemas-cartorio] Fetching all sistemas with full hierarchy...')
+    const { data: todosSistemas, error: sistemasError } = await supabaseClient
+      .from('sistemas')
+      .select(`
+        *,
+        produtos (
+          *,
+          video_aulas (*)
+        )
+      `)
+      .order('ordem')
+
+    if (sistemasError) {
+      console.error('❌ [get-sistemas-cartorio] Error fetching sistemas:', sistemasError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao buscar sistemas: ${sistemasError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    console.log('✅ [get-sistemas-cartorio] Found sistemas:', todosSistemas?.length || 0)
+
     // Verificar se o cartório tem permissões específicas definidas
-    const { data: temPermissoes, error: permissoesError } = await supabaseClient
+    const { data: permissoes, error: permissoesError } = await supabaseClient
       .from('cartorio_acesso_conteudo')
-      .select('id')
+      .select('*')
       .eq('cartorio_id', cartorioId)
       .eq('ativo', true)
-      .limit(1)
 
     if (permissoesError) {
       console.error('❌ [get-sistemas-cartorio] Error checking permissions:', permissoesError)
-      throw permissoesError
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao verificar permissões: ${permissoesError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    let sistemas = []
+    console.log('🎯 [get-sistemas-cartorio] Found permissions:', permissoes?.length || 0)
 
-    if (!temPermissoes || temPermissoes.length === 0) {
+    let sistemasFiltrados = []
+
+    if (!permissoes || permissoes.length === 0) {
       // Se não há permissões específicas, retorna todos os sistemas
       console.log('🎯 [get-sistemas-cartorio] No specific permissions, returning all sistemas')
-      
-      const { data: todosSistemas, error: sistemasError } = await supabaseClient
-        .from('sistemas')
-        .select('*')
-        .order('ordem')
-
-      if (sistemasError) {
-        console.error('❌ [get-sistemas-cartorio] Error fetching all sistemas:', sistemasError)
-        throw sistemasError
-      }
-
-      sistemas = todosSistemas || []
+      sistemasFiltrados = todosSistemas || []
     } else {
-      // Retorna apenas os sistemas que o cartório tem acesso
+      // Filtrar com base nas permissões
       console.log('🎯 [get-sistemas-cartorio] Filtering by permissions')
       
-      // Buscar sistemas com acesso direto
-      const { data: sistemasComAcessoDireto, error: sistemasError } = await supabaseClient
-        .from('cartorio_acesso_conteudo')
-        .select(`
-          sistema_id,
-          sistemas:sistema_id(*)
-        `)
-        .eq('cartorio_id', cartorioId)
-        .eq('ativo', true)
-        .not('sistema_id', 'is', null)
-
-      if (sistemasError) {
-        console.error('❌ [get-sistemas-cartorio] Error fetching sistemas with direct access:', sistemasError)
-        throw sistemasError
-      }
-
-      // Buscar sistemas que têm produtos com acesso específico
-      const { data: sistemasComProdutos, error: produtosError } = await supabaseClient
-        .from('cartorio_acesso_conteudo')
-        .select(`
-          produto_id,
-          produtos:produto_id(
-            sistema_id,
-            sistemas:sistema_id(*)
-          )
-        `)
-        .eq('cartorio_id', cartorioId)
-        .eq('ativo', true)
-        .not('produto_id', 'is', null)
-
-      if (produtosError) {
-        console.error('❌ [get-sistemas-cartorio] Error fetching sistemas from produtos:', produtosError)
-        throw produtosError
-      }
-
-      // Combinar sistemas únicos
-      const sistemasMap = new Map()
+      const sistemasPermitidos = new Set()
+      const produtosPermitidos = new Set()
       
-      // Adicionar sistemas com acesso direto
-      sistemasComAcessoDireto?.forEach(item => {
-        if (item.sistemas) {
-          sistemasMap.set(item.sistemas.id, item.sistemas)
+      // Coletar IDs permitidos
+      permissoes.forEach(p => {
+        if (p.sistema_id && !p.produto_id) {
+          // Acesso ao sistema completo
+          sistemasPermitidos.add(p.sistema_id)
+        } else if (p.produto_id) {
+          // Acesso a produto específico
+          produtosPermitidos.add(p.produto_id)
         }
       })
-
-      // Adicionar sistemas que têm produtos com acesso
-      sistemasComProdutos?.forEach(item => {
-        if (item.produtos?.sistemas) {
-          sistemasMap.set(item.produtos.sistemas.id, item.produtos.sistemas)
+      
+      // Filtrar sistemas
+      sistemasFiltrados = (todosSistemas || []).filter(sistema => {
+        // Se tem acesso ao sistema completo
+        if (sistemasPermitidos.has(sistema.id)) {
+          return true
         }
+        
+        // Se tem acesso a algum produto deste sistema
+        if (sistema.produtos && sistema.produtos.some(produto => produtosPermitidos.has(produto.id))) {
+          // Filtrar apenas os produtos permitidos
+          sistema.produtos = sistema.produtos.filter(produto => produtosPermitidos.has(produto.id))
+          return true
+        }
+        
+        return false
       })
-
-      sistemas = Array.from(sistemasMap.values()).sort((a, b) => a.ordem - b.ordem)
     }
 
-    console.log(`✅ [get-sistemas-cartorio] Returning ${sistemas.length} sistemas for cartorio ${cartorioId}`)
+    console.log('✅ [get-sistemas-cartorio] Returning sistemas:', sistemasFiltrados?.length || 0)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: sistemas 
+        data: sistemasFiltrados 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

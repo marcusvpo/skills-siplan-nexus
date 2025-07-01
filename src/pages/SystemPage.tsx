@@ -29,6 +29,14 @@ const SystemPage = () => {
   // Find the current system
   const currentSystem = sistemas?.find(system => system.id === systemId);
 
+  console.log('🎯 [SystemPage] Current state:', {
+    systemId,
+    sistemasCount: sistemas?.length,
+    currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null,
+    isLoading,
+    error
+  });
+
   if (isLoading) {
     return (
       <Layout>
@@ -42,7 +50,27 @@ const SystemPage = () => {
     );
   }
 
-  if (error || !currentSystem) {
+  if (error) {
+    console.error('🎯 [SystemPage] Error loading system:', error);
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+          <Card className="glass-effect border-gray-700 max-w-md">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-2xl font-bold text-red-400 mb-4">Erro ao carregar sistema</h1>
+              <p className="text-gray-400 mb-6">{error}</p>
+              <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
+                Voltar ao Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!currentSystem) {
+    console.error('🎯 [SystemPage] System not found:', { systemId, availableSystems: sistemas?.map(s => s.id) });
     return (
       <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">

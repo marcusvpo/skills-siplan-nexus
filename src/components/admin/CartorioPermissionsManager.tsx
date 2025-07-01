@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -36,10 +37,15 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsLoading(true);
       
-      console.log('🔐 [CartorioPermissionsManager] Fetching permissions for:', cartorio.id);
+      console.log('🔐 [CartorioPermissionsManager] Fetching permissions for cartorio:', cartorio.id);
 
       const { data, error } = await supabase.functions.invoke('get-cartorio-permissions', {
         body: { cartorioId: cartorio.id }
+      });
+
+      console.log('🔐 [CartorioPermissionsManager] Response received:', {
+        data: data ? { success: data.success, hasData: !!data.data } : null,
+        error: error ? { message: error.message, context: error.context } : null
       });
 
       if (error) {
@@ -56,7 +62,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
-      console.log('✅ [CartorioPermissionsManager] Data received:', {
+      console.log('✅ [CartorioPermissionsManager] Data received successfully:', {
         sistemas: data.data.todosOsSistemas?.length || 0,
         permissoes: data.data.permissoes?.length || 0
       });
@@ -104,7 +110,8 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     try {
       setIsSaving(true);
       
-      console.log('💾 [CartorioPermissionsManager] Saving permissions:', Array.from(permissoesSelecionadas));
+      console.log('💾 [CartorioPermissionsManager] Starting save process...');
+      console.log('💾 [CartorioPermissionsManager] Selected permissions:', Array.from(permissoesSelecionadas));
 
       // Converter seleções para formato da API com granularidade correta
       const permissoes: any[] = [];
@@ -129,13 +136,21 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         }
       });
 
-      console.log('🔐 [CartorioPermissionsManager] Final permissions to save:', permissoes);
+      console.log('🔐 [CartorioPermissionsManager] Final permissions payload:', {
+        cartorioId: cartorio.id,
+        permissoes: permissoes
+      });
 
       const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {
         body: {
           cartorioId: cartorio.id,
           permissoes
         }
+      });
+
+      console.log('🔐 [CartorioPermissionsManager] Save response:', {
+        data: data ? { success: data.success, message: data.message } : null,
+        error: error ? { message: error.message, context: error.context } : null
       });
 
       if (error) {
@@ -152,11 +167,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
-      console.log('✅ [CartorioPermissionsManager] Permissions saved successfully:', data);
+      console.log('✅ [CartorioPermissionsManager] Permissions saved successfully');
       
       toast({
         title: "Sucesso",
-        description: `Permissões atualizadas com sucesso! (${data.savedCount || 0} registros salvos)`,
+        description: "Permissões atualizadas com sucesso!",
       });
 
       onUpdate();

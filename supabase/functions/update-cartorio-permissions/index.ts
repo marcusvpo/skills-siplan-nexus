@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔐 [update-cartorio-permissions] Function started')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -24,12 +26,13 @@ serve(async (req) => {
       }
     )
 
-    const { cartorioId, permissoes } = await req.json()
+    const requestBody = await req.json()
+    console.log('🔐 [update-cartorio-permissions] Request body:', JSON.stringify(requestBody, null, 2))
 
-    console.log('🔐 [update-cartorio-permissions] Update request for:', cartorioId)
-    console.log('🔐 [update-cartorio-permissions] New permissions:', JSON.stringify(permissoes, null, 2))
+    const { cartorioId, permissoes } = requestBody
 
     if (!cartorioId) {
+      console.error('❌ [update-cartorio-permissions] Missing cartorioId')
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -42,29 +45,51 @@ serve(async (req) => {
       )
     }
 
+    console.log('🔐 [update-cartorio-permissions] Processing for cartorio:', cartorioId)
+    console.log('🔐 [update-cartorio-permissions] Received permissions:', JSON.stringify(permissoes, null, 2))
+
     // Deletar todas as permissões existentes do cartório
+    console.log('🔐 [update-cartorio-permissions] Deleting existing permissions...')
     const { error: deleteError } = await supabaseClient
       .from('cartorio_acesso_conteudo')
       .delete()
       .eq('cartorio_id', cartorioId)
 
     if (deleteError) {
-      console.error('❌ [update-cartorio-permissions] Error deleting old permissions:', deleteError)
-      throw deleteError
+      console.error('❌ [update-cartorio-permissions] Delete error:', deleteError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao deletar permissões antigas: ${deleteError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    console.log('✅ [update-cartorio-permissions] Old permissions deleted successfully')
+    console.log('✅ [update-cartorio-permissions] Old permissions deleted')
 
     // Inserir as novas permissões se houver alguma
-    if (permissoes && permissoes.length > 0) {
-      const novasPermissoes = permissoes.map((p: any) => ({
-        cartorio_id: cartorioId,
-        sistema_id: p.sistema_id || null,
-        produto_id: p.produto_id || null,
-        ativo: true
-      }))
+    if (permissoes && Array.isArray(permissoes) && permissoes.length > 0) {
+      console.log('🔐 [update-cartorio-permissions] Preparing new permissions...')
+      
+      const novasPermissoes = permissoes.map((p: any) => {
+        console.log('🔐 [update-cartorio-permissions] Processing permission:', p)
+        
+        const permission = {
+          cartorio_id: cartorioId,
+          sistema_id: p.sistema_id || null,
+          produto_id: p.produto_id || null,
+          ativo: true
+        }
+        
+        console.log('🔐 [update-cartorio-permissions] Formatted permission:', permission)
+        return permission
+      })
 
-      console.log('🔐 [update-cartorio-permissions] Inserting permissions:', novasPermissoes)
+      console.log('🔐 [update-cartorio-permissions] Final permissions to insert:', JSON.stringify(novasPermissoes, null, 2))
 
       const { data: insertedData, error: insertError } = await supabaseClient
         .from('cartorio_acesso_conteudo')
@@ -72,8 +97,17 @@ serve(async (req) => {
         .select()
 
       if (insertError) {
-        console.error('❌ [update-cartorio-permissions] Error inserting new permissions:', insertError)
-        throw insertError
+        console.error('❌ [update-cartorio-permissions] Insert error:', insertError)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Erro ao inserir novas permissões: ${insertError.message}` 
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
       }
 
       console.log('✅ [update-cartorio-permissions] New permissions inserted:', insertedData?.length || 0)
