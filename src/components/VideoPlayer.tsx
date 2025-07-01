@@ -35,7 +35,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsLoading(false);
         logger.info('✅ [VideoPlayer] Valid video URL detected');
       } else {
-        logger.warn('⚠️ [VideoPlayer] Invalid video URL format:', videoUrl);
+        logger.warn('⚠️ [VideoPlayer] Invalid video URL format:', { videoUrl });
         setIsVideoError(true);
         setIsVideoReady(false);
         setIsLoading(false);
@@ -103,7 +103,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setIsLoading(false);
         }}
         onError={(e) => {
-          logger.error('❌ [VideoPlayer] Iframe error:', e);
+          logger.error('❌ [VideoPlayer] Iframe error:', { error: e });
           setIsVideoError(true);
           setIsVideoReady(false);
           setIsLoading(false);

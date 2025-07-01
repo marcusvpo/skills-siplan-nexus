@@ -49,7 +49,7 @@ const SystemPage = () => {
   }
 
   if (error) {
-    logger.error('❌ [SystemPage] Error loading system:', error);
+    logger.error('❌ [SystemPage] Error loading system:', { error: error.message });
     return (
       <Layout>
         <div className="min-h-screen bg-black flex items-center justify-center">
@@ -57,7 +57,7 @@ const SystemPage = () => {
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-red-400 mb-4">Erro ao carregar sistema</h1>
-              <p className="text-gray-400 mb-6">{error}</p>
+              <p className="text-gray-400 mb-6">{error.message}</p>
               <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
                 Voltar ao Dashboard
               </Button>
