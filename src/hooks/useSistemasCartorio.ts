@@ -30,13 +30,17 @@ export const useSistemasCartorio = () => {
         throw new Error('Cliente autenticado não disponível');
       }
 
-      // Usar a Edge Function para buscar sistemas com permissões
+      // Usar POST com body em vez de GET com query params
       const { data, error } = await supabase.functions.invoke('get-sistemas-cartorio', {
         body: { cartorioId: user.cartorio_id }
       });
 
       if (error) {
-        console.error('❌ [useSistemasCartorio] Edge Function error:', error);
+        console.error('❌ [useSistemasCartorio] Edge Function error:', {
+          error,
+          message: error.message,
+          context: error.context || 'No context available'
+        });
         throw new Error(error.message || 'Erro ao buscar sistemas via Edge Function');
       }
 
@@ -58,8 +62,16 @@ export const useSistemasCartorio = () => {
         error: err,
         message: errorMessage,
         userId: user?.id,
+        cartorioId: user?.cartorio_id,
+        stack: err instanceof Error ? err.stack : 'No stack available'
+      });
+      
+      logger.error('[useSistemasCartorio] Failed to fetch sistemas', {
+        error: errorMessage,
+        userId: user?.id,
         cartorioId: user?.cartorio_id
       });
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);

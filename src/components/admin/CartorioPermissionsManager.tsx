@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -44,7 +43,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       });
 
       if (error) {
-        console.error('❌ [CartorioPermissionsManager] Function error:', error);
+        console.error('❌ [CartorioPermissionsManager] Function error:', {
+          error,
+          message: error.message,
+          context: error.context || 'No context available'
+        });
         throw new Error(error.message || 'Erro ao buscar permissões');
       }
 
@@ -68,17 +71,12 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         if (p.produto_id && !p.sistema_id) {
           // Produto específico selecionado
           selected.add(`produto-${p.produto_id}`);
+          console.log('🔐 Permission loaded (produto específico):', p.produto_id);
         } else if (p.sistema_id && !p.produto_id) {
           // Sistema completo selecionado
           selected.add(`sistema-${p.sistema_id}`);
+          console.log('🔐 Permission loaded (sistema completo):', p.sistema_id);
         }
-        
-        console.log('🔐 Permission loaded:', {
-          sistema_id: p.sistema_id,
-          produto_id: p.produto_id,
-          type: p.produto_id && !p.sistema_id ? 'produto específico' : 
-                p.sistema_id && !p.produto_id ? 'sistema completo' : 'indefinido'
-        });
       });
       
       setPermissoesSelecionadas(selected);
@@ -86,7 +84,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ [CartorioPermissionsManager] Error:', err);
+      console.error('❌ [CartorioPermissionsManager] Error:', {
+        error: err,
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : 'No stack available'
+      });
       
       toast({
         title: "Erro ao carregar permissões",
@@ -137,7 +139,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       });
 
       if (error) {
-        console.error('❌ [CartorioPermissionsManager] Save function error:', error);
+        console.error('❌ [CartorioPermissionsManager] Save function error:', {
+          error,
+          message: error.message,
+          context: error.context || 'No context available'
+        });
         throw new Error(error.message || 'Erro ao salvar permissões');
       }
 
@@ -158,7 +164,11 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ [CartorioPermissionsManager] Save error:', err);
+      console.error('❌ [CartorioPermissionsManager] Save error:', {
+        error: err,
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : 'No stack available'
+      });
       
       toast({
         title: "Erro ao salvar permissões",
@@ -168,18 +178,6 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const toggleSelection = (key: string) => {
-    const newSelected = new Set(permissoesSelecionadas);
-    if (newSelected.has(key)) {
-      newSelected.delete(key);
-      console.log('🔐 Deselected:', key);
-    } else {
-      newSelected.add(key);
-      console.log('🔐 Selected:', key);
-    }
-    setPermissoesSelecionadas(newSelected);
   };
 
   const toggleSistema = (sistemaId: string) => {
