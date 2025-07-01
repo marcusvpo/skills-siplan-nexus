@@ -3,12 +3,11 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContextFixed'; // CRITICAL FIX: Use correct auth context
+import { useAuth } from '@/contexts/AuthContextFixed';
 
 // Hook to fetch systems with access control via RLS
-// This hook now relies EXCLUSIVELY on Supabase RLS policies to filter the data.
 export const useSistemasCartorioWithAccess = () => {
-  const { user } = useAuth();
+  const { user, authenticatedClient } = useAuth();
   
   return useQuery({
     queryKey: ['sistemas-cartorio-with-access', user?.cartorio_id],
@@ -20,10 +19,11 @@ export const useSistemasCartorioWithAccess = () => {
         return []; 
       }
 
-      // The SELECT query is now simple. The complex permission logic
-      // is handled by RLS policies in the database.
-      // Supabase, using the authenticated user's JWT, will apply the RLS.
-      const { data: sistemas, error: sistemasError } = await supabase
+      // Use the authenticated client with the custom JWT token
+      const client = authenticatedClient || supabase;
+
+      // The SELECT query relies on RLS policies to filter the data
+      const { data: sistemas, error: sistemasError } = await client
         .from('sistemas')
         .select(`
           *,
@@ -46,8 +46,8 @@ export const useSistemasCartorioWithAccess = () => {
 
       return sistemas || [];
     },
-    enabled: !!user?.cartorio_id, // Only runs the query if cartorio_id is available.
-    retry: 1, // Don't retry too many times for RLS issues. An error often means permission denied.
+    enabled: !!user?.cartorio_id,
+    retry: 1,
     retryDelay: 2000,
     staleTime: 30000,
     gcTime: 300000,
@@ -94,14 +94,6 @@ export const useCartorioAccess = () => {
       nivelAcesso?: string;
     }) => {
       logger.info('🔐 [useCartorioAccess] Granting access:', data);
-
-      console.log('Sending payload to upsert:', {
-        cartorio_id: data.cartorioId,
-        sistema_id: data.sistemaId,
-        produto_id: data.produtoId,
-        nivel_acesso: data.nivelAcesso || 'completo',
-        ativo: true
-      });
 
       const { data: result, error } = await supabase
         .from('cartorio_acesso_conteudo')

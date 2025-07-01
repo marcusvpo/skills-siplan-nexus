@@ -13,22 +13,31 @@ import { logger } from '@/utils/logger';
 
 const SystemPage = () => {
   const { systemId } = useParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const { data: sistemas, isLoading, error } = useSistemasCartorioWithAccess();
 
   useEffect(() => {
-    if (!user || user.type !== 'cartorio') {
+    logger.info('🎯 [SystemPage] Page loaded', {
+      systemId,
+      isAuthenticated,
+      userType: user?.type,
+      cartorioId: user?.cartorio_id
+    });
+
+    if (!isAuthenticated || !user || user.type !== 'cartorio') {
+      logger.warn('⚠️ [SystemPage] User not authenticated or not cartorio type');
       navigate('/login');
+      return;
     }
-  }, [user, navigate]);
+  }, [isAuthenticated, user, navigate, systemId]);
 
   // Find the current system
   const currentSystem = sistemas?.find(system => system.id === systemId);
 
   useEffect(() => {
-    logger.info('🎯 [SystemPage] Page loaded', {
+    logger.info('🎯 [SystemPage] Systems loaded', {
       systemId,
       sistemasCount: sistemas?.length,
       currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null
@@ -57,7 +66,7 @@ const SystemPage = () => {
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-red-400 mb-4">Erro ao carregar sistema</h1>
-              <p className="text-gray-400 mb-6">{error.message}</p>
+              <p className="text-gray-400 mb-6">{error instanceof Error ? error.message : 'Erro desconhecido'}</p>
               <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
                 Voltar ao Dashboard
               </Button>
@@ -71,7 +80,7 @@ const SystemPage = () => {
   if (!currentSystem) {
     logger.error('❌ [SystemPage] System not found:', { 
       systemId, 
-      availableSystems: sistemas?.map(s => s.id) 
+      availableSystems: sistemas?.map(s => ({ id: s.id, nome: s.nome })) 
     });
     
     return (

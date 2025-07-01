@@ -13,27 +13,28 @@ import { logger } from '@/utils/logger';
 
 const ProductPage = () => {
   const { systemId, productId } = useParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Now using the RLS-enabled hook that automatically filters content
   const { data: sistemas, isLoading, error } = useSistemasCartorioWithAccess();
-
-  useEffect(() => {
-    if (!user || user.type !== 'cartorio') {
-      navigate('/login');
-    }
-  }, [user, navigate]);
 
   useEffect(() => {
     logger.info('🎯 [ProductPage] Page loaded', { 
       systemId, 
       productId, 
-      sistemasCount: sistemas?.length 
+      isAuthenticated,
+      userType: user?.type,
+      cartorioId: user?.cartorio_id
     });
-  }, [systemId, productId, sistemas]);
 
-  // Find the current system and product - RLS will ensure we only see allowed content
+    if (!isAuthenticated || !user || user.type !== 'cartorio') {
+      logger.warn('⚠️ [ProductPage] User not authenticated or not cartorio type');
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, user, navigate, systemId, productId]);
+
+  // Find the current system and product
   let currentSystem = null;
   let currentProduct = null;
   
@@ -52,6 +53,14 @@ const ProductPage = () => {
     }
   }
 
+  useEffect(() => {
+    logger.info('🎯 [ProductPage] Systems and products loaded', { 
+      sistemasCount: sistemas?.length,
+      currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null,
+      currentProduct: currentProduct ? { id: currentProduct.id, nome: currentProduct.nome } : null
+    });
+  }, [sistemas, currentSystem, currentProduct]);
+
   if (isLoading) {
     return (
       <Layout>
@@ -67,7 +76,7 @@ const ProductPage = () => {
 
   if (error || !currentSystem || !currentProduct) {
     logger.error('❌ [ProductPage] Error or not found', { 
-      error, 
+      error: error?.message, 
       currentSystem: !!currentSystem, 
       currentProduct: !!currentProduct 
     });
