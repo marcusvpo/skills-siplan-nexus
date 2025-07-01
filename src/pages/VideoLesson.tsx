@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';  
 import { Skeleton } from '@/components/ui/skeleton';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
@@ -277,9 +277,9 @@ const VideoLesson: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Video Section */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Video Player Card */}
             <Card className="bg-gray-900/50 border-gray-700">
               <CardContent className="p-0">
-                {/* Show warning if no bunny_video_id */}
                 {!videoAula.id_video_bunny && (
                   <Alert className="m-4 border-yellow-600 bg-yellow-900/20">
                     <AlertCircle className="h-4 w-4" />
@@ -290,7 +290,6 @@ const VideoLesson: React.FC = () => {
                   </Alert>
                 )}
 
-                {/* Video Player */}
                 <VideoPlayer
                   videoUrl={videoUrl}
                   title={videoAula.titulo}
@@ -300,7 +299,7 @@ const VideoLesson: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Video Info */}
+            {/* Video Info Card */}
             <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-2xl text-white">
@@ -308,33 +307,38 @@ const VideoLesson: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Video Description */}
                 {videoAula.descricao && (
-                  <p className="text-gray-300 leading-relaxed">
-                    {videoAula.descricao}
-                  </p>
+                  <div className="text-gray-300 leading-relaxed">
+                    <p>{videoAula.descricao}</p>
+                  </div>
                 )}
 
                 {/* Progress Display */}
                 {visualizacao && videoDuration && (
-                  <ProgressDisplay
-                    progressSegundos={visualizacao.progresso_segundos}
-                    duracaoSegundos={videoDuration}
-                    completo={visualizacao.completo}
-                    size="md"
-                  />
+                  <div className="py-2">
+                    <ProgressDisplay
+                      progressSegundos={visualizacao.progresso_segundos}
+                      duracaoSegundos={videoDuration}
+                      completo={visualizacao.completo}
+                      size="md"
+                    />
+                  </div>
                 )}
 
-                {/* Progress Tracker */}
+                {/* Progress Tracker (Mark as Complete button) */}
                 {user?.cartorio_id && (
-                  <ProgressTracker
-                    videoAulaId={videoAula.id}
-                    progressoSegundos={visualizacao?.progresso_segundos || 0}
-                    completo={visualizacao?.completo || false}
-                    onProgressUpdate={handleProgressUpdate}
-                  />
+                  <div className="py-2">
+                    <ProgressTracker
+                      videoAulaId={videoAula.id}
+                      progressoSegundos={visualizacao?.progresso_segundos || 0}
+                      completo={visualizacao?.completo || false}
+                      onProgressUpdate={handleProgressUpdate}
+                    />
+                  </div>
                 )}
 
-                {/* Show Bunny.net loading state */}
+                {/* Bunny.net Status Alerts */}
                 {videoAula.id_video_bunny && isBunnyLoading && (
                   <Alert className="border-blue-600 bg-blue-900/20">
                     <AlertDescription className="text-blue-300">
@@ -343,7 +347,6 @@ const VideoLesson: React.FC = () => {
                   </Alert>
                 )}
 
-                {/* Show Bunny.net error */}
                 {videoAula.id_video_bunny && bunnyError && (
                   <Alert className="border-red-600 bg-red-900/20">
                     <AlertCircle className="h-4 w-4" />
@@ -355,7 +358,7 @@ const VideoLesson: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Navigation */}
+            {/* Navigation Buttons */}
             <div className="flex justify-between items-center">
               <Button
                 onClick={() => previousVideo && navigateToVideo(previousVideo)}
