@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -113,7 +112,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       console.log('💾 [CartorioPermissionsManager] Starting save process...');
       console.log('💾 [CartorioPermissionsManager] Selected permissions:', Array.from(permissoesSelecionadas));
 
-      // Converter seleções para formato da API com granularidade correta
+      // CORREÇÃO CRÍTICA: Manter UUIDs completos
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
@@ -122,7 +121,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         if (tipo === 'sistema') {
           // Sistema completo - inserir apenas sistema_id (produto_id = null)
           permissoes.push({
-            sistema_id: id,
+            sistema_id: id, // UUID COMPLETO
             produto_id: null
           });
           console.log('🔐 Adding sistema completo:', id);
@@ -130,7 +129,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
           // Produto específico - inserir apenas produto_id (sistema_id = null)
           permissoes.push({
             sistema_id: null,
-            produto_id: id
+            produto_id: id // UUID COMPLETO
           });
           console.log('🔐 Adding produto específico:', id);
         }

@@ -7,12 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, LogOut, Play, User, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { useSistemasCartorio } from '@/hooks/useSistemasCartorio';
+import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
 const Dashboard = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { sistemas, isLoading, error } = useSistemasCartorio();
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
@@ -69,49 +68,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleSistemaClick = (sistema: any) => {
-    console.log('🎯 [Dashboard] Sistema clicked:', sistema.id);
-    navigate(`/system/${sistema.id}`);
-  };
-
   // Loading state
-  if (isLoading || !user) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-white">Carregando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state with debug info
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black text-white">
-        <div className="container mx-auto px-4 py-8">
-          <Card className="bg-red-500/10 border-red-500/20">
-            <CardContent className="py-8">
-              <div className="text-center">
-                <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-red-300 mb-2">Erro ao carregar sistemas</h3>
-                <p className="text-red-200 mb-4">{error}</p>
-                <div className="text-sm text-red-300 mb-4">
-                  <p>Debug Info:</p>
-                  <p>User ID: {user?.id}</p>
-                  <p>Cartório ID: {user?.cartorio_id}</p>
-                  <p>User Type: {user?.type}</p>
-                </div>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Tentar Novamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -162,58 +125,12 @@ const Dashboard = () => {
             Bem-vindo(a), {user?.username || user?.name}!
           </h2>
           <p className="text-gray-400">
-            Selecione um sistema para começar seu treinamento
+            Acesse seus treinamentos e videoaulas
           </p>
         </div>
 
-        {sistemas.length === 0 ? (
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="py-12">
-              <div className="text-center">
-                <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">Nenhum sistema disponível</h3>
-                <p className="text-gray-400">
-                  Entre em contato com o administrador para liberar acesso aos sistemas de treinamento.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sistemas.map((sistema) => (
-              <Card
-                key={sistema.id}
-                className="bg-gray-800/50 border-gray-700 hover:border-red-500 transition-all duration-300 cursor-pointer group"
-                onClick={() => handleSistemaClick(sistema)}
-              >
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center justify-between">
-                    <span>{sistema.nome}</span>
-                    <Play className="h-5 w-5 text-red-500 group-hover:text-red-400 transition-colors" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {sistema.descricao && (
-                    <p className="text-gray-400 text-sm mb-4">
-                      {sistema.descricao}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">
-                      Sistema #{sistema.ordem}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      Acessar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* Usar o componente TreinamentosSection para exibir os conteúdos */}
+        <TreinamentosSection />
       </div>
     </div>
   );

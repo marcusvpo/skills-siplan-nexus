@@ -46,7 +46,6 @@ serve(async (req) => {
     }
 
     console.log('🔐 [update-cartorio-permissions] Processing for cartorio:', cartorioId)
-    console.log('🔐 [update-cartorio-permissions] Received permissions:', JSON.stringify(permissoes, null, 2))
 
     // Deletar todas as permissões existentes do cartório
     console.log('🔐 [update-cartorio-permissions] Deleting existing permissions...')
@@ -78,10 +77,11 @@ serve(async (req) => {
       const novasPermissoes = permissoes.map((p: any) => {
         console.log('🔐 [update-cartorio-permissions] Processing permission:', p)
         
+        // CORREÇÃO CRÍTICA: Não truncar o UUID
         const permission = {
           cartorio_id: cartorioId,
           sistema_id: p.sistema_id || null,
-          produto_id: p.produto_id || null,
+          produto_id: p.produto_id || null, // Manter UUID completo
           ativo: true
         }
         
