@@ -11,16 +11,24 @@ import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
 
 const VideoLesson: React.FC = () => {
-  const { videoAulaId } = useParams<{ videoAulaId: string }>();
+  const { systemId, productId, videoAulaId } = useParams<{ 
+    systemId: string; 
+    productId: string; 
+    videoAulaId: string; 
+  }>();
   const navigate = useNavigate();
   
   const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoAulaId || '');
 
   useEffect(() => {
     if (videoAulaId) {
-      logger.info('🎥 [VideoLesson] Page loaded for video', { videoId: videoAulaId });
+      logger.info('🎥 [VideoLesson] Page loaded for video', { 
+        videoId: videoAulaId,
+        systemId,
+        productId 
+      });
     }
-  }, [videoAulaId]);
+  }, [videoAulaId, systemId, productId]);
 
   if (!videoAulaId) {
     return (
@@ -60,8 +68,11 @@ const VideoLesson: React.FC = () => {
               {error instanceof Error ? error.message : 'Videoaula não encontrada ou sem permissão de acesso'}
             </p>
             <div className="flex space-x-2 justify-center">
-              <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
-                Voltar ao Dashboard
+              <Button 
+                onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')} 
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Voltar
               </Button>
               <Button onClick={() => window.location.reload()} variant="outline" className="border-gray-600 text-gray-300">
                 Tentar Novamente
@@ -86,7 +97,7 @@ const VideoLesson: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/system/${sistema?.id}/product/${produto?.id}`)}
+                onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')}
                 className="text-gray-300 hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />

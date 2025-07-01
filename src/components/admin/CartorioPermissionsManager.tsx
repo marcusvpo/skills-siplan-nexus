@@ -95,26 +95,34 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         permissoes: Array.from(permissoesSelecionadas)
       });
 
-      // Preparar array de permissões no formato correto
+      // Preparar array de permissões no formato correto com UUIDs completos
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
-        const [tipo, id] = selection.split('-');
+        const [tipo, idCompleto] = selection.split('-');
         
-        if (tipo === 'sistema') {
+        // CORREÇÃO CRÍTICA: Garantir que enviamos UUIDs completos
+        if (tipo === 'sistema' && idCompleto && idCompleto.length === 36) {
           permissoes.push({
-            sistema_id: id,
+            sistema_id: idCompleto,
             produto_id: null
           });
-        } else if (tipo === 'produto') {
-          permissoes.push({
-            sistema_id: null,
-            produto_id: id
-          });
+        } else if (tipo === 'produto' && idCompleto && idCompleto.length === 36) {
+          // Para produtos, encontrar o sistema pai
+          const produto = todosOsSistemas
+            .flatMap(s => s.produtos || [])
+            .find(p => p.id === idCompleto);
+          
+          if (produto) {
+            permissoes.push({
+              sistema_id: null, // Para permissão granular de produto, sistema_id é null
+              produto_id: idCompleto
+            });
+          }
         }
       });
 
-      logger.info('🔐 [CartorioPermissionsManager] Permissões formatadas:', { permissoes });
+      logger.info('🔐 [CartorioPermissionsManager] Permissões formatadas para envio:', { permissoes });
 
       // Usar a Edge Function para atualizar as permissões
       const { data, error } = await supabase.functions.invoke('update-cartorio-permissions', {

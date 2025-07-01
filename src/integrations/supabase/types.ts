@@ -218,41 +218,6 @@ export type Database = {
           },
         ]
       }
-      modulos: {
-        Row: {
-          descricao: string | null
-          id: string
-          ordem: number
-          produto_id: string
-          tempo_estimado_min: number | null
-          titulo: string
-        }
-        Insert: {
-          descricao?: string | null
-          id?: string
-          ordem?: number
-          produto_id: string
-          tempo_estimado_min?: number | null
-          titulo: string
-        }
-        Update: {
-          descricao?: string | null
-          id?: string
-          ordem?: number
-          produto_id?: string
-          tempo_estimado_min?: number | null
-          titulo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "modulos_produto_fk"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       produtos: {
         Row: {
           descricao: string | null

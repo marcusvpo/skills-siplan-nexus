@@ -26,10 +26,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     logger.info('🎥 [VideoPlayer] Initializing with URL:', { videoUrl, title });
     
     if (videoUrl && videoUrl.trim() !== '') {
-      // Verificar se é uma URL válida do Bunny.net
-      if (videoUrl.includes('iframe.mediadelivery.net') || 
+      // Verificar se é uma URL válida do Bunny.net ou iframe
+      if (videoUrl.includes('iframe') || 
           videoUrl.includes('bunnycdn.com') || 
-          videoUrl.includes('bunny.net')) {
+          videoUrl.includes('bunny.net') ||
+          videoUrl.includes('mediadelivery.net') ||
+          videoUrl.startsWith('http')) {
         setIsVideoReady(true);
         setIsVideoError(false);
         setIsLoading(false);
@@ -82,33 +84,62 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <div className="relative bg-black rounded-lg overflow-hidden group">
-      {/* Bunny.net Iframe Player */}
-      <iframe
-        ref={iframeRef}
-        className="w-full aspect-video"
-        src={videoUrl}
-        title={title}
-        frameBorder="0"
-        allowFullScreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none'
-        }}
-        onLoad={() => {
-          logger.info('✅ [VideoPlayer] Iframe loaded successfully');
-          setIsVideoReady(true);
-          setIsVideoError(false);
-          setIsLoading(false);
-        }}
-        onError={(e) => {
-          logger.error('❌ [VideoPlayer] Iframe error:', { error: e });
-          setIsVideoError(true);
-          setIsVideoReady(false);
-          setIsLoading(false);
-        }}
-      />
+      {/* Video Player - Support for both iframe URLs and direct video URLs */}
+      {videoUrl.includes('iframe') || videoUrl.includes('embed') ? (
+        <iframe
+          ref={iframeRef}
+          className="w-full aspect-video"
+          src={videoUrl}
+          title={title}
+          frameBorder="0"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none'
+          }}
+          onLoad={() => {
+            logger.info('✅ [VideoPlayer] Iframe loaded successfully');
+            setIsVideoReady(true);
+            setIsVideoError(false);
+            setIsLoading(false);
+          }}
+          onError={(e) => {
+            logger.error('❌ [VideoPlayer] Iframe error:', { error: e });
+            setIsVideoError(true);
+            setIsVideoReady(false);
+            setIsLoading(false);
+          }}
+        />
+      ) : (
+        <video
+          ref={(ref) => {
+            if (ref) {
+              (iframeRef as any).current = ref;
+            }
+          }}
+          className="w-full aspect-video"
+          controls
+          preload="metadata"
+          poster={thumbnailUrl || undefined}
+          onLoadedData={() => {
+            logger.info('✅ [VideoPlayer] Video loaded successfully');
+            setIsVideoReady(true);
+            setIsVideoError(false);
+            setIsLoading(false);
+          }}
+          onError={(e) => {
+            logger.error('❌ [VideoPlayer] Video error:', { error: e });
+            setIsVideoError(true);
+            setIsVideoReady(false);
+            setIsLoading(false);
+          }}
+        >
+          <source src={videoUrl} type="video/mp4" />
+          <p className="text-white">Seu navegador não suporta o elemento de vídeo.</p>
+        </video>
+      )}
       
       {/* Loading overlay */}
       {isLoading && (
@@ -134,8 +165,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           size="sm"
           className="text-white hover:bg-white/20 bg-black/50"
           onClick={() => {
-            if (iframeRef.current) {
-              iframeRef.current.requestFullscreen?.();
+            const element = iframeRef.current;
+            if (element) {
+              if (element.requestFullscreen) {
+                element.requestFullscreen();
+              }
             }
           }}
         >

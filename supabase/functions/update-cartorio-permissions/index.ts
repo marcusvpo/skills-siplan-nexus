@@ -77,22 +77,24 @@ serve(async (req) => {
       const novasPermissoes = permissoes.map((p: any) => {
         console.log('🔐 [update-cartorio-permissions] Processing permission:', p)
         
-        // CORREÇÃO: Validar e formatar UUIDs corretamente
+        // CORREÇÃO CRÍTICA: Garantir que IDs sejam UUIDs válidos ou null
         let sistema_id = null;
         let produto_id = null;
         
-        if (p.sistema_id) {
-          // Validar se é um UUID válido ou completar se necessário
-          if (p.sistema_id.length === 36) {
+        if (p.sistema_id && typeof p.sistema_id === 'string') {
+          // Verificar se é um UUID válido (36 caracteres com hifens)
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(p.sistema_id)) {
             sistema_id = p.sistema_id;
           } else {
             console.warn('🔐 [update-cartorio-permissions] Invalid sistema_id format:', p.sistema_id);
           }
         }
         
-        if (p.produto_id) {
-          // Validar se é um UUID válido ou completar se necessário
-          if (p.produto_id.length === 36) {
+        if (p.produto_id && typeof p.produto_id === 'string') {
+          // Verificar se é um UUID válido (36 caracteres com hifens)
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(p.produto_id)) {
             produto_id = p.produto_id;
           } else {
             console.warn('🔐 [update-cartorio-permissions] Invalid produto_id format:', p.produto_id);
@@ -109,7 +111,7 @@ serve(async (req) => {
         
         console.log('🔐 [update-cartorio-permissions] Formatted permission:', permission)
         return permission
-      }).filter(p => p.sistema_id || p.produto_id) // Filtrar permissões inválidas
+      }).filter(p => p.sistema_id || p.produto_id) // Filtrar permissões que não tenham nem sistema nem produto válido
 
       console.log('🔐 [update-cartorio-permissions] Final permissions to insert:', JSON.stringify(novasPermissoes, null, 2))
 
