@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -7,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContextFixed';
 
 // Hook to fetch systems with access control via RLS
 export const useSistemasCartorioWithAccess = () => {
-  const { user, authenticatedClient } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
     queryKey: ['sistemas-cartorio-with-access', user?.cartorio_id],
@@ -15,7 +14,7 @@ export const useSistemasCartorioWithAccess = () => {
       logger.info('🏢 [useSistemasCartorioWithAccess] Starting fetch', {
         userType: user?.type,
         cartorioId: user?.cartorio_id,
-        hasAuthClient: !!authenticatedClient
+        token: user?.token ? 'present' : 'missing'
       });
 
       if (!user) {
@@ -28,59 +27,41 @@ export const useSistemasCartorioWithAccess = () => {
         throw new Error('Tipo de usuário inválido');
       }
 
-      if (!user.cartorio_id) {
-        logger.warn('❌ [useSistemasCartorioWithAccess] No cartorio_id available');
-        throw new Error('ID do cartório não encontrado');
+      if (!user.cartorio_id || !user.token) {
+        logger.warn('❌ [useSistemasCartorioWithAccess] Missing cartorio_id or token');
+        throw new Error('Dados de autenticação incompletos');
       }
 
-      // Use authenticated client if available, otherwise fall back to regular client
-      const client = authenticatedClient || supabase;
-      
-      logger.info('🏢 [useSistemasCartorioWithAccess] Using client type:', {
-        clientType: authenticatedClient ? 'authenticated' : 'regular',
-        cartorioId: user.cartorio_id
-      });
-
       try {
-        // Try to fetch systems with RLS policies applied
-        logger.info('🏢 [useSistemasCartorioWithAccess] Executing query...');
+        logger.info('🏢 [useSistemasCartorioWithAccess] Calling edge function');
         
-        const { data: sistemas, error: sistemasError } = await client
-          .from('sistemas')
-          .select(`
-            *,
-            produtos (
-              *,
-              video_aulas (*)
-            )
-          `)
-          .order('ordem', { ascending: true });
-
-        if (sistemasError) {
-          logger.error('❌ [useSistemasCartorioWithAccess] Supabase error:', {
-            error: sistemasError,
-            code: sistemasError.code,
-            message: sistemasError.message,
-            details: sistemasError.details
-          });
-          
-          // Provide user-friendly error message
-          if (sistemasError.code === 'PGRST116') {
-            throw new Error('Erro de permissão: Verifique se você tem acesso aos sistemas.');
-          } else if (sistemasError.code === '42501') {
-            throw new Error('Permissão negada: Contate o administrador.');
-          } else {
-            throw new Error(`Erro ao carregar sistemas: ${sistemasError.message}`);
-          }
-        }
-
-        logger.info('✅ [useSistemasCartorioWithAccess] Successfully fetched sistemas:', { 
-          count: sistemas?.length || 0,
-          cartorioId: user.cartorio_id,
-          sistemas: sistemas?.map(s => ({ id: s.id, nome: s.nome, produtos: s.produtos?.length || 0 }))
+        // Use the new edge function that handles permissions properly
+        const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/get-sistemas-cartorio-with-permissions', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
+            'X-Custom-Auth': user.token,
+          },
         });
 
-        return sistemas || [];
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ 
+            error: `Erro HTTP ${response.status}` 
+          }));
+          logger.error('❌ [useSistemasCartorioWithAccess] Edge function error:', errorData);
+          throw new Error(errorData.error || `Erro ao carregar sistemas (${response.status})`);
+        }
+
+        const data = await response.json();
+        
+        logger.info('✅ [useSistemasCartorioWithAccess] Successfully fetched from edge function:', { 
+          count: data.sistemas?.length || 0,
+          hasPermissions: data.hasPermissions,
+          cartorioId: user.cartorio_id
+        });
+
+        return data.sistemas || [];
         
       } catch (error: any) {
         logger.error('❌ [useSistemasCartorioWithAccess] Fetch error:', {
@@ -91,7 +72,7 @@ export const useSistemasCartorioWithAccess = () => {
         throw error;
       }
     },
-    enabled: !!user?.cartorio_id && user?.type === 'cartorio',
+    enabled: !!user?.cartorio_id && !!user?.token && user?.type === 'cartorio',
     retry: (failureCount, error: any) => {
       // Don't retry permission errors
       if (error?.message?.includes('permissão') || error?.message?.includes('Permissão')) {
