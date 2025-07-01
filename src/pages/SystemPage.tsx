@@ -44,6 +44,7 @@ const SystemPage = () => {
     });
   }, [systemId, sistemas, currentSystem]);
 
+  // Early return for loading state
   if (isLoading) {
     return (
       <Layout>
@@ -57,6 +58,7 @@ const SystemPage = () => {
     );
   }
 
+  // Early return for error state
   if (error) {
     logger.error('❌ [SystemPage] Error loading system:', { error: error.message });
     return (
@@ -77,6 +79,7 @@ const SystemPage = () => {
     );
   }
 
+  // Early return for system not found
   if (!currentSystem) {
     logger.error('❌ [SystemPage] System not found:', { 
       systemId, 

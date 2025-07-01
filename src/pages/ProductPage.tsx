@@ -61,6 +61,7 @@ const ProductPage = () => {
     });
   }, [sistemas, currentSystem, currentProduct]);
 
+  // Early return for loading state
   if (isLoading) {
     return (
       <Layout>
@@ -74,6 +75,7 @@ const ProductPage = () => {
     );
   }
 
+  // Early return for error or not found
   if (error || !currentSystem || !currentProduct) {
     logger.error('❌ [ProductPage] Error or not found', { 
       error: error?.message, 
