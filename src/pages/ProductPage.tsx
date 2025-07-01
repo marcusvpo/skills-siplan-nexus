@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -9,14 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Play, Clock, CheckCircle, Circle, ArrowRight } from 'lucide-react';
-import { useSistemasFixed, useVisualizacoes } from '@/hooks/useSupabaseDataFixed';
+import { useSistemasCartorio } from '@/hooks/useSistemasCartorio';
+import { useVisualizacoes } from '@/hooks/useSupabaseDataFixed';
 
 const ProductPage = () => {
   const { systemId, productId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: sistemas } = useSistemasFixed();
+  const { sistemas, isLoading, error } = useSistemasCartorio();
   const { data: visualizacoes } = useVisualizacoes();
 
   useEffect(() => {
@@ -44,7 +45,20 @@ const ProductPage = () => {
     }
   }
 
-  if (!currentSystem || !currentProduct) {
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-white">Carregando produto...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !currentSystem || !currentProduct) {
     return (
       <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
