@@ -77,42 +77,66 @@ serve(async (req) => {
       const novasPermissoes = permissoes.map((p: any) => {
         console.log('🔐 [update-cartorio-permissions] Processing permission:', p)
         
-        // CORREÇÃO: Agora permitir tanto sistemas completos quanto produtos específicos
+        // CORREÇÃO: Validar e formatar UUIDs corretamente
+        let sistema_id = null;
+        let produto_id = null;
+        
+        if (p.sistema_id) {
+          // Validar se é um UUID válido ou completar se necessário
+          if (p.sistema_id.length === 36) {
+            sistema_id = p.sistema_id;
+          } else {
+            console.warn('🔐 [update-cartorio-permissions] Invalid sistema_id format:', p.sistema_id);
+          }
+        }
+        
+        if (p.produto_id) {
+          // Validar se é um UUID válido ou completar se necessário
+          if (p.produto_id.length === 36) {
+            produto_id = p.produto_id;
+          } else {
+            console.warn('🔐 [update-cartorio-permissions] Invalid produto_id format:', p.produto_id);
+          }
+        }
+
         const permission = {
           cartorio_id: cartorioId,
-          sistema_id: p.sistema_id || null,
-          produto_id: p.produto_id || null,
+          sistema_id: sistema_id,
+          produto_id: produto_id,
           ativo: true,
           nivel_acesso: 'completo'
         }
         
         console.log('🔐 [update-cartorio-permissions] Formatted permission:', permission)
         return permission
-      })
+      }).filter(p => p.sistema_id || p.produto_id) // Filtrar permissões inválidas
 
       console.log('🔐 [update-cartorio-permissions] Final permissions to insert:', JSON.stringify(novasPermissoes, null, 2))
 
-      // Usar upsert em vez de insert para evitar conflitos
-      const { data: insertedData, error: insertError } = await supabaseClient
-        .from('cartorio_acesso_conteudo')
-        .upsert(novasPermissoes)
-        .select()
+      if (novasPermissoes.length > 0) {
+        const { data: insertedData, error: insertError } = await supabaseClient
+          .from('cartorio_acesso_conteudo')
+          .upsert(novasPermissoes)
+          .select()
 
-      if (insertError) {
-        console.error('❌ [update-cartorio-permissions] Insert error:', insertError)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Erro ao inserir novas permissões: ${insertError.message}` 
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+        if (insertError) {
+          console.error('❌ [update-cartorio-permissions] Insert error:', insertError)
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Erro ao inserir novas permissões: ${insertError.message}` 
+            }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
+
+        console.log('✅ [update-cartorio-permissions] New permissions inserted:', insertedData?.length || 0)
+      } else {
+        console.log('⚠️ [update-cartorio-permissions] No valid permissions to insert')
       }
-
-      console.log('✅ [update-cartorio-permissions] New permissions inserted:', insertedData?.length || 0)
     } else {
       console.log('🔐 [update-cartorio-permissions] No permissions to insert (full access)')
     }

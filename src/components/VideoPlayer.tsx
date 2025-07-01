@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Maximize, Settings } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -18,17 +19,34 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 }) => {
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isVideoError, setIsVideoError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    if (videoUrl && videoUrl.includes('iframe.mediadelivery.net')) {
-      setIsVideoReady(true);
+    logger.info('🎥 [VideoPlayer] Initializing with URL:', { videoUrl, title });
+    
+    if (videoUrl && videoUrl.trim() !== '') {
+      // Verificar se é uma URL válida do Bunny.net
+      if (videoUrl.includes('iframe.mediadelivery.net') || 
+          videoUrl.includes('bunnycdn.com') || 
+          videoUrl.includes('bunny.net')) {
+        setIsVideoReady(true);
+        setIsVideoError(false);
+        setIsLoading(false);
+        logger.info('✅ [VideoPlayer] Valid video URL detected');
+      } else {
+        logger.warn('⚠️ [VideoPlayer] Invalid video URL format:', videoUrl);
+        setIsVideoError(true);
+        setIsVideoReady(false);
+        setIsLoading(false);
+      }
+    } else {
+      logger.warn('⚠️ [VideoPlayer] No video URL provided');
       setIsVideoError(false);
-    } else if (videoUrl && !videoUrl.includes('iframe.mediadelivery.net')) {
-      setIsVideoError(true);
       setIsVideoReady(false);
+      setIsLoading(false);
     }
-  }, [videoUrl]);
+  }, [videoUrl, title]);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -46,12 +64,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Se não há URL de vídeo ou há erro, mostrar placeholder
   if (!videoUrl || videoUrl === '' || isVideoError) {
     return (
-      <div className="w-full aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
+      <div className="w-full aspect-video bg-gray-900 rounded-lg flex items-center justify-center border border-gray-600">
         <div className="text-center">
           <div className="text-6xl mb-4">🎥</div>
           <p className="text-gray-400 text-lg">{title}</p>
           {isVideoError ? (
-            <p className="text-xs text-red-400 mt-2">URL de vídeo inválida ou indisponível</p>
+            <p className="text-xs text-red-400 mt-2">
+              URL de vídeo inválida: {videoUrl}
+            </p>
           ) : (
             <p className="text-xs text-gray-600 mt-2">Nenhum vídeo configurado</p>
           )}
@@ -77,17 +97,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           border: 'none'
         }}
         onLoad={() => {
+          logger.info('✅ [VideoPlayer] Iframe loaded successfully');
           setIsVideoReady(true);
           setIsVideoError(false);
+          setIsLoading(false);
         }}
-        onError={() => {
+        onError={(e) => {
+          logger.error('❌ [VideoPlayer] Iframe error:', e);
           setIsVideoError(true);
           setIsVideoReady(false);
+          setIsLoading(false);
         }}
       />
       
       {/* Loading overlay */}
-      {!isVideoReady && !isVideoError && videoUrl && (
+      {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>

@@ -7,18 +7,16 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { BookOpen, ArrowRight, Clock, Star } from 'lucide-react';
-import { useSistemasCartorio } from '@/hooks/useSistemasCartorio';
-import { useVisualizacoes } from '@/hooks/useSupabaseDataFixed';
+import { BookOpen, ArrowRight, Clock, AlertCircle } from 'lucide-react';
+import { useSistemasCartorio } from '@/hooks/useSupabaseDataSimplified';
+import { logger } from '@/utils/logger';
 
 const SystemPage = () => {
   const { systemId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { sistemas, isLoading, error } = useSistemasCartorio();
-  const { data: visualizacoes } = useVisualizacoes();
+  const { data: sistemas, isLoading, error } = useSistemasCartorio();
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -29,18 +27,18 @@ const SystemPage = () => {
   // Find the current system
   const currentSystem = sistemas?.find(system => system.id === systemId);
 
-  console.log('🎯 [SystemPage] Current state:', {
-    systemId,
-    sistemasCount: sistemas?.length,
-    currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null,
-    isLoading,
-    error
-  });
+  useEffect(() => {
+    logger.info('🎯 [SystemPage] Page loaded', {
+      systemId,
+      sistemasCount: sistemas?.length,
+      currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null
+    });
+  }, [systemId, sistemas, currentSystem]);
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
             <p className="text-white">Carregando sistema...</p>
@@ -51,12 +49,13 @@ const SystemPage = () => {
   }
 
   if (error) {
-    console.error('🎯 [SystemPage] Error loading system:', error);
+    logger.error('❌ [SystemPage] Error loading system:', error);
     return (
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-          <Card className="glass-effect border-gray-700 max-w-md">
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Card className="bg-gray-800/50 border-red-600 max-w-md">
             <CardContent className="p-8 text-center">
+              <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-red-400 mb-4">Erro ao carregar sistema</h1>
               <p className="text-gray-400 mb-6">{error}</p>
               <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
@@ -70,14 +69,21 @@ const SystemPage = () => {
   }
 
   if (!currentSystem) {
-    console.error('🎯 [SystemPage] System not found:', { systemId, availableSystems: sistemas?.map(s => s.id) });
+    logger.error('❌ [SystemPage] System not found:', { 
+      systemId, 
+      availableSystems: sistemas?.map(s => s.id) 
+    });
+    
     return (
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-          <Card className="glass-effect border-gray-700 max-w-md">
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Card className="bg-gray-800/50 border-red-600 max-w-md">
             <CardContent className="p-8 text-center">
+              <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-red-400 mb-4">Sistema não encontrado</h1>
-              <p className="text-gray-400 mb-6">O sistema solicitado não foi encontrado ou você não tem permissão para acessá-lo.</p>
+              <p className="text-gray-400 mb-6">
+                O sistema solicitado não foi encontrado ou você não tem permissão para acessá-lo.
+              </p>
               <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
                 Voltar ao Dashboard
               </Button>
@@ -89,34 +95,19 @@ const SystemPage = () => {
   }
 
   const produtos = currentSystem.produtos || [];
-
-  // Calculate progress for each product
-  const calculateProductProgress = (produto: any) => {
-    if (!visualizacoes || !produto.video_aulas) return 0;
-    
-    const totalAulas = produto.video_aulas.length;
-    let aulasCompletas = 0;
-    
-    produto.video_aulas.forEach((aula: any) => {
-      const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id && v.completo);
-      if (visualizacao) {
-        aulasCompletas++;
-      }
-    });
-    
-    return totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
-  };
+  logger.info('🎯 [SystemPage] Products found', { count: produtos.length });
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      <div className="min-h-screen bg-black">
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
+            { label: 'Dashboard', href: '/dashboard' },
             { label: currentSystem.nome }
           ]} />
           
           <div className="mt-6 mb-8">
-            <div className="glass-effect rounded-2xl p-8 shadow-modern">
+            <div className="bg-gray-800/50 rounded-lg p-8 border border-gray-600">
               <div className="flex items-center space-x-4 mb-6">
                 <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
                   <span className="text-2xl font-bold text-white">
@@ -149,13 +140,12 @@ const SystemPage = () => {
             {produtos.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {produtos.map((produto) => {
-                  const progress = calculateProductProgress(produto);
                   const totalAulas = produto.video_aulas?.length || 0;
                   
                   return (
                     <Card 
                       key={produto.id} 
-                      className="glass-effect border-gray-700 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:shadow-modern hover:scale-105"
+                      className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:scale-105"
                       onClick={() => navigate(`/system/${systemId}/product/${produto.id}`)}
                     >
                       <CardHeader className="pb-3">
@@ -174,32 +164,16 @@ const SystemPage = () => {
                             <Clock className="h-4 w-4 mr-1" />
                             <span>{totalAulas} videoaulas</span>
                           </div>
-                          {progress > 0 && (
-                            <div className="flex items-center">
-                              <Star className="h-4 w-4 mr-1 text-yellow-500" />
-                              <span>{progress}% concluído</span>
-                            </div>
-                          )}
                         </div>
                         
-                        {progress > 0 && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>Progresso</span>
-                              <span>{progress}%</span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
-                          </div>
-                        )}
-                        
                         <Button 
-                          className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 group-hover:scale-105"
+                          className="w-full bg-red-600 hover:bg-red-700 transition-all duration-200 group-hover:scale-105"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/system/${systemId}/product/${produto.id}`);
                           }}
                         >
-                          {progress > 0 ? 'Continuar' : 'Iniciar'} Treinamento
+                          Acessar Treinamento
                           <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
                       </CardContent>
@@ -208,7 +182,7 @@ const SystemPage = () => {
                 })}
               </div>
             ) : (
-              <Card className="glass-effect border-gray-700">
+              <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="p-12 text-center">
                   <div className="text-6xl mb-6">📚</div>
                   <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhum produto disponível</h3>
