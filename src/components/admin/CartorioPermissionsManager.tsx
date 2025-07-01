@@ -51,7 +51,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
       setTodosOsSistemas(sistemas || []);
 
-      // Buscar permissões atuais - CORREÇÃO: usar a estrutura correta
+      // Buscar permissões atuais
       const { data: permissoes, error: permissoesError } = await supabase
         .from('cartorio_acesso_conteudo')
         .select('*')
@@ -98,22 +98,30 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         permissoes: Array.from(permissoesSelecionadas)
       });
 
-      // Preparar array de permissões no formato correto
+      // Preparar array de permissões no formato correto - CRITICAL FIX
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
-        const [tipo, id] = selection.split('-', 2);
+        const [tipo, ...idParts] = selection.split('-');
+        const fullId = idParts.join('-'); // Reconstrói o UUID completo
         
-        if (tipo === 'sistema' && id) {
+        // CRITICAL UUID VALIDATION
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        if (tipo === 'sistema' && fullId && uuidRegex.test(fullId)) {
           permissoes.push({
-            sistema_id: id,
+            sistema_id: fullId,
             produto_id: null
           });
-        } else if (tipo === 'produto' && id) {
+          logger.info('🔐 [CartorioPermissionsManager] Sistema válido:', fullId);
+        } else if (tipo === 'produto' && fullId && uuidRegex.test(fullId)) {
           permissoes.push({
             sistema_id: null,
-            produto_id: id
+            produto_id: fullId
           });
+          logger.info('🔐 [CartorioPermissionsManager] Produto válido:', fullId);
+        } else {
+          logger.warn('🔐 [CartorioPermissionsManager] ID inválido ignorado:', { tipo, fullId, selection });
         }
       });
 
