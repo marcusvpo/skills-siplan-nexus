@@ -31,6 +31,7 @@ const VideoLesson: React.FC = () => {
   }, [videoAulaId, systemId, productId]);
 
   if (!videoAulaId) {
+    logger.error('❌ [VideoLesson] Missing video ID');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Card className="bg-gray-800/50 border-red-600">
@@ -58,6 +59,7 @@ const VideoLesson: React.FC = () => {
   }
 
   if (error || !videoAulaData) {
+    logger.error('❌ [VideoLesson] Error or no data:', { error: error?.message });
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Card className="bg-gray-800/50 border-red-600">
@@ -86,6 +88,12 @@ const VideoLesson: React.FC = () => {
 
   const { produtos: produto } = videoAulaData;
   const sistema = produto?.sistemas;
+
+  logger.info('🎥 [VideoLesson] Data loaded successfully', {
+    videoTitle: videoAulaData.titulo,
+    productName: produto?.nome,
+    systemName: sistema?.nome
+  });
 
   return (
     <div className="min-h-screen bg-black text-white">

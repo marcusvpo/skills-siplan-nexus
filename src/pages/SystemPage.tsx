@@ -38,10 +38,13 @@ const SystemPage = () => {
   const currentSystem = sistemas?.find(system => system.id === systemId);
 
   useEffect(() => {
-    logger.info('🎯 [SystemPage] Systems loaded', {
+    logger.info('🎯 [SystemPage] Systems data received', {
       systemId,
       sistemasCount: sistemas?.length,
-      currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null
+      currentSystemFound: !!currentSystem,
+      currentSystemName: currentSystem?.nome,
+      currentSystemProductsCount: currentSystem?.produtos?.length || 0,
+      allSystemIds: sistemas?.map(s => s.id) || []
     });
   }, [systemId, sistemas, currentSystem]);
 

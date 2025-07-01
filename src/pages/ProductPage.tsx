@@ -38,15 +38,36 @@ const ProductPage = () => {
   let currentSystem = null;
   let currentProduct = null;
   
-  if (sistemas) {
+  if (sistemas && sistemas.length > 0) {
+    logger.info('🔍 [ProductPage] Searching for system and product', {
+      sistemasCount: sistemas.length,
+      targetSystemId: systemId,
+      targetProductId: productId
+    });
+
     for (const system of sistemas) {
       if (system.id === systemId) {
         currentSystem = system;
-        for (const product of system.produtos || []) {
-          if (product.id === productId) {
-            currentProduct = product;
-            break;
+        logger.info('✅ [ProductPage] System found', { 
+          systemId: system.id, 
+          systemName: system.nome,
+          productsCount: system.produtos?.length || 0
+        });
+
+        if (system.produtos && system.produtos.length > 0) {
+          for (const product of system.produtos) {
+            if (product.id === productId) {
+              currentProduct = product;
+              logger.info('✅ [ProductPage] Product found', { 
+                productId: product.id, 
+                productName: product.nome,
+                videoAulasCount: product.video_aulas?.length || 0
+              });
+              break;
+            }
           }
+        } else {
+          logger.warn('⚠️ [ProductPage] System has no products', { systemId: system.id });
         }
         break;
       }
@@ -54,10 +75,12 @@ const ProductPage = () => {
   }
 
   useEffect(() => {
-    logger.info('🎯 [ProductPage] Systems and products loaded', { 
+    logger.info('🎯 [ProductPage] Final state check', { 
       sistemasCount: sistemas?.length,
-      currentSystem: currentSystem ? { id: currentSystem.id, nome: currentSystem.nome } : null,
-      currentProduct: currentProduct ? { id: currentProduct.id, nome: currentProduct.nome } : null
+      currentSystemFound: !!currentSystem,
+      currentProductFound: !!currentProduct,
+      currentSystemName: currentSystem?.nome,
+      currentProductName: currentProduct?.nome
     });
   }, [sistemas, currentSystem, currentProduct]);
 
@@ -67,18 +90,42 @@ const ProductPage = () => {
   }
 
   // Early return for error or not found
-  if (error || !currentSystem || !currentProduct) {
-    logger.error('❌ [ProductPage] Error or not found', { 
-      error: error?.message, 
-      currentSystem: !!currentSystem, 
-      currentProduct: !!currentProduct 
+  if (error) {
+    logger.error('❌ [ProductPage] Error loading data:', { error: error.message });
+    return (
+      <ErrorState 
+        title="Erro ao carregar dados"
+        message={error instanceof Error ? error.message : 'Erro desconhecido'}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
+  if (!currentSystem) {
+    logger.error('❌ [ProductPage] System not found:', { 
+      systemId,
+      availableSystems: sistemas?.map(s => ({ id: s.id, nome: s.nome })) 
+    });
+    
+    return (
+      <ErrorState 
+        title="Sistema não encontrado"
+        message="O sistema solicitado não foi encontrado ou você não tem permissão para acessá-lo."
+      />
+    );
+  }
+
+  if (!currentProduct) {
+    logger.error('❌ [ProductPage] Product not found:', { 
+      productId,
+      systemId,
+      availableProducts: currentSystem.produtos?.map(p => ({ id: p.id, nome: p.nome })) || []
     });
     
     return (
       <ErrorState 
         title="Produto não encontrado"
         message="O produto solicitado não foi encontrado ou você não tem permissão para acessá-lo."
-        onRetry={error ? () => refetch() : undefined}
       />
     );
   }
