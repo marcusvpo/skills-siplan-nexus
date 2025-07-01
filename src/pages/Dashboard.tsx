@@ -1,334 +1,183 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Star, Play, Clock, BookOpen, ArrowRight, Trophy, TrendingUp } from 'lucide-react';
-import { useSistemasFixed, useVisualizacoes, useFavoritos } from '@/hooks/useSupabaseDataFixed';
-import ProgressDisplay from '@/components/ProgressDisplay';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BookOpen, Play, TrendingUp, Clock } from 'lucide-react';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
+import { useVisualizacoes } from '@/hooks/useSupabaseDataFixed';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  
-  const { data: sistemas, isLoading: sistemasLoading, error: sistemasError } = useSistemasFixed();
-  const { data: visualizacoes } = useVisualizacoes();
-  const { data: favoritos } = useFavoritos(user?.cartorio_id || '');
+  const { data: sistemas = [], isLoading: sistemasLoading } = useSistemasCartorioWithAccess();
+  const { data: visualizacoes = [], isLoading: visualizacoesLoading } = useVisualizacoes();
 
-  useEffect(() => {
-    if (!user || user.type !== 'cartorio') {
-      navigate('/login');
-    }
-  }, [user, navigate]);
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
+          <p className="text-gray-400">Você precisa estar logado para acessar o dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    console.log('Dashboard - User:', user);
-    console.log('Dashboard - Sistemas loading:', sistemasLoading);
-    console.log('Dashboard - Sistemas error:', sistemasError);
-    console.log('Dashboard - Sistemas data:', sistemas);
-  }, [user, sistemas, sistemasLoading, sistemasError]);
+  // Calculate statistics
+  const totalVideoAulas = sistemas.reduce((acc, sistema) => 
+    acc + (sistema.produtos?.reduce((prodAcc, produto) => 
+      prodAcc + (produto.video_aulas?.length || 0), 0) || 0), 0
+  );
 
-  if (!user) return null;
-
-  // Process continue learning from visualizations
-  const continueLearning = visualizacoes?.filter(v => !v.completo).slice(0, 3) || [];
-  
-  // Process recent history
-  const recentHistory = visualizacoes?.slice(0, 5) || [];
-
-  // Calculate overall progress
-  const calculateSystemProgress = (sistema: any) => {
-    if (!visualizacoes || !sistema.produtos) return 0;
-    
-    let totalAulas = 0;
-    let aulasCompletas = 0;
-    
-    sistema.produtos.forEach((produto: any) => {
-      produto.video_aulas?.forEach((aula: any) => {
-        totalAulas++;
-        const visualizacao = visualizacoes.find(v => v.video_aula_id === aula.id);
-        if (visualizacao?.completo) {
-          aulasCompletas++;
-        }
-      });
-    });
-    
-    return totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
-  };
-
-  const getSystemIcon = (systemName: string) => {
-    // Return the first letter of the system name for the circular icon
-    return systemName.charAt(0).toUpperCase();
-  };
+  const completedLessons = visualizacoes.filter(v => v.completo).length;
+  const inProgressLessons = visualizacoes.filter(v => !v.completo && v.progresso_segundos > 0).length;
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="container mx-auto px-6 py-8">
-          {/* Enhanced Welcome Section */}
-          <div className="mb-12 text-center">
-            <div className="glass-effect rounded-2xl p-8 mb-8 shadow-modern">
-              <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-                Bem-vindo ao Siplan Skills!
-              </h1>
-              {user.cartorio_name && (
-                <div className="space-y-2">
-                  <p className="text-xl text-white">
-                    Olá, <span className="font-semibold text-red-400">{user.username || user.name}</span>!
-                  </p>
-                  <div className="inline-block px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-lg">
-                    <p className="text-red-300">
-                      Você está acessando como usuário de: <span className="font-semibold text-red-200">{user.cartorio_name}</span>
-                    </p>
-                  </div>
-                </div>
-              )}
-              <p className="text-gray-300 mt-4 text-lg">
-                Continue seu aprendizado ou explore novos conteúdos sobre os sistemas Siplan.
-              </p>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">
+            Bem-vindo, {user.name}!
+          </h1>
+          <p className="text-gray-400">
+            {user.cartorio_name && `${user.cartorio_name} • `}
+            Acompanhe seu progresso nos treinamentos da Siplan Skills
+          </p>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gray-900/50 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">
+                Total de Aulas
+              </CardTitle>
+              <BookOpen className="h-4 w-4 text-gray-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {sistemasLoading ? <Skeleton className="h-8 w-16 bg-gray-800" /> : totalVideoAulas}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900/50 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">
+                Concluídas
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-400">
+                {visualizacoesLoading ? <Skeleton className="h-8 w-16 bg-gray-800" /> : completedLessons}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900/50 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">
+                Em Progresso
+              </CardTitle>
+              <Clock className="h-4 w-4 text-yellow-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-400">
+                {visualizacoesLoading ? <Skeleton className="h-8 w-16 bg-gray-800" /> : inProgressLessons}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900/50 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">
+                Sistemas Disponíveis
+              </CardTitle>
+              <Play className="h-4 w-4 text-red-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-400">
+                {sistemasLoading ? <Skeleton className="h-8 w-16 bg-gray-800" /> : sistemas.length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Systems Grid */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-white">Sistemas Disponíveis</h2>
+          
+          {sistemasLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="bg-gray-900/50 border-gray-700">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 bg-gray-800" />
+                    <Skeleton className="h-4 w-full bg-gray-800" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-1/2 bg-gray-800" />
+                      <Skeleton className="h-4 w-1/3 bg-gray-800" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </div>
-
-          {/* Continue Learning Section */}
-          {continueLearning.length > 0 && (
-            <section className="mb-12">
-              <div className="flex items-center mb-6">
-                <div className="p-2 bg-red-600 rounded-lg mr-3">
-                  <Play className="h-6 w-6 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-white">Continue de Onde Parou</h2>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {continueLearning.map((vis) => (
-                  <Card key={vis.id} className="glass-effect border-gray-700 hover:border-red-500/50 transition-all duration-300 group hover:shadow-modern">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-white group-hover:text-red-400 transition-colors">
-                        {vis.video_aulas?.titulo}
-                      </CardTitle>
-                      <p className="text-sm text-gray-400">
-                        {vis.video_aulas?.produtos?.sistemas?.nome} • {vis.video_aulas?.produtos?.nome}
-                      </p>
+          ) : sistemas.length === 0 ? (
+            <Card className="bg-gray-900/50 border-gray-700">
+              <CardContent className="text-center py-12">
+                <BookOpen className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">
+                  Nenhum sistema disponível
+                </h3>
+                <p className="text-gray-400">
+                  Entre em contato com o administrador para liberar o acesso aos sistemas de treinamento.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sistemas.map((sistema) => (
+                <Link
+                  key={sistema.id}
+                  to={`/system/${sistema.id}`}
+                  className="block transition-transform hover:scale-105"
+                >
+                  <Card className="bg-gray-900/50 border-gray-700 hover:border-red-600/50 transition-colors h-full">
+                    <CardHeader>
+                      <CardTitle className="text-white">{sistema.nome}</CardTitle>
+                      {sistema.descricao && (
+                        <p className="text-gray-400 text-sm">{sistema.descricao}</p>
+                      )}
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-gray-300 text-sm line-clamp-2">{vis.video_aulas?.descricao}</p>
-                      <ProgressDisplay
-                        progressSegundos={vis.progresso_segundos}
-                        duracaoSegundos={0}
-                        completo={vis.completo}
-                        size="sm"
-                      />
-                      <Button className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 group-hover:scale-105">
-                        Continuar Assistindo
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Favorites Section */}
-          {favoritos && favoritos.length > 0 && (
-            <section className="mb-12">
-              <div className="flex items-center mb-6">
-                <div className="p-2 bg-yellow-600 rounded-lg mr-3">
-                  <Star className="h-6 w-6 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-white">Meus Favoritos</h2>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favoritos.slice(0, 6).map((fav) => (
-                  <Card key={fav.id} className="glass-effect border-gray-700 hover:border-yellow-500/50 transition-all duration-300 group">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg text-white group-hover:text-yellow-400 transition-colors">
-                            {fav.video_aulas?.titulo}
-                          </CardTitle>
-                          <p className="text-sm text-gray-400">
-                            {fav.video_aulas?.produtos?.sistemas?.nome} • {fav.video_aulas?.produtos?.nome}
-                          </p>
-                        </div>
-                        <Star className="h-5 w-5 text-yellow-500 fill-current flex-shrink-0" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-gray-300 text-sm line-clamp-2">{fav.video_aulas?.descricao}</p>
-                      <Button variant="outline" className="w-full border-yellow-600/50 text-yellow-300 hover:bg-yellow-600/10 transition-all duration-200">
-                        Assistir Aula
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Main Systems Section */}
-          <section>
-            <div className="flex items-center mb-8">
-              <div className="p-2 bg-blue-600 rounded-lg mr-3">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-white">Meus Treinamentos</h2>
-            </div>
-            
-            {sistemasLoading ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => (
-                  <Card key={i} className="glass-effect border-gray-700 animate-pulse">
-                    <CardContent className="p-8 text-center">
-                      <div className="h-16 w-16 bg-gray-700 rounded-full mx-auto mb-4"></div>
-                      <div className="h-6 bg-gray-700 rounded mb-3"></div>
-                      <div className="h-4 bg-gray-700 rounded mb-4"></div>
-                      <div className="h-2 bg-gray-700 rounded mb-4"></div>
-                      <div className="h-10 bg-gray-700 rounded"></div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : sistemasError ? (
-              <Card className="glass-effect border-red-500/30">
-                <CardContent className="p-8 text-center">
-                  <h3 className="text-xl font-semibold text-red-400 mb-2">Erro ao carregar sistemas</h3>
-                  <p className="text-gray-400 mb-4">
-                    {sistemasError instanceof Error ? sistemasError.message : 'Não foi possível carregar os sistemas de treinamento.'}
-                  </p>
-                  <Button 
-                    onClick={() => window.location.reload()} 
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Tentar Novamente
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : sistemas && sistemas.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {sistemas.map((sistema) => {
-                  const progress = calculateSystemProgress(sistema);
-                  return (
-                    <Card 
-                      key={sistema.id} 
-                      className="glass-effect border-gray-700 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:shadow-modern hover:scale-105"
-                      onClick={() => navigate(`/system/${sistema.id}`)}
-                    >
-                      <CardContent className="p-8 text-center space-y-4">
-                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                          <span className="text-2xl font-bold text-white">
-                            {getSystemIcon(sistema.nome)}
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">Produtos:</span>
+                          <span className="text-white font-medium">
+                            {sistema.produtos?.length || 0}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">
-                          {sistema.nome}
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                          {sistema.descricao}
-                        </p>
-                        
-                        {progress > 0 && (
-                          <div className="space-y-2">
-                            <ProgressDisplay
-                              progressSegundos={progress}
-                              duracaoSegundos={100}
-                              completo={progress === 100}
-                              size="sm"
-                            />
-                            <div className="flex items-center justify-center text-xs text-gray-500">
-                              <Trophy className="h-3 w-3 mr-1" />
-                              {progress}% concluído
-                            </div>
-                          </div>
-                        )}
-                        
-                        <Button 
-                          className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-200 group-hover:scale-105"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/system/${sistema.id}`);
-                          }}
-                        >
-                          {progress > 0 ? 'Continuar' : 'Iniciar'} Treinamento
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <Card className="glass-effect border-gray-700">
-                <CardContent className="p-12 text-center">
-                  <div className="text-6xl mb-6">📚</div>
-                  <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhum sistema disponível</h3>
-                  <p className="text-gray-400 mb-6">
-                    Os sistemas de treinamento serão disponibilizados em breve.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.reload()} 
-                    variant="outline" 
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    Atualizar Página
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </section>
-
-          {/* Recent Activity Section */}
-          {recentHistory.length > 0 && (
-            <section className="mt-12">
-              <div className="flex items-center mb-6">
-                <div className="p-2 bg-green-600 rounded-lg mr-3">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-white">Atividade Recente</h2>
-              </div>
-              <div className="space-y-3">
-                {recentHistory.slice(0, 3).map((hist) => (
-                  <Card key={hist.id} className="glass-effect border-gray-700 hover:border-green-500/50 transition-all duration-300">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 flex-1">
-                          <div className="p-2 bg-green-600/20 rounded-lg">
-                            <Play className="h-4 w-4 text-green-400" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-white">{hist.video_aulas?.titulo}</h3>
-                            <p className="text-sm text-gray-400">
-                              {hist.video_aulas?.produtos?.sistemas?.nome} • {hist.video_aulas?.produtos?.nome}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Última visualização: {new Date(hist.ultima_visualizacao).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-32">
-                            <ProgressDisplay
-                              progressSegundos={hist.progresso_segundos}
-                              duracaoSegundos={0}
-                              completo={hist.completo}
-                              size="sm"
-                            />
-                          </div>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            Ver Aula
-                          </Button>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">Total de Aulas:</span>
+                          <span className="text-white font-medium">
+                            {sistema.produtos?.reduce((acc, produto) => 
+                              acc + (produto.video_aulas?.length || 0), 0) || 0}
+                          </span>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </section>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 

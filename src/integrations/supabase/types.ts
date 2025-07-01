@@ -65,6 +65,58 @@ export type Database = {
         }
         Relationships: []
       }
+      cartorio_acesso_conteudo: {
+        Row: {
+          ativo: boolean
+          cartorio_id: string
+          data_liberacao: string
+          id: string
+          nivel_acesso: string | null
+          produto_id: string | null
+          sistema_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cartorio_id: string
+          data_liberacao?: string
+          id?: string
+          nivel_acesso?: string | null
+          produto_id?: string | null
+          sistema_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cartorio_id?: string
+          data_liberacao?: string
+          id?: string
+          nivel_acesso?: string | null
+          produto_id?: string | null
+          sistema_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_acesso_conteudo_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_acesso_conteudo_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_acesso_conteudo_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartorio_usuarios: {
         Row: {
           cartorio_id: string
@@ -338,6 +390,7 @@ export type Database = {
           cartorio_id: string
           cartorio_usuario_id: string | null
           completo: boolean
+          data_conclusao: string | null
           id: string
           progresso_segundos: number
           ultima_visualizacao: string
@@ -347,6 +400,7 @@ export type Database = {
           cartorio_id: string
           cartorio_usuario_id?: string | null
           completo?: boolean
+          data_conclusao?: string | null
           id?: string
           progresso_segundos?: number
           ultima_visualizacao?: string
@@ -356,6 +410,7 @@ export type Database = {
           cartorio_id?: string
           cartorio_usuario_id?: string | null
           completo?: boolean
+          data_conclusao?: string | null
           id?: string
           progresso_segundos?: number
           ultima_visualizacao?: string
@@ -390,6 +445,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cartorio_tem_acesso: {
+        Args: {
+          _cartorio_id: string
+          _sistema_id?: string
+          _produto_id?: string
+        }
+        Returns: boolean
+      }
       debug_cartorios_data: {
         Args: Record<PropertyKey, never>
         Returns: {

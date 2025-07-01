@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -10,7 +9,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProgressDisplay from '@/components/ProgressDisplay';
-import { ProgressTracker } from '@/components/ProgressTracker';
+import { ProgressTrackerFixed } from '@/components/ProgressTrackerFixed';
 import { useBunnyVideoDetails } from '@/hooks/useBunnyVideoDetails';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -326,10 +325,10 @@ const VideoLesson: React.FC = () => {
                   </div>
                 )}
 
-                {/* Progress Tracker (Mark as Complete button) */}
+                {/* Progress Tracker (Mark as Complete button) - FIXED */}
                 {user?.cartorio_id && (
                   <div className="py-2">
-                    <ProgressTracker
+                    <ProgressTrackerFixed
                       videoAulaId={videoAula.id}
                       progressoSegundos={visualizacao?.progresso_segundos || 0}
                       completo={visualizacao?.completo || false}
