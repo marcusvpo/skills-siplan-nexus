@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, ArrowRight, Clock, AlertCircle } from 'lucide-react';
-import { useSistemasCartorio } from '@/hooks/useSupabaseDataSimplified';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
 
 const SystemPage = () => {
@@ -16,7 +16,7 @@ const SystemPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: sistemas, isLoading, error } = useSistemasCartorio();
+  const { data: sistemas, isLoading, error } = useSistemasCartorioWithAccess();
 
   useEffect(() => {
     if (!user || user.type !== 'cartorio') {
@@ -162,7 +162,7 @@ const SystemPage = () => {
                         <div className="flex items-center justify-between text-sm text-gray-400">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
-                            <span>{totalAulas} videoaulas</span>
+                            <span>{totalAulas} videoaula{totalAulas !== 1 ? 's' : ''}</span>
                           </div>
                         </div>
                         
@@ -173,7 +173,7 @@ const SystemPage = () => {
                             navigate(`/system/${systemId}/product/${produto.id}`);
                           }}
                         >
-                          Acessar Treinamento
+                          Acessar Produto
                           <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
                       </CardContent>

@@ -3,10 +3,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, LogOut, Play, User, AlertTriangle } from 'lucide-react';
+import { BookOpen, LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { logger } from '@/utils/logger';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
 const Dashboard = () => {
@@ -125,11 +123,10 @@ const Dashboard = () => {
             Bem-vindo(a), {user?.username || user?.name}!
           </h2>
           <p className="text-gray-400">
-            Acesse seus treinamentos e videoaulas
+            Selecione um sistema para começar seu treinamento
           </p>
         </div>
 
-        {/* Usar o componente TreinamentosSection para exibir os conteúdos */}
         <TreinamentosSection />
       </div>
     </div>

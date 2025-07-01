@@ -51,7 +51,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
       setTodosOsSistemas(sistemas || []);
 
-      // Buscar permissões atuais
+      // Buscar permissões atuais - CORREÇÃO: usar a estrutura correta
       const { data: permissoes, error: permissoesError } = await supabase
         .from('cartorio_acesso_conteudo')
         .select('*')
@@ -62,7 +62,9 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         throw new Error(`Erro ao buscar permissões: ${permissoesError.message}`);
       }
 
-      // Configurar seleções
+      logger.info('🔐 [CartorioPermissionsManager] Permissões encontradas:', { permissoes });
+
+      // Configurar seleções baseado nas permissões existentes
       const selected = new Set<string>();
       permissoes?.forEach((p: any) => {
         if (p.sistema_id && !p.produto_id) {
@@ -72,6 +74,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         }
       });
       
+      logger.info('🔐 [CartorioPermissionsManager] Seleções configuradas:', { selected: Array.from(selected) });
       setPermissoesSelecionadas(selected);
 
     } catch (err) {
@@ -99,25 +102,23 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
       const permissoes: any[] = [];
       
       permissoesSelecionadas.forEach(selection => {
-        const [tipo, idCompleto] = selection.split('-');
+        const [tipo, id] = selection.split('-', 2);
         
-        if (tipo === 'sistema' && idCompleto && idCompleto.length === 36) {
+        if (tipo === 'sistema' && id) {
           permissoes.push({
-            sistema_id: idCompleto,
+            sistema_id: id,
             produto_id: null
           });
-        } else if (tipo === 'produto' && idCompleto && idCompleto.length === 36) {
-          // Para produtos, não incluir sistema_id já que é permissão granular
+        } else if (tipo === 'produto' && id) {
           permissoes.push({
             sistema_id: null,
-            produto_id: idCompleto
+            produto_id: id
           });
         }
       });
 
       logger.info('🔐 [CartorioPermissionsManager] Permissões formatadas para envio:', { permissoes });
 
-      // Usar direct database access para atualizar as permissões (sem Edge Function)
       // Primeiro, deletar permissões existentes
       const { error: deleteError } = await supabase
         .from('cartorio_acesso_conteudo')
@@ -145,6 +146,8 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
         if (insertError) {
           throw new Error(`Erro ao inserir novas permissões: ${insertError.message}`);
         }
+
+        logger.info('✅ [CartorioPermissionsManager] Permissões salvas com sucesso');
       }
       
       toast({
@@ -176,8 +179,10 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     
     if (newSelected.has(sistemaKey)) {
+      // Desmarcar sistema
       newSelected.delete(sistemaKey);
     } else {
+      // Marcar sistema e desmarcar produtos individuais
       newSelected.add(sistemaKey);
       produtoKeys.forEach(key => newSelected.delete(key));
     }
@@ -192,8 +197,10 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     const newSelected = new Set(permissoesSelecionadas);
     
     if (newSelected.has(produtoKey)) {
+      // Desmarcar produto
       newSelected.delete(produtoKey);
     } else {
+      // Marcar produto e desmarcar sistema completo
       newSelected.add(produtoKey);
       if (newSelected.has(sistemaKey)) {
         newSelected.delete(sistemaKey);

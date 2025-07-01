@@ -117,7 +117,7 @@ const ProductPage = () => {
                     </Badge>
                     <Badge variant="secondary" className="bg-green-600/20 text-green-300 border-0">
                       <Play className="h-3 w-3 mr-1" />
-                      {videoAulas.length} videoaulas
+                      {videoAulas.length} videoaula{videoAulas.length !== 1 ? 's' : ''}
                     </Badge>
                   </div>
                 </div>
