@@ -445,14 +445,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cartorio_tem_acesso: {
-        Args: {
-          _cartorio_id: string
-          _sistema_id?: string
-          _produto_id?: string
-        }
-        Returns: boolean
-      }
       debug_cartorios_data: {
         Args: Record<PropertyKey, never>
         Returns: {

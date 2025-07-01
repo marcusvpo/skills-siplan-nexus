@@ -26,7 +26,6 @@ serve(async (req) => {
       }
     )
 
-    // Pegar cartorioId do body da requisição
     const { cartorioId } = await req.json()
     console.log('🎯 [get-sistemas-cartorio] Request for cartorio:', cartorioId)
 
@@ -103,7 +102,7 @@ serve(async (req) => {
       console.log('🎯 [get-sistemas-cartorio] No specific permissions, returning all sistemas')
       sistemasFiltrados = todosSistemas || []
     } else {
-      // Filtrar com base nas permissões
+      // Filtrar com base nas permissões (LÓGICA SIMPLIFICADA)
       console.log('🎯 [get-sistemas-cartorio] Filtering by permissions')
       
       const sistemasPermitidos = new Set()
@@ -114,31 +113,40 @@ serve(async (req) => {
         if (p.sistema_id && !p.produto_id) {
           // Acesso ao sistema completo
           sistemasPermitidos.add(p.sistema_id)
+          console.log('🎯 [get-sistemas-cartorio] Sistema completo permitido:', p.sistema_id)
         } else if (p.produto_id) {
           // Acesso a produto específico
           produtosPermitidos.add(p.produto_id)
+          console.log('🎯 [get-sistemas-cartorio] Produto específico permitido:', p.produto_id)
         }
       })
       
-      // Filtrar sistemas
+      // Filtrar sistemas baseados nas permissões
       sistemasFiltrados = (todosSistemas || []).filter(sistema => {
-        // Se tem acesso ao sistema completo
+        // Se tem acesso ao sistema completo, incluir tudo
         if (sistemasPermitidos.has(sistema.id)) {
+          console.log('🎯 [get-sistemas-cartorio] Including full sistema:', sistema.nome)
           return true
         }
         
-        // Se tem acesso a algum produto deste sistema
+        // Verificar se tem acesso a algum produto deste sistema
         if (sistema.produtos && sistema.produtos.some(produto => produtosPermitidos.has(produto.id))) {
           // Filtrar apenas os produtos permitidos
-          sistema.produtos = sistema.produtos.filter(produto => produtosPermitidos.has(produto.id))
+          sistema.produtos = sistema.produtos.filter(produto => {
+            const allowed = produtosPermitidos.has(produto.id)
+            if (allowed) {
+              console.log('🎯 [get-sistemas-cartorio] Including produto:', produto.nome)
+            }
+            return allowed
+          })
           return true
         }
         
         return false
       })
+      
+      console.log('🎯 [get-sistemas-cartorio] Total sistemas after filtering:', sistemasFiltrados.length)
     }
-
-    console.log('✅ [get-sistemas-cartorio] Returning sistemas:', sistemasFiltrados?.length || 0)
 
     return new Response(
       JSON.stringify({ 

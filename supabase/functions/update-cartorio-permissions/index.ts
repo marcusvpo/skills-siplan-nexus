@@ -77,12 +77,13 @@ serve(async (req) => {
       const novasPermissoes = permissoes.map((p: any) => {
         console.log('🔐 [update-cartorio-permissions] Processing permission:', p)
         
-        // CORREÇÃO CRÍTICA: Não truncar o UUID
+        // CORREÇÃO: Agora permitir tanto sistemas completos quanto produtos específicos
         const permission = {
           cartorio_id: cartorioId,
           sistema_id: p.sistema_id || null,
-          produto_id: p.produto_id || null, // Manter UUID completo
-          ativo: true
+          produto_id: p.produto_id || null,
+          ativo: true,
+          nivel_acesso: 'completo'
         }
         
         console.log('🔐 [update-cartorio-permissions] Formatted permission:', permission)
@@ -91,9 +92,10 @@ serve(async (req) => {
 
       console.log('🔐 [update-cartorio-permissions] Final permissions to insert:', JSON.stringify(novasPermissoes, null, 2))
 
+      // Usar upsert em vez de insert para evitar conflitos
       const { data: insertedData, error: insertError } = await supabaseClient
         .from('cartorio_acesso_conteudo')
-        .insert(novasPermissoes)
+        .upsert(novasPermissoes)
         .select()
 
       if (insertError) {
