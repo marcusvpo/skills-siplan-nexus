@@ -113,13 +113,13 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
             sistema_id: fullId,
             produto_id: null
           });
-          logger.info('🔐 [CartorioPermissionsManager] Sistema válido:', fullId);
+          logger.info('🔐 [CartorioPermissionsManager] Sistema válido:', { sistemaId: fullId });
         } else if (tipo === 'produto' && fullId && uuidRegex.test(fullId)) {
           permissoes.push({
             sistema_id: null,
             produto_id: fullId
           });
-          logger.info('🔐 [CartorioPermissionsManager] Produto válido:', fullId);
+          logger.info('🔐 [CartorioPermissionsManager] Produto válido:', { produtoId: fullId });
         } else {
           logger.warn('🔐 [CartorioPermissionsManager] ID inválido ignorado:', { tipo, fullId, selection });
         }
