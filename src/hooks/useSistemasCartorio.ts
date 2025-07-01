@@ -28,7 +28,7 @@ export const useSistemasCartorio = () => {
         return;
       }
 
-      logger.info('🎯 [useSistemasCartorio] Fetching sistemas for cartorio:', user.cartorio_id);
+      logger.info('🎯 [useSistemasCartorio] Fetching sistemas for cartorio:', { cartorioId: user.cartorio_id });
 
       const { data, error } = await supabase.functions.invoke('get-sistemas-cartorio', {
         body: { cartorioId: user.cartorio_id }
@@ -40,11 +40,11 @@ export const useSistemasCartorio = () => {
       }
 
       if (!data?.success) {
-        logger.error('❌ [useSistemasCartorio] API error:', data?.error);
+        logger.error('❌ [useSistemasCartorio] API error:', { error: data?.error });
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
-      logger.info('✅ [useSistemasCartorio] Sistemas loaded:', data.data?.length);
+      logger.info('✅ [useSistemasCartorio] Sistemas loaded:', { count: data.data?.length });
       setSistemas(data.data || []);
 
     } catch (err) {

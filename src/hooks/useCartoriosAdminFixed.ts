@@ -47,11 +47,11 @@ export const useCartoriosAdminFixed = () => {
       }
 
       if (!data?.success) {
-        logger.error('❌ [useCartoriosAdminFixed] API error:', data?.error);
+        logger.error('❌ [useCartoriosAdminFixed] API error:', { error: data?.error });
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 
-      logger.info('✅ [useCartoriosAdminFixed] Cartorios loaded:', data.data?.length);
+      logger.info('✅ [useCartoriosAdminFixed] Cartorios loaded:', { count: data.data?.length });
       setCartorios(data.data || []);
 
     } catch (err) {
@@ -71,7 +71,7 @@ export const useCartoriosAdminFixed = () => {
 
   const deleteCartorio = async (cartorioId: string) => {
     try {
-      logger.info('🗑️ [useCartoriosAdminFixed] Deleting cartorio:', cartorioId);
+      logger.info('🗑️ [useCartoriosAdminFixed] Deleting cartorio:', { cartorioId });
 
       const { data, error } = await supabase.functions.invoke('delete-cartorio', {
         body: { cartorioId }
@@ -83,7 +83,7 @@ export const useCartoriosAdminFixed = () => {
       }
 
       if (!data?.success) {
-        logger.error('❌ [useCartoriosAdminFixed] Delete API error:', data?.error);
+        logger.error('❌ [useCartoriosAdminFixed] Delete API error:', { error: data?.error });
         throw new Error(data?.error || 'Erro na resposta da API');
       }
 

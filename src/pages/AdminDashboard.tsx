@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 
 // Componentes restaurados
 import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored';
-import ContentManagerFixed from '@/components/admin/ContentManagerFixed';
+import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
 
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
