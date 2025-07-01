@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,9 +8,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import ProgressDisplay from '@/components/ProgressDisplay';
+import { ProgressTracker } from '@/components/ProgressTracker';
 import { useBunnyVideoDetails } from '@/hooks/useBunnyVideoDetails';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VideoAula {
   id: string;
@@ -34,13 +36,21 @@ interface Sistema {
   nome: string;
 }
 
+interface Visualizacao {
+  progresso_segundos: number;
+  completo: boolean;
+}
+
 const VideoLesson: React.FC = () => {
   const { systemId, productId, videoId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [videoAula, setVideoAula] = useState<VideoAula | null>(null);
   const [produto, setProduto] = useState<Produto | null>(null);
   const [sistema, setSistema] = useState<Sistema | null>(null);
+  const [productVideoAulas, setProductVideoAulas] = useState<VideoAula[]>([]);
+  const [visualizacao, setVisualizacao] = useState<Visualizacao | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +59,7 @@ const VideoLesson: React.FC = () => {
     videoDetails, 
     isLoading: isBunnyLoading, 
     error: bunnyError 
-  } = useBunnyVideoDetails(videoAula?.id_video_bunny || '');
+  } = useBunnyVideoDetails(videoAula?.id_video_bunny);
 
   useEffect(() => {
     const loadVideoLesson = async () => {
@@ -113,14 +123,33 @@ const VideoLesson: React.FC = () => {
 
         setSistema(sistemaData);
 
-        // Check if bunny_video_id is missing and show helpful message
-        if (!videoData.id_video_bunny) {
-          console.warn('No bunny_video_id found for this video aula:', videoData);
-          toast({
-            title: "ID da Bunny.net ausente",
-            description: "Esta videoaula não tem um ID da Bunny.net configurado. O vídeo pode não carregar corretamente.",
-            variant: "destructive",
-          });
+        // Load all video aulas for this product
+        const { data: allVideoAulas, error: allVideoError } = await supabase
+          .from('video_aulas')
+          .select('*')
+          .eq('produto_id', productId)
+          .order('ordem', { ascending: true });
+
+        if (allVideoError) {
+          console.error('Error loading product video aulas:', allVideoError);
+        } else {
+          setProductVideoAulas(allVideoAulas || []);
+        }
+
+        // Load user progress if authenticated
+        if (user?.cartorio_id) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('visualizacoes_cartorio')
+            .select('progresso_segundos, completo')
+            .eq('video_aula_id', videoId)
+            .eq('cartorio_id', user.cartorio_id)
+            .single();
+
+          if (progressError && progressError.code !== 'PGRST116') {
+            console.error('Error loading progress:', progressError);
+          } else if (progressData) {
+            setVisualizacao(progressData);
+          }
         }
 
       } catch (error) {
@@ -132,10 +161,22 @@ const VideoLesson: React.FC = () => {
     };
 
     loadVideoLesson();
-  }, [videoId, productId, systemId]);
+  }, [videoId, productId, systemId, user?.cartorio_id]);
 
   const handleBack = () => {
     navigate(`/system/${systemId}/product/${productId}`);
+  };
+
+  const handleProgressUpdate = (progress: { progressoSegundos: number; completo: boolean }) => {
+    setVisualizacao(progress);
+  };
+
+  const currentVideoIndex = productVideoAulas.findIndex(v => v.id === videoId);
+  const previousVideo = currentVideoIndex > 0 ? productVideoAulas[currentVideoIndex - 1] : null;
+  const nextVideo = currentVideoIndex < productVideoAulas.length - 1 ? productVideoAulas[currentVideoIndex + 1] : null;
+
+  const navigateToVideo = (video: VideoAula) => {
+    navigate(`/system/${systemId}/product/${productId}/video/${video.id}`);
   };
 
   if (isLoading) {
@@ -201,7 +242,7 @@ const VideoLesson: React.FC = () => {
 
   // Determine video URL to use
   const videoUrl = videoDetails?.playUrl || videoAula.url_video || '';
-  const thumbnailUrl = videoDetails?.thumbnailUrl || videoAula.url_thumbnail;
+  const thumbnailUrl = videoDetails?.thumbnailUrl;
   const videoDuration = videoDetails?.duration;
 
   return (
@@ -213,7 +254,7 @@ const VideoLesson: React.FC = () => {
             { label: 'Dashboard', href: '/dashboard' },
             { label: sistema.nome, href: `/system/${sistema.id}` },
             { label: produto.nome, href: `/system/${sistema.id}/product/${produto.id}` },
-            { label: videoAula.titulo, href: '#', active: true }
+            { label: videoAula.titulo }
           ]}
         />
 
@@ -230,7 +271,7 @@ const VideoLesson: React.FC = () => {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Video Section */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card className="bg-gray-900/50 border-gray-700">
               <CardContent className="p-0">
                 {/* Show warning if no bunny_video_id */}
@@ -255,34 +296,42 @@ const VideoLesson: React.FC = () => {
             </Card>
 
             {/* Video Info */}
-            <Card className="mt-6 bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-2xl text-white">
                   {videoAula.titulo}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {videoAula.descricao && (
                   <p className="text-gray-300 leading-relaxed">
                     {videoAula.descricao}
                   </p>
                 )}
-                
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                  <span>Ordem: {videoAula.ordem}</span>
-                  {videoAula.id_video_bunny && (
-                    <span className="bg-green-600 text-white px-2 py-1 rounded text-xs">
-                      Bunny.net: {videoAula.id_video_bunny}
-                    </span>
-                  )}
-                  {videoDuration && (
-                    <span>Duração: {Math.floor(videoDuration / 60)}:{(videoDuration % 60).toString().padStart(2, '0')}</span>
-                  )}
-                </div>
+
+                {/* Progress Display */}
+                {visualizacao && videoDuration && (
+                  <ProgressDisplay
+                    progressSegundos={visualizacao.progresso_segundos}
+                    duracaoSegundos={videoDuration}
+                    completo={visualizacao.completo}
+                    size="md"
+                  />
+                )}
+
+                {/* Progress Tracker */}
+                {user?.cartorio_id && (
+                  <ProgressTracker
+                    videoAulaId={videoAula.id}
+                    progressoSegundos={visualizacao?.progresso_segundos || 0}
+                    completo={visualizacao?.completo || false}
+                    onProgressUpdate={handleProgressUpdate}
+                  />
+                )}
 
                 {/* Show Bunny.net loading state */}
                 {videoAula.id_video_bunny && isBunnyLoading && (
-                  <Alert className="mt-4 border-blue-600 bg-blue-900/20">
+                  <Alert className="border-blue-600 bg-blue-900/20">
                     <AlertDescription className="text-blue-300">
                       Carregando detalhes do vídeo da Bunny.net...
                     </AlertDescription>
@@ -291,7 +340,7 @@ const VideoLesson: React.FC = () => {
 
                 {/* Show Bunny.net error */}
                 {videoAula.id_video_bunny && bunnyError && (
-                  <Alert className="mt-4 border-red-600 bg-red-900/20">
+                  <Alert className="border-red-600 bg-red-900/20">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-red-300">
                       Erro ao carregar detalhes da Bunny.net: {bunnyError}
@@ -300,11 +349,71 @@ const VideoLesson: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Navigation */}
+            <div className="flex justify-between items-center">
+              <Button
+                onClick={() => previousVideo && navigateToVideo(previousVideo)}
+                disabled={!previousVideo}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Aula Anterior
+              </Button>
+
+              <Button
+                onClick={() => nextVideo && navigateToVideo(nextVideo)}
+                disabled={!nextVideo}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 disabled:opacity-50"
+              >
+                Próxima Aula
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+
+            {/* Other Videos in this Product */}
+            {productVideoAulas.length > 1 && (
+              <Card className="bg-gray-900/50 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white">
+                    Outras aulas deste produto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {productVideoAulas.map((video, index) => (
+                      <div
+                        key={video.id}
+                        className={`p-3 rounded-md cursor-pointer transition-colors ${
+                          video.id === videoId
+                            ? 'bg-red-600/20 border border-red-600/50'
+                            : 'bg-gray-800/50 hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => video.id !== videoId && navigateToVideo(video)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-300">
+                            {index + 1}. {video.titulo}
+                          </span>
+                          {video.id === videoId && (
+                            <span className="text-xs bg-red-600 text-white px-2 py-1 rounded">
+                              Atual
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* AI Chat Section */}
           <div className="lg:col-span-1">
-            <AIChat videoAulaId={videoAula.id} />
+            <AIChat lessonTitle={videoAula.titulo} />
           </div>
         </div>
       </div>
