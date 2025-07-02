@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContextFixed';
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface ProductProgressProps {
@@ -17,13 +16,13 @@ interface ProgressData {
 }
 
 export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, className = '' }) => {
-  const { user } = useAuth();
+  const { user, authenticatedClient } = useAuth();
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProgress = async () => {
-      if (!user?.cartorio_id || !productId) {
+      if (!user?.cartorio_id || !productId || !authenticatedClient) {
         setIsLoading(false);
         return;
       }
@@ -31,10 +30,11 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
       try {
         logger.info('📊 [ProductProgress] Fetching progress', {
           productId,
-          cartorioId: user.cartorio_id
+          cartorioId: user.cartorio_id,
+          hasAuthClient: !!authenticatedClient
         });
 
-        const { data, error } = await supabase
+        const { data, error } = await authenticatedClient
           .rpc('get_product_progress', {
             p_produto_id: productId,
             p_cartorio_id: user.cartorio_id
@@ -56,7 +56,7 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
     };
 
     fetchProgress();
-  }, [productId, user?.cartorio_id]);
+  }, [productId, user?.cartorio_id, authenticatedClient]);
 
   if (!user?.cartorio_id || isLoading) {
     return null;

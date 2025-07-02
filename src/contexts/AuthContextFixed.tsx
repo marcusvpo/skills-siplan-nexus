@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -48,14 +49,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
-          const authClient = createAuthenticatedClient(userData.token);
-          setAuthenticatedClient(authClient);
           
-          // Log the authenticated client setup
-          logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
-            cartorio_id: userData.cartorio_id,
-            hasClient: !!authClient
-          });
+          // Criar cliente autenticado para cartório
+          try {
+            const authClient = createAuthenticatedClient(userData.token);
+            setAuthenticatedClient(authClient);
+            
+            logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
+              cartorio_id: userData.cartorio_id,
+              hasClient: !!authClient,
+              tokenPrefix: userData.token.substring(0, 10)
+            });
+          } catch (err) {
+            logger.error('❌ [AuthContextFixed] Error creating authenticated client:', err);
+          }
         }
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
@@ -77,13 +84,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(adminUser);
       
+      // Para admin, usar o cliente padrão do Supabase
+      setAuthenticatedClient(supabase);
+      
       // Limpar dados de cartório se existirem
       const savedUser = localStorage.getItem('siplan-user');
       if (savedUser) {
         const userData = JSON.parse(savedUser);
         if (userData.type === 'cartorio') {
           localStorage.removeItem('siplan-user');
-          setAuthenticatedClient(null);
         }
       }
     } else if (!stableAuth.session && user?.type === 'admin') {
@@ -117,14 +126,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (type === 'cartorio') {
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
-      const authClient = createAuthenticatedClient(token);
-      setAuthenticatedClient(authClient);
       
-      logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
-        cartorio_id: newUser.cartorio_id,
-        hasAuthClient: !!authClient,
-        tokenLength: token.length
-      });
+      try {
+        const authClient = createAuthenticatedClient(token);
+        setAuthenticatedClient(authClient);
+        
+        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
+          cartorio_id: newUser.cartorio_id,
+          hasAuthClient: !!authClient,
+          tokenLength: token.length
+        });
+      } catch (err) {
+        logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);
+      }
+    } else {
+      // Para admin, usar o cliente padrão
+      setAuthenticatedClient(supabase);
     }
     
     logger.info('✅ [AuthContextFixed] User logged in successfully:', { 
@@ -159,9 +176,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hasSession: !!stableAuth.session,
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
-      isLoading
+      isLoading,
+      hasAuthClient: !!authenticatedClient
     });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, authenticatedClient]);
 
   return (
     <AuthContext.Provider value={{ 

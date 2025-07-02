@@ -19,50 +19,71 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Function to set custom JWT token for cartorio authentication
-export const setCustomAuthToken = (token: string) => {
-  // This function is kept for backward compatibility but deprecated
-  // Use createAuthenticatedClient instead for new implementations
-  console.log('Setting custom auth token:', token);
-};
-
-// Function to clear custom auth token
-export const clearCustomAuthToken = () => {
-  // This function is kept for backward compatibility but deprecated
-  // Use createAuthenticatedClient instead for new implementations
-  console.log('Clearing custom auth token');
-};
+// Cache para evitar múltiplas instâncias do GoTrueClient
+const clientCache = new Map<string, ReturnType<typeof createClient>>();
 
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (token: string) => {
   console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
   
-  // For cartório tokens, we need to handle them differently
+  // Use cache para evitar múltiplas instâncias
+  const cacheKey = `auth_${token.slice(0, 10)}`;
+  if (clientCache.has(cacheKey)) {
+    console.log('🔄 [createAuthenticatedClient] Using cached client');
+    return clientCache.get(cacheKey)!;
+  }
+  
+  let client;
+  
+  // Para tokens de cartório, usar tanto Authorization quanto X-Custom-Auth headers
   if (token.startsWith('CART-')) {
-    // Don't try to use CART- tokens as JWT, use them in a custom header instead
-    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    console.log('🏢 [createAuthenticatedClient] Creating cartorio client with custom headers');
+    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
       },
       global: {
         headers: {
-          'X-Custom-Auth': token, // Use custom header for CART tokens
+          'Authorization': `Bearer ${token}`,
+          'X-Custom-Auth': token, // Header adicional para RLS
+        },
+      },
+    });
+  } else {
+    // Para JWT tokens regulares
+    console.log('🔑 [createAuthenticatedClient] Creating JWT client');
+    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          'Authorization': `Bearer ${token}`,
         },
       },
     });
   }
   
-  // For proper JWT tokens, use Authorization header
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    global: {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    },
-  });
+  // Cache the client
+  clientCache.set(cacheKey, client);
+  
+  // Limpar cache após 5 minutos para evitar tokens expirados
+  setTimeout(() => {
+    clientCache.delete(cacheKey);
+  }, 5 * 60 * 1000);
+  
+  return client;
+};
+
+// Function to set custom JWT token for cartorio authentication
+export const setCustomAuthToken = (token: string) => {
+  console.log('Setting custom auth token:', token);
+};
+
+// Function to clear custom auth token
+export const clearCustomAuthToken = () => {
+  console.log('Clearing custom auth token');
+  clientCache.clear();
 };
