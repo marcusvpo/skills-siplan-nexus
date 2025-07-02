@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { logger } from '@/utils/logger';
 
 interface ProductProgressProps {

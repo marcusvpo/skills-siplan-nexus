@@ -6,10 +6,12 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
-// Singleton instance to prevent multiple GoTrueClient instances
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: false,
+    persistSession: false, // Disable default auth since we use custom tokens
     autoRefreshToken: false,
   },
   global: {
@@ -17,50 +19,50 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-console.log('🔐 [SupabaseClient] Main client created (singleton)');
+// Function to set custom JWT token for cartorio authentication
+export const setCustomAuthToken = (token: string) => {
+  // This function is kept for backward compatibility but deprecated
+  // Use createAuthenticatedClient instead for new implementations
+  console.log('Setting custom auth token:', token);
+};
 
-// Single cache for authenticated clients
-const authClientCache = new Map<string, any>();
+// Function to clear custom auth token
+export const clearCustomAuthToken = () => {
+  // This function is kept for backward compatibility but deprecated
+  // Use createAuthenticatedClient instead for new implementations
+  console.log('Clearing custom auth token');
+};
 
 // Helper function to create authenticated supabase instance
-export const createAuthenticatedClient = (jwtToken: string) => {
-  // Use cache to prevent multiple instances with same token
-  if (authClientCache.has(jwtToken)) {
-    console.log('🔐 [createAuthenticatedClient] Using cached client');
-    return authClientCache.get(jwtToken);
+export const createAuthenticatedClient = (token: string) => {
+  console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+  
+  // Para tokens de cartório (CART-), usar Authorization header diretamente
+  // A função get_current_cartorio_id() espera o token no Authorization header
+  if (token.startsWith('CART-')) {
+    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          'Authorization': `Bearer ${token}`, // Usar Authorization header para compatibilidade com RLS
+        },
+      },
+    });
   }
   
-  console.log('🔐 [createAuthenticatedClient] Creating new authenticated client');
-  
-  const authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  // For proper JWT tokens, use Authorization header
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
     },
     global: {
       headers: {
-        'Authorization': `Bearer ${jwtToken}`,
+        'Authorization': `Bearer ${token}`,
       },
     },
   });
-
-  // Add to cache
-  authClientCache.set(jwtToken, authenticatedClient);
-  
-  return authenticatedClient;
-};
-
-// Function to clear cache when needed
-export const clearAuthClientCache = () => {
-  console.log('🔐 [clearAuthClientCache] Clearing cache');
-  authClientCache.clear();
-};
-
-// Deprecated functions kept for compatibility
-export const setCustomAuthToken = (token: string) => {
-  console.log('⚠️ [setCustomAuthToken] Function deprecated');
-};
-
-export const clearCustomAuthToken = () => {
-  console.log('⚠️ [clearCustomAuthToken] Function deprecated');
 };

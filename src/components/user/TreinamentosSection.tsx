@@ -7,44 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/hooks/useAuth';
-import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
+import { useAuth } from '@/contexts/AuthContextFixed';
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
-  
-  console.log('📚 [TreinamentosSection] Component with context ID:', getAuthContextId());
-  debugAuthContext('TreinamentosSection');
-  
-  // Wrapping useAuth em try/catch para melhor debug
-  let authData;
-  try {
-    authData = useAuth();
-  } catch (error) {
-    console.error('❌ [TreinamentosSection] Failed to get auth context:', error);
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Card className="bg-gray-800/50 border-red-600 max-w-lg">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-400 mb-2">Erro de Autenticação</h3>
-            <p className="text-gray-400 text-center mb-6">
-              Não foi possível acessar o contexto de autenticação.
-            </p>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-red-600 hover:bg-red-700 text-white w-full"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Recarregar Página
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  const { user } = authData;
+  const { user } = useAuth();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
 
   React.useEffect(() => {
@@ -54,8 +21,7 @@ export const TreinamentosSection: React.FC = () => {
       hasError: !!error,
       errorMessage: error?.message,
       userType: user?.type,
-      cartorioId: user?.cartorio_id,
-      contextId: getAuthContextId()
+      cartorioId: user?.cartorio_id
     });
   }, [sistemas.length, isLoading, error, user]);
 

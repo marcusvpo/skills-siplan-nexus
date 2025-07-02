@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -31,31 +31,58 @@ const Login = () => {
     setError('');
 
     try {
-      console.log('🔐 [Login] Starting login process');
+      logger.userAction('Login attempt started', { username, hasToken: !!token });
       
-      await login(token, 'cartorio', {
-        username: username
-      });
-      
-      console.log('🔐 [Login] Login successful, showing toast');
-      
-      toast({
-        title: "Login realizado com sucesso!",
-        description: `Bem-vindo(a), ${username}!`,
+      const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
+        },
+        body: JSON.stringify({ username, login_token: token }),
       });
 
-      // Wait longer for context to stabilize
-      console.log('🔐 [Login] Waiting for context stabilization...');
-      setTimeout(() => {
-        console.log('🔐 [Login] Redirecting to dashboard');
-        navigate('/dashboard');
-      }, 200);
+      logger.info('Login response received', { status: response.status });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          error: `Erro HTTP ${response.status}`,
+          code: 'HTTP_ERROR'
+        }));
+        
+        logger.error('Login failed', { error: errorData, status: response.status });
+        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      logger.info('Login successful', { 
+        cartorio: data.cartorio?.nome,
+        usuario: data.usuario?.username
+      });
+
+      if (data.success && data.token && data.cartorio && data.usuario) {
+        login(data.token, 'cartorio', {
+          id: data.usuario.id,
+          name: data.usuario.username,
+          cartorio_id: data.cartorio.id,
+          cartorio_name: data.cartorio.nome,
+          username: data.usuario.username
+        });
+        
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
+        });
+        
+        navigate('/dashboard');
+      } else {
+        throw new Error(data.error || 'Resposta inválida do servidor');
+      }
     } catch (error) {
-      console.error('❌ [Login] Login error:', error);
+      logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      // Map error codes to friendly messages
+      // Mapear códigos de erro para mensagens mais amigáveis
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';

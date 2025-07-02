@@ -1,9 +1,8 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthProvider';
+import { AuthProvider } from '@/contexts/AuthContextFixed';
 import { Toaster } from '@/components/ui/toaster';
-import { debugAuthContext } from '@/contexts/AuthContextSingleton';
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import AdminLogin from '@/pages/AdminLogin';
@@ -22,9 +21,6 @@ import NotFound from '@/pages/NotFound';
 const queryClient = new QueryClient();
 
 function App() {
-  console.log('🚀 [App] Starting application');
-  debugAuthContext('App Component');
-  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

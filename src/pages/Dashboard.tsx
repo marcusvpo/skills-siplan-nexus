@@ -1,55 +1,24 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
 import { BookOpen, LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
-import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 const Dashboard = () => {
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  
-  console.log('🏠 [Dashboard] Rendering with context ID:', getAuthContextId());
-  debugAuthContext('Dashboard');
-  
-  // Wrapping useAuth em try/catch para melhor debug
-  let authData;
-  try {
-    authData = useAuth();
-  } catch (error) {
-    console.error('❌ [Dashboard] Failed to get auth context:', error);
-    // Fallback: redirecionar para login
-    useEffect(() => {
-      navigate('/login');
-    }, [navigate]);
-    
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">❌ Erro de Autenticação</div>
-          <p className="text-white">Redirecionando para login...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const { user, logout, isAuthenticated, isLoading } = authData;
-  
-  console.log('🏠 [Dashboard] State:', {
-    hasUser: !!user,
-    userType: user?.type,
-    isAuthenticated,
-    isLoading,
-    cartorioId: user?.cartorio_id
-  });
 
-  useEffect(() => {
-    if (isLoading) {
-      console.log('🏠 [Dashboard] Still loading, waiting...');
-      return;
-    }
+  // Verificações de segurança críticas para usuário cartório
+  React.useEffect(() => {
+    console.log('🎯 [Dashboard] Current auth state:', { 
+      isAuthenticated, 
+      userType: user?.type,
+      cartorioId: user?.cartorio_id,
+      user: user
+    });
 
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
@@ -77,33 +46,7 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-  }, [isAuthenticated, user?.type, user?.cartorio_id, navigate, isLoading]);
-
-  // Loading state
-  if (isLoading) {
-    console.log('🏠 [Dashboard] Showing loading state');
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // User validation
-  if (!user || user.type !== 'cartorio' || !user.cartorio_id) {
-    console.log('🏠 [Dashboard] User not ready, showing loading state');
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Verificando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -123,10 +66,21 @@ const Dashboard = () => {
     }
   };
 
-  console.log('🏠 [Dashboard] Rendering dashboard content for user:', user.username);
+  // Loading state
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Carregando dados do usuário...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Header */}
       <div className="border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -144,9 +98,9 @@ const Dashboard = () => {
               <div className="text-right">
                 <p className="text-sm font-medium flex items-center">
                   <User className="h-4 w-4 mr-1" />
-                  {user.username || user.name}
+                  {user?.username || user?.name}
                 </p>
-                <p className="text-xs text-gray-400">{user.cartorio_name}</p>
+                <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
               </div>
               <Button
                 onClick={handleLogout}
@@ -162,10 +116,11 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Bem-vindo(a), {user.username || user.name}!
+            Bem-vindo(a), {user?.username || user?.name}!
           </h2>
           <p className="text-gray-400">
             Selecione um sistema para começar seu treinamento
