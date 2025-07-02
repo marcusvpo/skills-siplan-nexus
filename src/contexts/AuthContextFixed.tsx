@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -9,6 +10,7 @@ interface User {
   name: string;
   type: 'cartorio' | 'admin';
   token?: string;
+  jwtToken?: string; // Added this property to fix the TypeScript error
   cartorio_id?: string;
   cartorio_name?: string;
   username?: string;
