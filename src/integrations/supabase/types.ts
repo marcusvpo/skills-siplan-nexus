@@ -353,42 +353,29 @@ export type Database = {
       visualizacoes_cartorio: {
         Row: {
           cartorio_id: string
-          cartorio_usuario_id: string | null
           completo: boolean
+          concluida: boolean | null
           data_conclusao: string | null
           id: string
-          progresso_segundos: number
-          ultima_visualizacao: string
           video_aula_id: string
         }
         Insert: {
           cartorio_id: string
-          cartorio_usuario_id?: string | null
           completo?: boolean
+          concluida?: boolean | null
           data_conclusao?: string | null
           id?: string
-          progresso_segundos?: number
-          ultima_visualizacao?: string
           video_aula_id: string
         }
         Update: {
           cartorio_id?: string
-          cartorio_usuario_id?: string | null
           completo?: boolean
+          concluida?: boolean | null
           data_conclusao?: string | null
           id?: string
-          progresso_segundos?: number
-          ultima_visualizacao?: string
           video_aula_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "visualizacoes_cartorio_cartorio_usuario_id_fkey"
-            columns: ["cartorio_usuario_id"]
-            isOneToOne: false
-            referencedRelation: "cartorio_usuarios"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "visualizacoes_cartorio_fk"
             columns: ["cartorio_id"]
@@ -429,6 +416,10 @@ export type Database = {
       get_current_cartorio_usuario_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_product_progress: {
+        Args: { p_produto_id: string; p_cartorio_id: string }
+        Returns: Json
       }
       is_admin: {
         Args: Record<PropertyKey, never>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, ArrowRight, Clock } from 'lucide-react';
+import { ProductProgress } from '@/components/ProductProgress';
 
 interface Product {
   id: string;
@@ -69,6 +70,9 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
                   <span>{totalAulas} videoaula{totalAulas !== 1 ? 's' : ''}</span>
                 </div>
               </div>
+              
+              {/* Barra de Progresso do Produto */}
+              <ProductProgress productId={produto.id} className="mb-4" />
               
               <Button 
                 className="w-full bg-red-600 hover:bg-red-700 transition-all duration-200 group-hover:scale-105"
