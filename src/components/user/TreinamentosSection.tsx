@@ -7,12 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext'; // Corrigido: usando o contexto correto
+import { useAuth } from '@/hooks/useAuth'; // Using singleton hook
+import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
+
+  console.log('📚 [TreinamentosSection] Component with context ID:', getAuthContextId());
+  debugAuthContext('TreinamentosSection');
 
   React.useEffect(() => {
     logger.info('📚 [TreinamentosSection] Component state:', {
@@ -21,7 +25,8 @@ export const TreinamentosSection: React.FC = () => {
       hasError: !!error,
       errorMessage: error?.message,
       userType: user?.type,
-      cartorioId: user?.cartorio_id
+      cartorioId: user?.cartorio_id,
+      contextId: getAuthContextId()
     });
   }, [sistemas.length, isLoading, error, user]);
 

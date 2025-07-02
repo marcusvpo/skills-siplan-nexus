@@ -1,17 +1,21 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth'; // Using singleton hook
 import { Button } from '@/components/ui/button';
 import { BookOpen, LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
+import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 const Dashboard = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  console.log('🏠 [Dashboard] Rendering with:', {
+  console.log('🏠 [Dashboard] Rendering with context ID:', getAuthContextId());
+  debugAuthContext('Dashboard');
+  
+  console.log('🏠 [Dashboard] State:', {
     hasUser: !!user,
     userType: user?.type,
     isAuthenticated,
@@ -33,7 +37,7 @@ const Dashboard = () => {
   }
 
   // Authentication checks
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
       navigate('/login');
