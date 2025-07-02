@@ -1,5 +1,5 @@
 
-import { useContext } from 'react';
+import React, { useContext } from 'react';
 import { AuthContext, debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 export const useAuth = () => {
