@@ -11,26 +11,26 @@ import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
 
 const VideoLesson: React.FC = () => {
-  const { systemId, productId, videoAulaId } = useParams<{ 
+  const { systemId, productId, videoId } = useParams<{ 
     systemId: string; 
     productId: string; 
-    videoAulaId: string; 
+    videoId: string; 
   }>();
   const navigate = useNavigate();
   
-  const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoAulaId || '');
+  const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoId || '');
 
   useEffect(() => {
-    if (videoAulaId) {
+    if (videoId) {
       logger.info('🎥 [VideoLesson] Page loaded for video', { 
-        videoId: videoAulaId,
+        videoId: videoId,
         systemId,
         productId 
       });
     }
-  }, [videoAulaId, systemId, productId]);
+  }, [videoId, systemId, productId]);
 
-  if (!videoAulaId) {
+  if (!videoId) {
     logger.error('❌ [VideoLesson] Missing video ID');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -118,7 +118,7 @@ const VideoLesson: React.FC = () => {
                 </p>
               </div>
             </div>
-            <ProgressTrackerFixed videoAulaId={videoAulaId} />
+            <ProgressTrackerFixed videoAulaId={videoId} />
           </div>
         </div>
       </div>

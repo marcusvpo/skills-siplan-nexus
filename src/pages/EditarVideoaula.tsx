@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { VideoAulaFormFixed } from '@/components/admin/VideoAulaFormFixed';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,10 +38,12 @@ interface VideoAula {
 
 const EditarVideoaula: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { invalidateVideoAulaQueries } = useQueryInvalidation();
   
-  const videoAulaId = searchParams.get('id');
+  // Get videoaula ID from URL params or search params
+  const videoAulaId = id || searchParams.get('id');
   const sistemaId = searchParams.get('sistema_id');
   const produtoId = searchParams.get('produto_id');
 
@@ -53,8 +55,8 @@ const EditarVideoaula: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!videoAulaId || !sistemaId || !produtoId) {
-        setError('IDs obrigatórios estão faltando');
+      if (!videoAulaId) {
+        setError('ID da videoaula é obrigatório');
         setIsLoading(false);
         return;
       }
@@ -66,31 +68,7 @@ const EditarVideoaula: React.FC = () => {
           produtoId
         });
 
-        // Fetch sistema
-        const { data: sistemaData, error: sistemaError } = await supabase
-          .from('sistemas')
-          .select('*')
-          .eq('id', sistemaId)
-          .single();
-
-        if (sistemaError) {
-          logger.error('❌ [EditarVideoaula] Error loading sistema:', { error: sistemaError });
-          throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
-        }
-
-        // Fetch produto
-        const { data: produtoData, error: produtoError } = await supabase
-          .from('produtos')
-          .select('*')
-          .eq('id', produtoId)
-          .single();
-
-        if (produtoError) {
-          logger.error('❌ [EditarVideoaula] Error loading produto:', { error: produtoError });
-          throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
-        }
-
-        // Fetch videoaula
+        // Fetch videoaula first to get produto_id if not provided
         const { data: videoAulaData, error: videoAulaError } = await supabase
           .from('video_aulas')
           .select('*')
@@ -102,15 +80,45 @@ const EditarVideoaula: React.FC = () => {
           throw new Error(`Erro ao carregar videoaula: ${videoAulaError.message}`);
         }
 
-        setSistema(sistemaData);
-        setProduto(produtoData);
         setVideoAula(videoAulaData);
-        
-        logger.info('✅ [EditarVideoaula] Data loaded successfully', {
-          sistema: sistemaData.nome,
-          produto: produtoData.nome,
-          videoaula: videoAulaData.titulo
-        });
+        const finalProdutoId = produtoId || videoAulaData.produto_id;
+
+        if (finalProdutoId) {
+          // Fetch produto
+          const { data: produtoData, error: produtoError } = await supabase
+            .from('produtos')
+            .select('*')
+            .eq('id', finalProdutoId)
+            .single();
+
+          if (produtoError) {
+            logger.error('❌ [EditarVideoaula] Error loading produto:', { error: produtoError });
+            throw new Error(`Erro ao carregar produto: ${produtoError.message}`);
+          }
+
+          setProduto(produtoData);
+          const finalSistemaId = sistemaId || produtoData.sistema_id;
+
+          // Fetch sistema
+          const { data: sistemaData, error: sistemaError } = await supabase
+            .from('sistemas')
+            .select('*')
+            .eq('id', finalSistemaId)
+            .single();
+
+          if (sistemaError) {
+            logger.error('❌ [EditarVideoaula] Error loading sistema:', { error: sistemaError });
+            throw new Error(`Erro ao carregar sistema: ${sistemaError.message}`);
+          }
+
+          setSistema(sistemaData);
+
+          logger.info('✅ [EditarVideoaula] Data loaded successfully', {
+            sistema: sistemaData.nome,
+            produto: produtoData.nome,
+            videoaula: videoAulaData.titulo
+          });
+        }
       } catch (err) {
         logger.error('❌ [EditarVideoaula] Unexpected error:', { error: err });
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -126,8 +134,8 @@ const EditarVideoaula: React.FC = () => {
     logger.info('✅ [EditarVideoaula] Videoaula updated successfully');
     
     // Invalidar queries para garantir atualização imediata
-    if (produtoId) {
-      invalidateVideoAulaQueries(produtoId);
+    if (produto?.id) {
+      invalidateVideoAulaQueries(produto.id);
     }
     
     // Navegar de volta para o admin
@@ -154,7 +162,7 @@ const EditarVideoaula: React.FC = () => {
     );
   }
 
-  if (error || !sistema || !produto || !videoAula) {
+  if (error || !videoAula) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">

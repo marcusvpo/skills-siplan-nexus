@@ -34,6 +34,7 @@ function App() {
             <Route path="/admin/videoaula/nova" element={<NovaVideoaulaBunny />} />
             <Route path="/nova-videoaula-bunny" element={<NovaVideoaulaBunny />} />
             <Route path="/admin/videoaula/editar" element={<EditarVideoaula />} />
+            <Route path="/admin/video-aulas/editar/:id" element={<EditarVideoaula />} />
             <Route path="/admin/videoaula-editor" element={<VideoAulaEditorWYSIWYG />} />
             <Route path="/admin/videoaula-editor/:id" element={<VideoAulaEditorWYSIWYG />} />
             <Route path="/system/:systemId" element={<SystemPage />} />
