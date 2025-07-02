@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,51 +32,17 @@ const Login = () => {
     try {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
       
-      const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
-        },
-        body: JSON.stringify({ username, login_token: token }),
+      // Usar o método login do contexto que agora lida com a obtenção do JWT
+      await login(token, 'cartorio', {
+        username: username
       });
-
-      logger.info('Login response received', { status: response.status });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error: `Erro HTTP ${response.status}`,
-          code: 'HTTP_ERROR'
-        }));
-        
-        logger.error('Login failed', { error: errorData, status: response.status });
-        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      logger.info('Login successful', { 
-        cartorio: data.cartorio?.nome,
-        usuario: data.usuario?.username
+      toast({
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo(a), ${username}!`,
       });
-
-      if (data.success && data.token && data.cartorio && data.usuario) {
-        login(data.token, 'cartorio', {
-          id: data.usuario.id,
-          name: data.usuario.username,
-          cartorio_id: data.cartorio.id,
-          cartorio_name: data.cartorio.nome,
-          username: data.usuario.username
-        });
-        
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
-        });
-        
-        navigate('/dashboard');
-      } else {
-        throw new Error(data.error || 'Resposta inválida do servidor');
-      }
+      
+      navigate('/dashboard');
     } catch (error) {
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';

@@ -22,38 +22,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Function to set custom JWT token for cartorio authentication
 export const setCustomAuthToken = (token: string) => {
   // This function is kept for backward compatibility but deprecated
-  // Use createAuthenticatedClient instead for new implementations
   console.log('Setting custom auth token:', token);
 };
 
 // Function to clear custom auth token
 export const clearCustomAuthToken = () => {
   // This function is kept for backward compatibility but deprecated
-  // Use createAuthenticatedClient instead for new implementations
   console.log('Clearing custom auth token');
 };
 
 // Helper function to create authenticated supabase instance
-export const createAuthenticatedClient = (token: string) => {
-  console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+export const createAuthenticatedClient = (jwtToken: string) => {
+  console.log('🔐 [createAuthenticatedClient] Creating client with JWT token');
   
-  // Para tokens de cartório (CART-), usar Authorization header diretamente
-  // A função get_current_cartorio_id() espera o token no Authorization header
-  if (token.startsWith('CART-')) {
-    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`, // Usar Authorization header para compatibilidade com RLS
-        },
-      },
-    });
-  }
-  
-  // For proper JWT tokens, use Authorization header
+  // Agora sempre esperamos um JWT válido, não mais tokens CART-
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
@@ -61,7 +43,7 @@ export const createAuthenticatedClient = (token: string) => {
     },
     global: {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${jwtToken}`, // JWT válido da edge function
       },
     },
   });
