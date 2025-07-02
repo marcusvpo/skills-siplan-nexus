@@ -33,13 +33,38 @@ export const clearCustomAuthToken = () => {
   console.log('Clearing custom auth token');
 };
 
+// Helper function to validate JWT token format
+const isValidJWT = (token: string): boolean => {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+  
+  const parts = token.split('.');
+  return parts.length === 3;
+};
+
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (token: string) => {
   console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
   
+  // Validar se o token está presente e não está vazio
+  if (!token || token.trim() === '') {
+    console.error('❌ [createAuthenticatedClient] Empty or null token provided');
+    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {},
+      },
+    });
+  }
+  
   // Para tokens de cartório (CART-), usar Authorization header diretamente
   // A função get_current_cartorio_id() espera o token no Authorization header
   if (token.startsWith('CART-')) {
+    console.log('🔐 [createAuthenticatedClient] Using CART token');
     return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: false,
@@ -53,16 +78,36 @@ export const createAuthenticatedClient = (token: string) => {
     });
   }
   
-  // For proper JWT tokens, use Authorization header
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    global: {
-      headers: {
-        'Authorization': `Bearer ${token}`,
+  // Para tokens JWT válidos, validar formato antes de usar
+  if (isValidJWT(token)) {
+    console.log('✅ [createAuthenticatedClient] Using valid JWT token');
+    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
-    },
-  });
+      global: {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      },
+    });
+  } else {
+    console.error('❌ [createAuthenticatedClient] Invalid JWT token format:', {
+      tokenLength: token.length,
+      tokenParts: token.split('.').length,
+      tokenStart: token.substring(0, 10) + '...'
+    });
+    
+    // Retornar cliente sem autenticação em caso de token inválido
+    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {},
+      },
+    });
+  }
 };

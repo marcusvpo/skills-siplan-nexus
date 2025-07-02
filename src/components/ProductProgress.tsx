@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 
 interface ProductProgressProps {
@@ -30,7 +30,15 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
       try {
         logger.info('📊 [ProductProgress] Fetching progress', {
           productId,
-          cartorioId: user.cartorio_id
+          cartorioId: user.cartorio_id,
+          hasAuthClient: !!authenticatedClient
+        });
+
+        // Debug: verificar estado do authenticatedClient
+        logger.info('📊 [ProductProgress] Auth client state', {
+          clientType: typeof authenticatedClient,
+          hasHeaders: !!authenticatedClient.headers,
+          hasAuth: !!(authenticatedClient.headers?.Authorization || authenticatedClient.headers?.authorization)
         });
 
         const { data, error } = await authenticatedClient
@@ -40,7 +48,12 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
           });
 
         if (error) {
-          logger.error('❌ [ProductProgress] Error fetching progress:', { error });
+          logger.error('❌ [ProductProgress] Error fetching progress:', { 
+            error,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorDetails: error.details
+          });
         } else {
           // Cast the Json response to ProgressData via unknown
           const progressData = data as unknown as ProgressData;
@@ -48,7 +61,10 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
           logger.info('✅ [ProductProgress] Progress fetched', { progress: progressData });
         }
       } catch (err) {
-        logger.error('❌ [ProductProgress] Unexpected error:', { error: err });
+        logger.error('❌ [ProductProgress] Unexpected error:', { 
+          error: err,
+          errorMessage: err instanceof Error ? err.message : 'Unknown error'
+        });
       } finally {
         setIsLoading(false);
       }

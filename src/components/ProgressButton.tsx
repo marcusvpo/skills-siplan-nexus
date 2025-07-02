@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -26,7 +26,18 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       try {
         logger.info('📊 [ProgressButton] Checking progress', {
           videoAulaId,
-          cartorioId: user.cartorio_id
+          cartorioId: user.cartorio_id,
+          hasAuthClient: !!authenticatedClient
+        });
+
+        // Debug: verificar se o authenticatedClient tem token válido
+        const headers = authenticatedClient.supabaseKey ? 
+          { apikey: authenticatedClient.supabaseKey } : 
+          authenticatedClient.headers || {};
+        
+        logger.info('📊 [ProgressButton] Auth client headers check', {
+          hasHeaders: !!headers,
+          hasAuth: !!headers.Authorization || !!headers.authorization
         });
 
         const { data: progress, error } = await authenticatedClient
@@ -37,7 +48,12 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
           .maybeSingle();
 
         if (error) {
-          logger.error('❌ [ProgressButton] Error checking progress:', { error });
+          logger.error('❌ [ProgressButton] Error checking progress:', { 
+            error,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorDetails: error.details
+          });
         } else {
           setIsCompleted(progress?.completo || false);
           logger.info('✅ [ProgressButton] Progress checked', {
@@ -45,7 +61,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
           });
         }
       } catch (err) {
-        logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
+        logger.error('❌ [ProgressButton] Unexpected error:', { 
+          error: err,
+          errorMessage: err instanceof Error ? err.message : 'Unknown error'
+        });
       } finally {
         setCheckingProgress(false);
       }
@@ -58,7 +77,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
     if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
       toast({
         title: "Erro",
-        description: "Usuário não identificado",
+        description: "Usuário não identificado ou cliente não autenticado",
         variant: "destructive",
       });
       return;
@@ -69,7 +88,15 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
     try {
       logger.info('📊 [ProgressButton] Marking as complete', {
         videoAulaId,
-        cartorioId: user.cartorio_id
+        cartorioId: user.cartorio_id,
+        hasAuthClient: !!authenticatedClient
+      });
+
+      // Debug: verificar estado do authenticatedClient antes do upsert
+      logger.info('📊 [ProgressButton] Auth client state before upsert', {
+        clientType: typeof authenticatedClient,
+        hasHeaders: !!authenticatedClient.headers,
+        hasAuth: !!(authenticatedClient.headers?.Authorization || authenticatedClient.headers?.authorization)
       });
 
       // Fazer upsert diretamente com todos os campos necessários
@@ -88,6 +115,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         logger.error('❌ [ProgressButton] Error marking complete:', { 
           error,
           errorMessage: error.message,
+          errorCode: error.code,
           errorDetails: error.details,
           errorHint: error.hint
         });
@@ -108,7 +136,11 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
 
       logger.info('✅ [ProgressButton] Marked as complete successfully');
     } catch (err) {
-      logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
+      logger.error('❌ [ProgressButton] Unexpected error:', { 
+        error: err,
+        errorMessage: err instanceof Error ? err.message : 'Unknown error',
+        errorStack: err instanceof Error ? err.stack : undefined
+      });
       toast({
         title: "Erro ao salvar progresso",
         description: "Não foi possível marcar a aula como concluída.",
