@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -11,14 +12,14 @@ interface ProgressButtonProps {
 }
 
 export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) => {
-  const { user, authenticatedClient } = useAuth();
+  const { user } = useAuth();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProgress, setCheckingProgress] = useState(true);
 
   useEffect(() => {
     const checkProgress = async () => {
-      if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
+      if (!user?.cartorio_id || !videoAulaId) {
         setCheckingProgress(false);
         return;
       }
@@ -26,21 +27,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       try {
         logger.info('📊 [ProgressButton] Checking progress', {
           videoAulaId,
-          cartorioId: user.cartorio_id,
-          hasAuthClient: !!authenticatedClient
+          cartorioId: user.cartorio_id
         });
 
-        // Debug: verificar se o authenticatedClient tem token válido
-        const headers = authenticatedClient.supabaseKey ? 
-          { apikey: authenticatedClient.supabaseKey } : 
-          authenticatedClient.headers || {};
-        
-        logger.info('📊 [ProgressButton] Auth client headers check', {
-          hasHeaders: !!headers,
-          hasAuth: !!headers.Authorization || !!headers.authorization
-        });
-
-        const { data: progress, error } = await authenticatedClient
+        const { data: progress, error } = await supabase
           .from('visualizacoes_cartorio')
           .select('completo')
           .eq('video_aula_id', videoAulaId)
@@ -48,12 +38,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
           .maybeSingle();
 
         if (error) {
-          logger.error('❌ [ProgressButton] Error checking progress:', { 
-            error,
-            errorMessage: error.message,
-            errorCode: error.code,
-            errorDetails: error.details
-          });
+          logger.error('❌ [ProgressButton] Error checking progress:', { error });
         } else {
           setIsCompleted(progress?.completo || false);
           logger.info('✅ [ProgressButton] Progress checked', {
@@ -61,23 +46,20 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
           });
         }
       } catch (err) {
-        logger.error('❌ [ProgressButton] Unexpected error:', { 
-          error: err,
-          errorMessage: err instanceof Error ? err.message : 'Unknown error'
-        });
+        logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
       } finally {
         setCheckingProgress(false);
       }
     };
 
     checkProgress();
-  }, [videoAulaId, user?.cartorio_id, authenticatedClient]);
+  }, [videoAulaId, user?.cartorio_id]);
 
   const markAsComplete = async () => {
-    if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
+    if (!user?.cartorio_id || !videoAulaId) {
       toast({
         title: "Erro",
-        description: "Usuário não identificado ou cliente não autenticado",
+        description: "Usuário não identificado",
         variant: "destructive",
       });
       return;
@@ -88,19 +70,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
     try {
       logger.info('📊 [ProgressButton] Marking as complete', {
         videoAulaId,
-        cartorioId: user.cartorio_id,
-        hasAuthClient: !!authenticatedClient
+        cartorioId: user.cartorio_id
       });
 
-      // Debug: verificar estado do authenticatedClient antes do upsert
-      logger.info('📊 [ProgressButton] Auth client state before upsert', {
-        clientType: typeof authenticatedClient,
-        hasHeaders: !!authenticatedClient.headers,
-        hasAuth: !!(authenticatedClient.headers?.Authorization || authenticatedClient.headers?.authorization)
-      });
-
-      // Fazer upsert diretamente com todos os campos necessários
-      const { error } = await authenticatedClient
+      const { error } = await supabase
         .from('visualizacoes_cartorio')
         .upsert({
           video_aula_id: videoAulaId,
@@ -112,16 +85,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         });
 
       if (error) {
-        logger.error('❌ [ProgressButton] Error marking complete:', { 
-          error,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorDetails: error.details,
-          errorHint: error.hint
-        });
+        logger.error('❌ [ProgressButton] Error marking complete:', { error });
         toast({
           title: "Erro ao salvar progresso",
-          description: `${error.message}${error.hint ? ` - ${error.hint}` : ''}`,
+          description: error.message,
           variant: "destructive",
         });
         return;
@@ -136,11 +103,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
 
       logger.info('✅ [ProgressButton] Marked as complete successfully');
     } catch (err) {
-      logger.error('❌ [ProgressButton] Unexpected error:', { 
-        error: err,
-        errorMessage: err instanceof Error ? err.message : 'Unknown error',
-        errorStack: err instanceof Error ? err.stack : undefined
-      });
+      logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
       toast({
         title: "Erro ao salvar progresso",
         description: "Não foi possível marcar a aula como concluída.",

@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface ProductProgressProps {
@@ -16,13 +17,13 @@ interface ProgressData {
 }
 
 export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, className = '' }) => {
-  const { user, authenticatedClient } = useAuth();
+  const { user } = useAuth();
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProgress = async () => {
-      if (!user?.cartorio_id || !productId || !authenticatedClient) {
+      if (!user?.cartorio_id || !productId) {
         setIsLoading(false);
         return;
       }
@@ -30,30 +31,17 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
       try {
         logger.info('📊 [ProductProgress] Fetching progress', {
           productId,
-          cartorioId: user.cartorio_id,
-          hasAuthClient: !!authenticatedClient
+          cartorioId: user.cartorio_id
         });
 
-        // Debug: verificar estado do authenticatedClient
-        logger.info('📊 [ProductProgress] Auth client state', {
-          clientType: typeof authenticatedClient,
-          hasHeaders: !!authenticatedClient.headers,
-          hasAuth: !!(authenticatedClient.headers?.Authorization || authenticatedClient.headers?.authorization)
-        });
-
-        const { data, error } = await authenticatedClient
+        const { data, error } = await supabase
           .rpc('get_product_progress', {
             p_produto_id: productId,
             p_cartorio_id: user.cartorio_id
           });
 
         if (error) {
-          logger.error('❌ [ProductProgress] Error fetching progress:', { 
-            error,
-            errorMessage: error.message,
-            errorCode: error.code,
-            errorDetails: error.details
-          });
+          logger.error('❌ [ProductProgress] Error fetching progress:', { error });
         } else {
           // Cast the Json response to ProgressData via unknown
           const progressData = data as unknown as ProgressData;
@@ -61,17 +49,14 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
           logger.info('✅ [ProductProgress] Progress fetched', { progress: progressData });
         }
       } catch (err) {
-        logger.error('❌ [ProductProgress] Unexpected error:', { 
-          error: err,
-          errorMessage: err instanceof Error ? err.message : 'Unknown error'
-        });
+        logger.error('❌ [ProductProgress] Unexpected error:', { error: err });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProgress();
-  }, [productId, user?.cartorio_id, authenticatedClient]);
+  }, [productId, user?.cartorio_id]);
 
   if (!user?.cartorio_id || isLoading) {
     return null;
