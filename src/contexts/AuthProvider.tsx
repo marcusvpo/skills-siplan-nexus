@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { AuthContext, debugAuthContext, getAuthContextId, User, CartorioLoginData, AuthContextType } from '@/contexts/AuthContextSingleton';
-import { useStableAuth } from '@/hooks/useStableAuth';
-import { createAuthenticatedClient } from '@/integrations/supabase/client';
+import { supabase, createAuthenticatedClient } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface AuthProviderProps {
@@ -14,13 +13,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log('🔐 [AuthProvider] Rendering with context ID:', getAuthContextId());
   debugAuthContext('AuthProvider');
   
+  // Estados principais
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
-  
-  const stableAuth = useStableAuth();
 
-  // Restore user from localStorage only once
+  // Inicialização única
   useEffect(() => {
     console.log('🔐 [AuthProvider] Initialization effect running');
     
@@ -28,60 +28,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔐 [AuthProvider] Already initialized, skipping');
       return;
     }
-    
-    const savedUser = localStorage.getItem('siplan-user');
-    if (savedUser) {
+
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        const userData = JSON.parse(savedUser);
-        console.log('🔐 [AuthProvider] Restoring user from localStorage:', {
-          type: userData.type,
-          cartorio_id: userData.cartorio_id,
-          username: userData.username
-        });
-        
-        if (userData.type === 'cartorio' && userData.jwtToken) {
-          setCurrentUser(userData);
-          const authClient = createAuthenticatedClient(userData.jwtToken);
-          setAuthenticatedClient(authClient);
-          console.log('🔐 [AuthProvider] User restored successfully');
+        // 1. Primeiro, verificar se há usuário salvo no localStorage
+        const savedUser = localStorage.getItem('siplan-user');
+        if (savedUser && mounted) {
+          try {
+            const userData = JSON.parse(savedUser);
+            console.log('🔐 [AuthProvider] Restoring user from localStorage:', {
+              type: userData.type,
+              cartorio_id: userData.cartorio_id,
+              username: userData.username
+            });
+            
+            if (userData.type === 'cartorio' && userData.jwtToken) {
+              setCurrentUser(userData);
+              const authClient = createAuthenticatedClient(userData.jwtToken);
+              setAuthenticatedClient(authClient);
+              console.log('🔐 [AuthProvider] User restored successfully');
+            }
+          } catch (err) {
+            console.error('❌ [AuthProvider] Error restoring saved user:', err);
+            localStorage.removeItem('siplan-user');
+          }
         }
-      } catch (err) {
-        console.error('❌ [AuthProvider] Error restoring saved user:', err);
-        localStorage.removeItem('siplan-user');
+
+        // 2. Verificar sessão atual do Supabase
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (initialSession && mounted) {
+          console.log('🔐 [AuthProvider] Found existing Supabase session');
+          setCurrentSession(initialSession);
+          
+          // Se não há usuário do cartório, criar usuário admin
+          if (!currentUser && initialSession.user) {
+            const adminUser: User = {
+              id: initialSession.user.id,
+              name: 'Administrador',
+              type: 'admin',
+              email: initialSession.user.email || ''
+            };
+            setCurrentUser(adminUser);
+          }
+        }
+
+        // 3. Configurar listener para mudanças de autenticação
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (!mounted) return;
+            
+            console.log('🔐 [AuthProvider] Auth state changed:', event, !!session);
+            
+            setCurrentSession(session);
+            
+            if (session?.user) {
+              // Apenas atualizar se não há usuário de cartório
+              if (!currentUser || currentUser.type !== 'cartorio') {
+                const adminUser: User = {
+                  id: session.user.id,
+                  name: 'Administrador',
+                  type: 'admin',
+                  email: session.user.email || ''
+                };
+                setCurrentUser(adminUser);
+              }
+            } else if (!currentUser || currentUser.type === 'admin') {
+              // Limpar apenas se era admin
+              setCurrentUser(null);
+              setAuthenticatedClient(null);
+            }
+            
+            setIsLoading(false);
+          }
+        );
+
+        setIsInitialized(true);
+        setIsLoading(false);
+        
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
+        
+      } catch (error) {
+        console.error('❌ [AuthProvider] Initialization error:', error);
+        if (mounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
       }
-    }
-    
-    setIsInitialized(true);
-    console.log('🔐 [AuthProvider] Initialization completed');
+    };
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Handle admin user from stableAuth
-  useEffect(() => {
-    if (!isInitialized) return;
-    
-    if (stableAuth.session?.user && stableAuth.isAdmin && currentUser?.type !== 'admin') {
-      console.log('🔐 [AuthProvider] Setting admin user');
-      
-      const adminUser: User = {
-        id: stableAuth.session.user.id,
-        name: 'Administrador',
-        type: 'admin',
-        email: stableAuth.session.user.email || ''
-      };
-      
-      setCurrentUser(adminUser);
-      
-      if (currentUser?.type === 'cartorio') {
-        localStorage.removeItem('siplan-user');
-        setAuthenticatedClient(null);
-      }
-    } else if (!stableAuth.session && currentUser?.type === 'admin') {
-      console.log('🔐 [AuthProvider] Clearing admin user - no session');
-      setCurrentUser(null);
-      setAuthenticatedClient(null);
-    }
-  }, [stableAuth.session?.user?.id, stableAuth.isAdmin, currentUser?.type, isInitialized]);
-
+  // Função de login para cartório
   const loginCartorio = useCallback(async (token: string, userData: CartorioLoginData): Promise<User> => {
     console.log('🔐 [AuthProvider] Starting cartorio login');
 
@@ -136,6 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Função de login principal
   const login = useCallback(async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     console.log('🔐 [AuthProvider] Login called:', { type });
     
@@ -163,47 +211,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('✅ [AuthProvider] Login completed');
   }, [loginCartorio]);
 
+  // Função de logout
   const logout = useCallback(async () => {
     console.log('🔐 [AuthProvider] Logout called');
     
     if (currentUser?.type === 'admin') {
-      await stableAuth.logout();
+      await supabase.auth.signOut();
     }
     
     setCurrentUser(null);
     setAuthenticatedClient(null);
+    setCurrentSession(null);
     localStorage.removeItem('siplan-user');
     
     console.log('✅ [AuthProvider] Logout completed');
-  }, [currentUser?.type, stableAuth]);
+  }, [currentUser?.type]);
 
-  const finalUser = currentUser || (stableAuth.session?.user && stableAuth.isAdmin ? {
-    id: stableAuth.session.user.id,
+  // Determinar usuário final e estado de autenticação
+  const finalUser = currentUser || (currentSession?.user ? {
+    id: currentSession.user.id,
     name: 'Administrador',
     type: 'admin' as const,
-    email: stableAuth.session.user.email || ''
+    email: currentSession.user.email || ''
   } : null);
 
-  const isAuthenticated = !!finalUser || !!stableAuth.session;
+  const isAuthenticated = !!finalUser;
+  const isAdmin = currentSession?.user ? true : false;
 
-  const contextValue: AuthContextType = {
+  // Memoizar o valor do contexto
+  const contextValue: AuthContextType = useMemo(() => ({
     user: finalUser, 
-    session: stableAuth.session, 
+    session: currentSession, 
     login, 
     logout, 
     isAuthenticated, 
     authenticatedClient,
-    isLoading: stableAuth.isLoading || !isInitialized,
-    isAdmin: stableAuth.isAdmin
-  };
+    isLoading,
+    isAdmin
+  }), [finalUser, currentSession, login, logout, isAuthenticated, authenticatedClient, isLoading, isAdmin]);
 
   console.log('🔐 [AuthProvider] Providing context value:', {
     contextId: getAuthContextId(),
     hasUser: !!contextValue.user,
     userType: contextValue.user?.type,
     isAuthenticated: contextValue.isAuthenticated,
-    isLoading: contextValue.isLoading
+    isLoading: contextValue.isLoading,
+    isInitialized
   });
+
+  // Não renderizar filhos até que esteja inicializado
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Inicializando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={contextValue}>

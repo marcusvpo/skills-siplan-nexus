@@ -9,11 +9,33 @@ import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 const Dashboard = () => {
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
-
+  
   console.log('🏠 [Dashboard] Rendering with context ID:', getAuthContextId());
   debugAuthContext('Dashboard');
+  
+  // Wrapping useAuth em try/catch para melhor debug
+  let authData;
+  try {
+    authData = useAuth();
+  } catch (error) {
+    console.error('❌ [Dashboard] Failed to get auth context:', error);
+    // Fallback: redirecionar para login
+    useEffect(() => {
+      navigate('/login');
+    }, [navigate]);
+    
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">❌ Erro de Autenticação</div>
+          <p className="text-white">Redirecionando para login...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const { user, logout, isAuthenticated, isLoading } = authData;
   
   console.log('🏠 [Dashboard] State:', {
     hasUser: !!user,
@@ -23,19 +45,12 @@ const Dashboard = () => {
     cartorioId: user?.cartorio_id
   });
 
-  if (isLoading) {
-    console.log('🏠 [Dashboard] Still loading...');
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (isLoading) {
+      console.log('🏠 [Dashboard] Still loading, waiting...');
+      return;
+    }
+
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
       navigate('/login');
@@ -62,7 +77,33 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-  }, [isAuthenticated, user?.type, user?.cartorio_id, navigate]);
+  }, [isAuthenticated, user?.type, user?.cartorio_id, navigate, isLoading]);
+
+  // Loading state
+  if (isLoading) {
+    console.log('🏠 [Dashboard] Showing loading state');
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Carregando dados do usuário...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // User validation
+  if (!user || user.type !== 'cartorio' || !user.cartorio_id) {
+    console.log('🏠 [Dashboard] User not ready, showing loading state');
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Verificando dados do usuário...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogout = async () => {
     try {
@@ -82,19 +123,7 @@ const Dashboard = () => {
     }
   };
 
-  if (!user || user.type !== 'cartorio' || !user.cartorio_id) {
-    console.log('🏠 [Dashboard] User not ready, not rendering content');
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Verificando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
-
-  console.log('🏠 [Dashboard] Rendering dashboard content');
+  console.log('🏠 [Dashboard] Rendering dashboard content for user:', user.username);
 
   return (
     <div className="min-h-screen bg-black text-white">

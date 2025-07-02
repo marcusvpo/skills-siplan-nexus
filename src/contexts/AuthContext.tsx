@@ -4,7 +4,6 @@
 
 export { AuthContext, debugAuthContext, getAuthContextId } from './AuthContextSingleton';
 export { AuthProvider } from './AuthProvider';
-export { useAuth } from '../hooks/useAuth';
 
 // Re-export types for backward compatibility
 export type { User, CartorioLoginData, AuthContextType } from './AuthContextSingleton';
