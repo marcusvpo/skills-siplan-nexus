@@ -43,8 +43,8 @@ export const ProductProgress: React.FC<ProductProgressProps> = ({ productId, cla
         if (error) {
           logger.error('❌ [ProductProgress] Error fetching progress:', { error });
         } else {
-          // Cast the Json response to ProgressData
-          const progressData = data as ProgressData;
+          // Cast the Json response to ProgressData via unknown
+          const progressData = data as unknown as ProgressData;
           setProgress(progressData);
           logger.info('✅ [ProductProgress] Progress fetched', { progress: progressData });
         }
