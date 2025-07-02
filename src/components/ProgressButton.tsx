@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContextFixed';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -12,14 +11,14 @@ interface ProgressButtonProps {
 }
 
 export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) => {
-  const { user } = useAuth();
+  const { user, authenticatedClient } = useAuth();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProgress, setCheckingProgress] = useState(true);
 
   useEffect(() => {
     const checkProgress = async () => {
-      if (!user?.cartorio_id || !videoAulaId) {
+      if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
         setCheckingProgress(false);
         return;
       }
@@ -30,7 +29,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
           cartorioId: user.cartorio_id
         });
 
-        const { data: progress, error } = await supabase
+        const { data: progress, error } = await authenticatedClient
           .from('visualizacoes_cartorio')
           .select('completo')
           .eq('video_aula_id', videoAulaId)
@@ -53,10 +52,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
     };
 
     checkProgress();
-  }, [videoAulaId, user?.cartorio_id]);
+  }, [videoAulaId, user?.cartorio_id, authenticatedClient]);
 
   const markAsComplete = async () => {
-    if (!user?.cartorio_id || !videoAulaId) {
+    if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
       toast({
         title: "Erro",
         description: "Usuário não identificado",
@@ -73,7 +72,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         cartorioId: user.cartorio_id
       });
 
-      const { error } = await supabase
+      const { error } = await authenticatedClient
         .from('visualizacoes_cartorio')
         .upsert({
           video_aula_id: videoAulaId,
