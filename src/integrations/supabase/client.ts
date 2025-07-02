@@ -6,9 +6,7 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
+// Instância singleton do cliente Supabase principal
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: false, // Disable default auth since we use custom tokens
@@ -19,24 +17,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Function to set custom JWT token for cartorio authentication
-export const setCustomAuthToken = (token: string) => {
-  // This function is kept for backward compatibility but deprecated
-  console.log('Setting custom auth token:', token);
-};
-
-// Function to clear custom auth token
-export const clearCustomAuthToken = () => {
-  // This function is kept for backward compatibility but deprecated
-  console.log('Clearing custom auth token');
-};
+// Cache para clientes autenticados para evitar múltiplas instâncias
+const clientCache = new Map<string, any>();
 
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (jwtToken: string) => {
-  console.log('🔐 [createAuthenticatedClient] Creating client with JWT token');
+  // Usar cache para evitar criar múltiplas instâncias com o mesmo token
+  if (clientCache.has(jwtToken)) {
+    return clientCache.get(jwtToken);
+  }
   
-  // Agora sempre esperamos um JWT válido, não mais tokens CART-
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  logger.debug('🔐 [createAuthenticatedClient] Creating new client with JWT token');
+  
+  const authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -47,4 +40,31 @@ export const createAuthenticatedClient = (jwtToken: string) => {
       },
     },
   });
+
+  // Adicionar ao cache
+  clientCache.set(jwtToken, authenticatedClient);
+  
+  return authenticatedClient;
+};
+
+// Função para limpar cache quando necessário
+export const clearAuthClientCache = () => {
+  logger.debug('🔐 [clearAuthClientCache] Clearing authenticated client cache');
+  clientCache.clear();
+};
+
+// Funções mantidas para compatibilidade (deprecated)
+export const setCustomAuthToken = (token: string) => {
+  logger.debug('⚠️ [setCustomAuthToken] Function deprecated, use createAuthenticatedClient instead');
+};
+
+export const clearCustomAuthToken = () => {
+  logger.debug('⚠️ [clearCustomAuthToken] Function deprecated, use clearAuthClientCache instead');
+};
+
+// Importar logger se não estiver disponível
+const logger = {
+  debug: (message: string) => console.log(message),
+  info: (message: string) => console.log(message),
+  error: (message: string, error?: any) => console.error(message, error)
 };

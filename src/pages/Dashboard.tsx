@@ -13,13 +13,6 @@ const Dashboard = () => {
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
-    console.log('🎯 [Dashboard] Current auth state:', { 
-      isAuthenticated, 
-      userType: user?.type,
-      cartorioId: user?.cartorio_id,
-      user: user
-    });
-
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
       navigate('/login');
@@ -46,7 +39,7 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user?.type, user?.cartorio_id, navigate]);
 
   const handleLogout = async () => {
     try {
