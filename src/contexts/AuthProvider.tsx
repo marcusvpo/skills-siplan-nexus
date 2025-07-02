@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setIsInitialized(true);
     console.log('🔐 [AuthProvider] Initialization completed');
-  }, []); // Empty dependency array - run only once
+  }, []);
 
   // Handle admin user from stableAuth
   useEffect(() => {
@@ -71,7 +71,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setCurrentUser(adminUser);
       
-      // Clear cartorio data if exists
       if (currentUser?.type === 'cartorio') {
         localStorage.removeItem('siplan-user');
         setAuthenticatedClient(null);
@@ -122,14 +121,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: authData.usuario?.email
       };
 
-      // Create authenticated client
       const authClient = createAuthenticatedClient(authData.token);
       
-      // Update states
       setCurrentUser(newUser);
       setAuthenticatedClient(authClient);
       
-      // Save to localStorage
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
 
       console.log('✅ [AuthProvider] Cartorio login successful');
@@ -181,7 +177,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('✅ [AuthProvider] Logout completed');
   }, [currentUser?.type, stableAuth]);
 
-  // Final user determination
   const finalUser = currentUser || (stableAuth.session?.user && stableAuth.isAdmin ? {
     id: stableAuth.session.user.id,
     name: 'Administrador',

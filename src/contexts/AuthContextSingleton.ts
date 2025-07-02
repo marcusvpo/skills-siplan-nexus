@@ -2,7 +2,7 @@
 import React from 'react';
 import { Session } from '@supabase/supabase-js';
 
-// Tipos para o contexto de autenticação
+// Types for authentication context
 interface User {
   id: string;
   name: string;
@@ -33,19 +33,17 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-// Implementação Singleton do AuthContext
+// Singleton implementation for AuthContext
 class AuthContextSingleton {
   private static instance: AuthContextSingleton;
   private context: React.Context<AuthContextType>;
   private contextId: string;
 
   private constructor() {
-    // Gerar um ID único para esta instância do contexto
     this.contextId = `AuthContext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     console.log('🔐 [AuthContextSingleton] Creating SINGLETON context instance:', this.contextId);
     
-    // Criar o contexto React com valor padrão
     this.context = React.createContext<AuthContextType>({
       user: null,
       session: null,
@@ -57,7 +55,6 @@ class AuthContextSingleton {
       isAdmin: false
     });
 
-    // Adicionar nome para debug
     this.context.displayName = `AuthContextSingleton_${this.contextId}`;
   }
 
@@ -81,21 +78,19 @@ class AuthContextSingleton {
     return this.contextId;
   }
 
-  // Método para forçar reset (útil para testes ou desenvolvimento)
   public static resetInstance(): void {
     console.log('🔐 [AuthContextSingleton] RESETTING SINGLETON INSTANCE');
     AuthContextSingleton.instance = null as any;
   }
 }
 
-// Exportar a instância singleton do contexto
+// Export the singleton instance
 const authContextSingleton = AuthContextSingleton.getInstance();
 export const AuthContext = authContextSingleton.getContext();
 
-// Exportar função para debug
+// Export debug functions
 export const getAuthContextId = () => authContextSingleton.getContextId();
 
-// Função para verificar se estamos usando a mesma instância
 export const debugAuthContext = (location: string) => {
   console.log(`🔐 [${location}] Using AuthContext ID:`, authContextSingleton.getContextId());
   console.log(`🔐 [${location}] Context reference:`, AuthContext);

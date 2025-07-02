@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/hooks/useAuth'; // Using singleton hook
+import { useAuth } from '@/hooks/useAuth';
 import { debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 export const TreinamentosSection: React.FC = () => {

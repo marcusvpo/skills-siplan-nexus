@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth'; // Using singleton hook
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { BookOpen, LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -23,7 +23,6 @@ const Dashboard = () => {
     cartorioId: user?.cartorio_id
   });
 
-  // Loading state
   if (isLoading) {
     console.log('🏠 [Dashboard] Still loading...');
     return (
@@ -36,7 +35,6 @@ const Dashboard = () => {
     );
   }
 
-  // Authentication checks
   useEffect(() => {
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
@@ -84,7 +82,6 @@ const Dashboard = () => {
     }
   };
 
-  // Don't render if user is not properly loaded
   if (!user || user.type !== 'cartorio' || !user.cartorio_id) {
     console.log('🏠 [Dashboard] User not ready, not rendering content');
     return (
@@ -101,7 +98,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
       <div className="border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -137,7 +133,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">

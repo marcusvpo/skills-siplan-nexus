@@ -1,9 +1,9 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthProvider'; // Using singleton AuthProvider
+import { AuthProvider } from '@/contexts/AuthProvider';
 import { Toaster } from '@/components/ui/toaster';
-import { debugAuthContext } from '@/contexts/AuthContextSingleton'; // Debug helper
+import { debugAuthContext } from '@/contexts/AuthContextSingleton';
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import AdminLogin from '@/pages/AdminLogin';

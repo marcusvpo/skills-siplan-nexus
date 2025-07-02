@@ -3,7 +3,6 @@ import { useContext } from 'react';
 import { AuthContext, debugAuthContext, getAuthContextId } from '@/contexts/AuthContextSingleton';
 
 export const useAuth = () => {
-  // Debug log para rastrear uso do contexto
   console.log('🔐 [useAuth] Hook called');
   debugAuthContext('useAuth');
   
