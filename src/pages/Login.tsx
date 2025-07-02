@@ -31,28 +31,31 @@ const Login = () => {
     setError('');
 
     try {
-      logger.userAction('Login attempt started', { username, hasToken: !!token });
+      console.log('🔐 [Login] Starting login process');
       
-      // Fazer login com dados completos
       await login(token, 'cartorio', {
         username: username
       });
+      
+      console.log('🔐 [Login] Login successful, showing toast');
       
       toast({
         title: "Login realizado com sucesso!",
         description: `Bem-vindo(a), ${username}!`,
       });
 
-      // Aguardar um pouco para garantir que o estado foi atualizado
+      // Wait longer for context to stabilize
+      console.log('🔐 [Login] Waiting for context stabilization...');
       setTimeout(() => {
+        console.log('🔐 [Login] Redirecting to dashboard');
         navigate('/dashboard');
-      }, 100);
+      }, 200);
       
     } catch (error) {
-      logger.error('Login error', error);
+      console.error('❌ [Login] Login error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      // Mapear códigos de erro para mensagens mais amigáveis
+      // Map error codes to friendly messages
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';

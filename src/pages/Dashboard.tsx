@@ -8,10 +8,31 @@ import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
 const Dashboard = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Verificações de segurança críticas para usuário cartório
+  console.log('🏠 [Dashboard] Rendering with:', {
+    hasUser: !!user,
+    userType: user?.type,
+    isAuthenticated,
+    isLoading,
+    cartorioId: user?.cartorio_id
+  });
+
+  // Loading state
+  if (isLoading) {
+    console.log('🏠 [Dashboard] Still loading...');
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Carregando dados do usuário...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Authentication checks
   React.useEffect(() => {
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
@@ -59,17 +80,20 @@ const Dashboard = () => {
     }
   };
 
-  // Loading state
-  if (!user) {
+  // Don't render if user is not properly loaded
+  if (!user || user.type !== 'cartorio' || !user.cartorio_id) {
+    console.log('🏠 [Dashboard] User not ready, not rendering content');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando dados do usuário...</p>
+          <p className="text-white">Verificando dados do usuário...</p>
         </div>
       </div>
     );
   }
+
+  console.log('🏠 [Dashboard] Rendering dashboard content');
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -91,9 +115,9 @@ const Dashboard = () => {
               <div className="text-right">
                 <p className="text-sm font-medium flex items-center">
                   <User className="h-4 w-4 mr-1" />
-                  {user?.username || user?.name}
+                  {user.username || user.name}
                 </p>
-                <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
+                <p className="text-xs text-gray-400">{user.cartorio_name}</p>
               </div>
               <Button
                 onClick={handleLogout}
@@ -113,7 +137,7 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Bem-vindo(a), {user?.username || user?.name}!
+            Bem-vindo(a), {user.username || user.name}!
           </h2>
           <p className="text-gray-400">
             Selecione um sistema para começar seu treinamento

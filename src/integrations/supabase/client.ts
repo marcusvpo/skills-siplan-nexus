@@ -6,10 +6,10 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
-// Instância singleton do cliente Supabase principal
+// Singleton instance to prevent multiple GoTrueClient instances
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: false, // Disable default auth since we use custom tokens
+    persistSession: false,
     autoRefreshToken: false,
   },
   global: {
@@ -17,17 +17,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Cache para clientes autenticados para evitar múltiplas instâncias
-const clientCache = new Map<string, any>();
+console.log('🔐 [SupabaseClient] Main client created (singleton)');
+
+// Single cache for authenticated clients
+const authClientCache = new Map<string, any>();
 
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (jwtToken: string) => {
-  // Usar cache para evitar criar múltiplas instâncias com o mesmo token
-  if (clientCache.has(jwtToken)) {
-    return clientCache.get(jwtToken);
+  // Use cache to prevent multiple instances with same token
+  if (authClientCache.has(jwtToken)) {
+    console.log('🔐 [createAuthenticatedClient] Using cached client');
+    return authClientCache.get(jwtToken);
   }
   
-  logger.debug('🔐 [createAuthenticatedClient] Creating new client with JWT token');
+  console.log('🔐 [createAuthenticatedClient] Creating new authenticated client');
   
   const authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
@@ -36,35 +39,28 @@ export const createAuthenticatedClient = (jwtToken: string) => {
     },
     global: {
       headers: {
-        'Authorization': `Bearer ${jwtToken}`, // JWT válido da edge function
+        'Authorization': `Bearer ${jwtToken}`,
       },
     },
   });
 
-  // Adicionar ao cache
-  clientCache.set(jwtToken, authenticatedClient);
+  // Add to cache
+  authClientCache.set(jwtToken, authenticatedClient);
   
   return authenticatedClient;
 };
 
-// Função para limpar cache quando necessário
+// Function to clear cache when needed
 export const clearAuthClientCache = () => {
-  logger.debug('🔐 [clearAuthClientCache] Clearing authenticated client cache');
-  clientCache.clear();
+  console.log('🔐 [clearAuthClientCache] Clearing cache');
+  authClientCache.clear();
 };
 
-// Funções mantidas para compatibilidade (deprecated)
+// Deprecated functions kept for compatibility
 export const setCustomAuthToken = (token: string) => {
-  logger.debug('⚠️ [setCustomAuthToken] Function deprecated, use createAuthenticatedClient instead');
+  console.log('⚠️ [setCustomAuthToken] Function deprecated');
 };
 
 export const clearCustomAuthToken = () => {
-  logger.debug('⚠️ [clearCustomAuthToken] Function deprecated, use clearAuthClientCache instead');
-};
-
-// Importar logger se não estiver disponível
-const logger = {
-  debug: (message: string) => console.log(message),
-  info: (message: string) => console.log(message),
-  error: (message: string, error?: any) => console.error(message, error)
+  console.log('⚠️ [clearCustomAuthToken] Function deprecated');
 };
