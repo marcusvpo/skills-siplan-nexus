@@ -72,6 +72,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         cartorioId: user.cartorio_id
       });
 
+      // Fazer upsert diretamente com todos os campos necessários
       const { error } = await authenticatedClient
         .from('visualizacoes_cartorio')
         .upsert({
@@ -84,10 +85,15 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         });
 
       if (error) {
-        logger.error('❌ [ProgressButton] Error marking complete:', { error });
+        logger.error('❌ [ProgressButton] Error marking complete:', { 
+          error,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          errorHint: error.hint
+        });
         toast({
           title: "Erro ao salvar progresso",
-          description: error.message,
+          description: `${error.message}${error.hint ? ` - ${error.hint}` : ''}`,
           variant: "destructive",
         });
         return;

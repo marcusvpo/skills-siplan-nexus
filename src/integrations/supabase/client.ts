@@ -37,9 +37,9 @@ export const clearCustomAuthToken = () => {
 export const createAuthenticatedClient = (token: string) => {
   console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
   
-  // For cartório tokens, we need to handle them differently
+  // Para tokens de cartório (CART-), usar Authorization header diretamente
+  // A função get_current_cartorio_id() espera o token no Authorization header
   if (token.startsWith('CART-')) {
-    // Don't try to use CART- tokens as JWT, use them in a custom header instead
     return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: false,
@@ -47,7 +47,7 @@ export const createAuthenticatedClient = (token: string) => {
       },
       global: {
         headers: {
-          'X-Custom-Auth': token, // Use custom header for CART tokens
+          'Authorization': `Bearer ${token}`, // Usar Authorization header para compatibilidade com RLS
         },
       },
     });
