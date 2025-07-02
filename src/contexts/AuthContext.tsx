@@ -1,14 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
+import { useCartorioAuth } from '@/hooks/useCartorioAuth';
+import { logger } from '@/utils/logger';
 
 interface User {
   id: string;
   name: string;
   type: 'cartorio' | 'admin';
   token?: string;
+  jwtToken?: string;
   cartorio_id?: string;
   cartorio_name?: string;
   username?: string;
@@ -18,7 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => void;
+  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -29,91 +31,112 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   const stableAuth = useStableAuth();
+  const cartorioAuth = useCartorioAuth();
 
+  // Inicialização
   useEffect(() => {
-    // Verificar usuário de cartório salvo no localStorage
-    const savedUser = localStorage.getItem('siplan-user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        if (userData.type === 'cartorio' && userData.token) {
-          setUser(userData);
-          const authClient = createAuthenticatedClient(userData.token);
-          setAuthenticatedClient(authClient);
-        }
-      } catch (err) {
-        console.error('Error parsing saved user:', err);
-        localStorage.removeItem('siplan-user');
-      }
+    // Primeiro, tentar restaurar usuário de cartório
+    const savedCartorioUser = cartorioAuth.restoreSavedUser();
+    if (savedCartorioUser) {
+      setCurrentUser(savedCartorioUser);
     }
-  }, []);
+  }, [cartorioAuth]);
 
+  // Gerenciar usuário admin
   useEffect(() => {
-    // Atualizar usuário admin baseado no stableAuth
     if (stableAuth.session?.user && stableAuth.isAdmin) {
+      logger.info('🔐 [AuthContext] Setting admin user');
+      
       const adminUser: User = {
         id: stableAuth.session.user.id,
         name: 'Administrador',
         type: 'admin',
         email: stableAuth.session.user.email || ''
       };
-      setUser(adminUser);
-    } else if (!stableAuth.session && user?.type === 'admin') {
-      // Limpar usuário admin se não há sessão
-      setUser(null);
-      setAuthenticatedClient(null);
+      
+      setCurrentUser(adminUser);
+      
+      // Limpar dados de cartório se existirem
+      if (cartorioAuth.user?.type === 'cartorio') {
+        cartorioAuth.clearCartorioAuth();
+      }
+    } else if (!stableAuth.session && currentUser?.type === 'admin') {
+      logger.info('🔐 [AuthContext] Clearing admin user - no session');
+      setCurrentUser(null);
     }
-  }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
+  }, [stableAuth.session, stableAuth.isAdmin, cartorioAuth, currentUser?.type]);
 
-  const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    const newUser: User = {
-      id: userData?.id || '1',
-      name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
-      type,
-      token: type === 'cartorio' ? token : undefined,
-      cartorio_id: userData?.cartorio_id,
-      cartorio_name: userData?.cartorio_name,
-      username: userData?.username,
-      email: userData?.email
-    };
+  const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+    logger.info('🔐 [AuthContext] Login called:', { type, hasUserData: !!userData });
     
-    setUser(newUser);
-    localStorage.setItem('siplan-user', JSON.stringify(newUser));
-    
-    // Create authenticated client for cartorio users
     if (type === 'cartorio') {
-      const authClient = createAuthenticatedClient(token);
-      setAuthenticatedClient(authClient);
+      if (!userData?.username) {
+        throw new Error('Username é obrigatório para login de cartório');
+      }
+      
+      const cartorioUser = await cartorioAuth.loginCartorio(token, {
+        username: userData.username,
+        cartorio_id: userData.cartorio_id,
+        cartorio_name: userData.cartorio_name,
+        email: userData.email
+      });
+      
+      setCurrentUser(cartorioUser);
+    } else {
+      // Para admin, usar o fluxo normal
+      const newUser: User = {
+        id: userData?.id || '1',
+        name: userData?.name || 'Administrador',
+        type,
+        email: userData?.email
+      };
+      setCurrentUser(newUser);
     }
+    
+    logger.info('✅ [AuthContext] Login completed successfully');
   };
 
   const logout = async () => {
+    logger.info('🔐 [AuthContext] Logout called');
+    
     // Sign out from Supabase Auth if it's an admin
-    if (user?.type === 'admin') {
+    if (currentUser?.type === 'admin') {
       await stableAuth.logout();
     }
     
-    setUser(null);
-    setAuthenticatedClient(null);
-    localStorage.removeItem('siplan-user');
+    // Clear cartorio auth
+    if (currentUser?.type === 'cartorio') {
+      cartorioAuth.clearCartorioAuth();
+    }
+    
+    setCurrentUser(null);
+    
+    logger.info('✅ [AuthContext] Logout completed');
   };
 
-  const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.isLoading;
+  // Determinar dados finais
+  const finalUser = currentUser || (stableAuth.session?.user && stableAuth.isAdmin ? {
+    id: stableAuth.session.user.id,
+    name: 'Administrador',
+    type: 'admin' as const,
+    email: stableAuth.session.user.email || ''
+  } : null);
+
+  const isAuthenticated = !!finalUser || !!stableAuth.session;
+  const authenticatedClient = currentUser?.type === 'cartorio' ? cartorioAuth.authenticatedClient : null;
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user: finalUser, 
       session: stableAuth.session, 
       login, 
       logout, 
       isAuthenticated, 
       authenticatedClient,
-      isLoading,
+      isLoading: stableAuth.isLoading,
       isAdmin: stableAuth.isAdmin
     }}>
       {children}

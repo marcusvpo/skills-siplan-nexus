@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -32,7 +33,7 @@ const Login = () => {
     try {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
       
-      // Usar o método login do contexto que agora lida com a obtenção do JWT
+      // Fazer login com dados completos
       await login(token, 'cartorio', {
         username: username
       });
@@ -41,8 +42,12 @@ const Login = () => {
         title: "Login realizado com sucesso!",
         description: `Bem-vindo(a), ${username}!`,
       });
+
+      // Aguardar um pouco para garantir que o estado foi atualizado
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
       
-      navigate('/dashboard');
     } catch (error) {
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
