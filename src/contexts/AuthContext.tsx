@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
@@ -35,8 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const stableAuth = useStableAuth();
 
+  // Carregamento inicial - verificar usuário salvo no localStorage
   useEffect(() => {
-    // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           
-          // Validar e criar cliente autenticado
+          // Validar e criar cliente autenticado apenas se token é válido
           if (userData.token && userData.token.trim() !== '') {
             const authClient = createAuthenticatedClient(userData.token);
             setAuthenticatedClient(authClient);
@@ -63,7 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           } else {
             logger.error('❌ [AuthContext] Invalid token in saved user data');
-            // Limpar dados inválidos
             localStorage.removeItem('siplan-user');
           }
         }
@@ -74,8 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Gerenciamento de usuário admin baseado no stableAuth
   useEffect(() => {
-    // Atualizar usuário admin baseado no stableAuth
     if (stableAuth.session?.user && stableAuth.isAdmin) {
       logger.info('🔐 [AuthContext] Setting admin user from stableAuth');
       
@@ -168,8 +167,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logger.info('✅ [AuthContext] User logged out successfully');
   };
 
-  const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.isLoading;
+  // Memoizar valores para evitar re-renders desnecessários
+  const contextValue = useMemo(() => ({
+    user,
+    session: stableAuth.session,
+    login,
+    logout,
+    isAuthenticated: !!user || !!stableAuth.session,
+    authenticatedClient,
+    isLoading: stableAuth.isLoading,
+    isAdmin: stableAuth.isAdmin
+  }), [user, stableAuth.session, stableAuth.isLoading, stableAuth.isAdmin, authenticatedClient]);
 
   // Debug log do estado atual
   useEffect(() => {
@@ -178,23 +186,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userType: user?.type,
       hasSession: !!stableAuth.session,
       isAdmin: stableAuth.isAdmin,
-      isAuthenticated,
-      isLoading,
+      isAuthenticated: contextValue.isAuthenticated,
+      isLoading: contextValue.isLoading,
       hasAuthClient: !!authenticatedClient
     });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, authenticatedClient]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, contextValue.isAuthenticated, contextValue.isLoading, authenticatedClient]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session: stableAuth.session, 
-      login, 
-      logout, 
-      isAuthenticated, 
-      authenticatedClient,
-      isLoading,
-      isAdmin: stableAuth.isAdmin
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
