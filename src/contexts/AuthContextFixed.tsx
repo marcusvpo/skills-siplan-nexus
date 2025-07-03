@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client'; 
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase, createAuthenticatedClient } from '@/integrations/supabase/client'; 
+import { User as SupabaseUser, Session, SupabaseClient } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
 
@@ -25,12 +25,14 @@ interface AuthContextType {
   supabaseClient: typeof supabase; 
   isLoading: boolean;
   isAdmin: boolean;
+  authenticatedClient: SupabaseClient | null; // Added this property
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const stableAuth = useStableAuth();
+  const [authenticatedClient, setAuthenticatedClient] = useState<SupabaseClient | null>(null);
 
   // useMemo para calcular o objeto 'user' com base nas informações de stableAuth e localStorage
   const user = useMemo((): User | null => {
@@ -114,6 +116,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isLoading]);
 
+  // Effect to create authenticated client when session changes
+  useEffect(() => {
+    const updateAuthenticatedClient = async () => {
+      if (stableAuth.session && user?.token) {
+        try {
+          const authClient = await createAuthenticatedClient(user.token);
+          setAuthenticatedClient(authClient);
+          logger.info('✅ [AuthContextFixed] Authenticated client created successfully');
+        } catch (error) {
+          logger.error('❌ [AuthContextFixed] Error creating authenticated client:', error);
+          setAuthenticatedClient(supabase);
+        }
+      } else if (stableAuth.session) {
+        try {
+          const authClient = await createAuthenticatedClient();
+          setAuthenticatedClient(authClient);
+          logger.info('✅ [AuthContextFixed] Authenticated client created successfully');
+        } catch (error) {
+          logger.error('❌ [AuthContextFixed] Error creating authenticated client:', error);
+          setAuthenticatedClient(supabase);
+        }
+      } else {
+        setAuthenticatedClient(null);
+      }
+    };
+
+    updateAuthenticatedClient();
+  }, [stableAuth.session, user?.token]);
+
   const login = async (customToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     logger.info('🔐 [AuthContextFixed] Função login chamada (frontend):', { 
       type, 
@@ -143,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     logger.info('🔐 [AuthContextFixed] Função logout chamada');
     await supabase.auth.signOut();
+    setAuthenticatedClient(null);
     logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo useMemo.');
   };
 
@@ -159,8 +191,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
+      hasAuthenticatedClient: !!authenticatedClient,
     });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, authenticatedClient]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -171,7 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated, 
       supabaseClient: supabase, 
       isLoading,
-      isAdmin: stableAuth.isAdmin
+      isAdmin: stableAuth.isAdmin,
+      authenticatedClient
     }}>
       {children}
     </AuthContext.Provider>
