@@ -7,7 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { supabase } from '@/integrations/supabase/client'; // << ADICIONE ESTE IMPORT!
+import { supabase } from '@/integrations/supabase/client'; // Importar a instância global do Supabase
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -37,6 +37,8 @@ const Login = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Certifique-se que esta ANONYMOUS KEY é a sua REAL ANONYMOUS KEY do Supabase
+          // Você pode encontrá-la em Project Settings -> API -> Project API keys -> public anon key
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
         },
         body: JSON.stringify({ username, login_token: token }),
@@ -55,30 +57,29 @@ const Login = () => {
       }
 
       const data = await response.json();
-      logger.info('Login successful response data:', { 
-        cartorio: data.cartorio?.nome,
-        usuario: data.usuario?.username,
-        hasSupabaseSession: !!data.session, 
-        supabaseUserId: data.user?.id      
+      logger.info('Login successful response data:', data); // Log agora mostra o objeto completo
+      logger.info('Verificando se data.session e data.user estão presentes:', {
+          hasSession: !!data.session,
+          hasUser: !!data.user
       });
 
-      // --- CRUCIAL CHANGE: Definir a sessão Supabase no cliente ---
+      // --- LÓGICA CRÍTICA: DEFINIR SESSÃO SUPABASE ---
       if (data.success && data.session && data.user && data.cartorio && data.usuario) {
-        // Primeiro, define a sessão Supabase no cliente global
+        logger.info('Tentando definir sessão Supabase...');
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
 
         if (setSessionError) {
-          logger.error('Failed to set Supabase session:', setSessionError);
+          logger.error('Falha ao definir sessão Supabase:', setSessionError);
           throw new Error(`Falha ao estabelecer sessão Supabase: ${setSessionError.message}`);
         }
-        logger.info('Supabase session successfully set for user:', data.user.id);
+        logger.info('Sessão Supabase definida com sucesso para o usuário:', data.user.id);
 
         // Agora, chame a função `login` do contexto para armazenar dados customizados do cartório no localStorage.
         login(token, 'cartorio', { 
-          id: data.user.id, 
+          id: data.user.id, // Use o ID do usuário do Supabase Auth
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
@@ -96,7 +97,7 @@ const Login = () => {
         throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
     } catch (error) {
-      logger.error('Login error', error);
+      logger.error('Erro no login:', error); // Log mais específico aqui
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
       let friendlyMessage = errorMessage;
@@ -126,6 +127,7 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
+      logger.info('Finalizando processo de login, setando isLoading para false.');
       setIsLoading(false);
     }
   };
