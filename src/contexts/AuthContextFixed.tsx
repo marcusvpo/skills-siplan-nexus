@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
@@ -8,7 +8,7 @@ interface User {
   id: string;
   name: string;
   type: 'cartorio' | 'admin';
-  token?: string;
+  token?: string; // Token customizado, se aplicável
   cartorio_id?: string;
   cartorio_name?: string;
   username?: string;
@@ -29,23 +29,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // REMOVIDO: const [user, setUser] = useState<User | null>(null);
+  // O estado 'user' agora será derivado diretamente do stableAuth.session
   const stableAuth = useStableAuth(); // stableAuth provides session, isAdmin, isLoading, logout
 
-  // Efeito principal para sincronizar o estado 'user' com a sessão do Supabase (via stableAuth)
-  // e gerenciar o localStorage para dados adicionais do cartório.
-  useEffect(() => {
-    logger.info('🔐 [AuthContextFixed] stableAuth state changed or user state changed:', {
+  // useMemo para calcular o objeto 'user' com base nas informações de stableAuth e localStorage
+  const user = useMemo(() => {
+    logger.info('🔐 [AuthContextFixed] Calculando estado do user (useMemo):', {
       stableAuthSession: !!stableAuth.session,
       stableAuthIsLoading: stableAuth.isLoading,
       stableAuthIsAdmin: stableAuth.isAdmin,
-      currentUserState: user ? { id: user.id, type: user.type } : null
+      currentUserId: stableAuth.session?.user?.id,
     });
 
     if (stableAuth.isLoading) {
-      // Se stableAuth ainda está carregando a sessão, não faça mudanças de estado para evitar flutuações.
-      logger.info('🔐 [AuthContextFixed] stableAuth está carregando, aguardando atualização do estado.');
-      return;
+      // Se stableAuth ainda está carregando a sessão, retorne null temporariamente.
+      // O componente que usa 'user' deve lidar com 'isLoading' para não renderizar prematuramente.
+      return null;
     }
 
     if (stableAuth.session) {
@@ -53,29 +53,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const supabaseUser = stableAuth.session.user;
       const isAdminSession = stableAuth.isAdmin;
 
-      let currentUser: User;
-
       if (isAdminSession) {
         // Usuário admin (baseado na sessão do Supabase)
-        currentUser = {
+        // Limpa o localStorage de cartório se um admin logar (garante que não haja dados misturados)
+        if (localStorage.getItem('siplan-user')) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
+            // Limpa se era cartório OU se o admin logado é um usuário diferente do localStorage anterior
+            if (stored.type === 'cartorio' || stored.id !== supabaseUser.id) {
+              localStorage.removeItem('siplan-user');
+              logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
+            }
+          } catch (e) {
+            logger.error('❌ [AuthContextFixed] Erro ao analisar localStorage para admin, limpando.', e);
+            localStorage.removeItem('siplan-user');
+          }
+        }
+        return {
           id: supabaseUser.id,
           name: 'Administrador', // Nome padrão para admin
           type: 'admin',
           email: supabaseUser.email || ''
         };
-        // Se o usuário atual no estado for um cartório, limpe o localStorage
-        if (user?.type === 'cartorio') {
-          localStorage.removeItem('siplan-user');
-          logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
-        }
       } else {
         // Usuário autenticado que NÃO é admin (assumimos que é um cartório)
         let cartorioDataFromLocalStorage: Partial<User> = {};
         const savedUserJson = localStorage.getItem('siplan-user');
+        
         if (savedUserJson) {
           try {
             const parsed = JSON.parse(savedUserJson);
-            // Use dados do localStorage SOMENTE se corresponderem ao usuário logado e forem do tipo cartório
+            // Usa dados do localStorage SOMENTE se corresponderem ao usuário logado e forem do tipo cartório
             if (parsed.id === supabaseUser.id && parsed.type === 'cartorio') {
                 cartorioDataFromLocalStorage = parsed;
                 logger.info('🔐 [AuthContextFixed] Dados de cartório carregados do localStorage.');
@@ -90,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        currentUser = {
+        const currentUserDerived: User = {
           id: supabaseUser.id,
           name: cartorioDataFromLocalStorage.name || supabaseUser.email || 'Usuário Cartório',
           type: 'cartorio',
@@ -101,34 +109,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           token: cartorioDataFromLocalStorage.token // Mantém o token customizado se existir
         };
         // Garante que o localStorage reflita o estado atual do usuário cartório logado
-        if (cartorioDataFromLocalStorage.id !== supabaseUser.id || !savedUserJson) {
-             localStorage.setItem('siplan-user', JSON.stringify(currentUser));
+        // Isso é importante para que os dados adicionais do cartório persistam entre recargas
+        if (!savedUserJson || JSON.stringify(cartorioDataFromLocalStorage) !== JSON.stringify(currentUserDerived)) {
+             localStorage.setItem('siplan-user', JSON.stringify(currentUserDerived));
              logger.info('🔐 [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
         }
-      }
-
-      // Atualiza o estado 'user' APENAS se o objeto for diferente, para evitar re-renderizações desnecessárias
-      if (JSON.stringify(user) !== JSON.stringify(currentUser)) {
-        setUser(currentUser);
-        logger.info('🔐 [AuthContextFixed] Estado do usuário atualizado pela sessão do stableAuth.');
+        return currentUserDerived;
       }
     } else {
       // Nenhuma sessão ativa do Supabase (stableAuth.session é null)
-      // Limpa o estado 'user' local e o localStorage, APENAS se já não estiverem nulos.
-      if (user !== null) {
-        setUser(null);
-        localStorage.removeItem('siplan-user'); 
-        logger.info('🔐 [AuthContextFixed] Nenhuma sessão ativa, estado do usuário e localStorage limpos.');
+      // Neste caso, não há usuário logado. Limpe o localStorage para refletir isso.
+      if (localStorage.getItem('siplan-user')) { // Só limpa se houver algo para limpar
+         localStorage.removeItem('siplan-user'); 
+         logger.info('🔐 [AuthContextFixed] Nenhuma sessão ativa, limpando localStorage.');
       }
+      return null;
     }
-  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isLoading]); // Dependências: apenas mudanças no stableAuth
+  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isLoading]); // user é REMOVIDO das dependências
 
-  // A função 'login' agora é responsável por iniciar o processo de autenticação
-  // (ex: chamar uma Edge Function de login que faz o signInWithPassword do Supabase)
-  // e, para cartórios, salvar dados adicionais no localStorage.
-  // O estado 'user' será atualizado pelo useEffect acima quando stableAuth.session mudar.
+  // A função 'login' agora é responsável por iniciar o processo de autenticação (ex: chamar uma Edge Function)
+  // e, para cartórios, salvar dados adicionais no localStorage ANTES da autenticação ser confirmada.
+  // O estado 'user' REAL no contexto será DERIVADO do stableAuth.session APÓS a autenticação.
   const login = async (customToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('🔐 [AuthContextFixed] Função login chamada (frontend):', { 
+    logger.info('�� [AuthContextFixed] Função login chamada (frontend):', { 
       type, 
       userData: !!userData,
       cartorio_id: userData?.cartorio_id,
@@ -136,10 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     // Para usuários de cartório, salva seus dados específicos (cartorio_id, token) no localStorage.
-    // O ID do usuário será definido posteriormente pelo `useEffect` quando a sessão do Supabase for estabelecida.
+    // Isso é feito aqui porque esses dados não vêm da sessão padrão do Supabase,
+    // e precisam estar disponíveis para o useMemo que calcula o 'user' após a sessão ser estabelecida.
     if (type === 'cartorio' && userData) {
       const newUserForLocalStorage: User = {
-        id: userData.id || '', // ID será preenchido pelo stableAuth, mas salva um placeholder.
+        id: userData.id || '', // Placeholder. O ID real virá da sessão Supabase
         name: userData.name || 'Cartório',
         type: 'cartorio',
         token: customToken,
@@ -149,32 +153,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email || ''
       };
       localStorage.setItem('siplan-user', JSON.stringify(newUserForLocalStorage));
-      logger.info('🔐 [AuthContextFixed] Dados de usuário do cartório salvos no localStorage.');
+      logger.info('🔐 [AuthContextFixed] Dados de usuário do cartório salvos no localStorage para posterior derivação.');
     }
     
-    logger.info('✅ [AuthContextFixed] Login frontend iniciado. O estado do usuário será sincronizado pelo stableAuth.');
+    // IMPORTANTE: A ação de login REAL no Supabase (ex: supabase.auth.signInWithPassword)
+    // ou a chamada para uma Edge Function que faz isso, DEVE ser acionada externamente a esta função.
+    // Esta função do contexto 'login' apenas prepara o terreno (localStorage) para a futura sessão.
+    
+    logger.info('✅ [AuthContextFixed] Processo de login frontend iniciado. O estado do user será derivado do stableAuth.');
   };
 
   const logout = async () => {
     logger.info('🔐 [AuthContextFixed] Função logout chamada');
     // Chama o signOut do Supabase para invalidar a sessão.
     await supabase.auth.signOut();
-    // A limpeza do estado 'user' e do localStorage é feita pelo useEffect quando stableAuth.session se torna null.
-    logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo stableAuth.');
+    // A limpeza do 'user' derivado e do localStorage é implicitamente tratada pelo useMemo quando stableAuth.session se torna null.
+    logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo useMemo.');
   };
 
-  // Determina se o usuário está autenticado. Considera o estado 'user' ou a sessão do stableAuth.
-  const isAuthenticated = !!user || !!stableAuth.session; 
-  const isLoading = stableAuth.isLoading; // Estado de carregamento do stableAuth
+  // isAuthenticated deve ser baseado diretamente na existência de uma sessão Supabase
+  const isAuthenticated = !!stableAuth.session; 
+  const isLoading = stableAuth.isLoading;
 
   // Log de depuração do estado atual do contexto de autenticação
   useEffect(() => {
-    logger.info('🔐 [AuthContextFixed] Estado atual da autenticação (debug):', {
-      hasUser: !!user,
+    logger.info('�� [AuthContextFixed] Estado atual da autenticação (debug):', {
+      hasUser: !!user, // 'user' agora é o valor derivado do useMemo
       userId: user?.id, 
       userType: user?.type,
       hasSession: !!stableAuth.session,
-      sessionId: stableAuth.session?.user.id, 
+      sessionId: stableAuth.session?.user?.id, 
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
@@ -183,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user, // Passa o 'user' derivado
       session: stableAuth.session, 
       login, 
       logout, 
