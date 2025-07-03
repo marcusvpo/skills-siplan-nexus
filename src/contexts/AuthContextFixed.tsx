@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           
-          // Criar cliente autenticado usando o novo método
+          // Criar cliente autenticado usando o token customizado
           createAuthenticatedClient(userData.token).then(authClient => {
             setAuthenticatedClient(authClient);
             logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
@@ -81,10 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(adminUser);
       
-      // Para admin, criar cliente autenticado usando a sessão ativa
+      // Para admin, criar cliente autenticado usando a sessão ativa (sem token customizado)
       createAuthenticatedClient().then(authClient => {
         setAuthenticatedClient(authClient);
-        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin');
+        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin with session access token');
       }).catch(err => {
         logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin:', err);
         // Fallback para cliente padrão se houver erro
@@ -143,10 +143,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);
       }
     } else {
-      // Para admin, criar cliente autenticado
+      // Para admin, criar cliente autenticado usando a sessão ativa
       try {
         const authClient = await createAuthenticatedClient();
         setAuthenticatedClient(authClient);
+        logger.info('🔐 [AuthContextFixed] Admin login setup complete with session access token');
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin login:', err);
         setAuthenticatedClient(supabase);

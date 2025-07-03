@@ -34,10 +34,10 @@ export const createAuthenticatedClient = async (userToken?: string) => {
 
     // If we have a valid Supabase session, use its access_token for Authorization header
     if (session?.access_token) {
-      console.log('✅ [createAuthenticatedClient] Using Supabase session access_token for Authorization header');
+      console.log('✅ [createAuthenticatedClient] Using user access_token for Authorization header');
       
       const headers: Record<string, string> = {
-        'Authorization': `Bearer ${session.access_token}` // Use USER's access_token, not ANON key
+        'Authorization': `Bearer ${session.access_token}` // Use USER's access_token for authenticated requests
       };
       
       // If we have a custom token (CART-token), add it as custom header for RLS functions
@@ -57,7 +57,7 @@ export const createAuthenticatedClient = async (userToken?: string) => {
       });
     }
     
-    console.log('⚠️ [createAuthenticatedClient] No valid session, returning default client');
+    console.log('⚠️ [createAuthenticatedClient] No valid session found, returning default client');
     return supabase;
     
   } catch (err) {
