@@ -397,6 +397,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debug_auth_cartorio_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      debug_auth_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       debug_cartorios_data: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -424,6 +432,29 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      registrar_visualizacao_cartorio: {
+        Args: {
+          p_video_aula_id: string
+          p_completo?: boolean
+          p_concluida?: boolean
+          p_data_conclusao?: string
+        }
+        Returns: Json
+      }
+      set_test_cartorio_id: {
+        Args: { cartorio_id_param: string }
+        Returns: undefined
+      }
+      test_insert_visualizacao_cartorio: {
+        Args: {
+          p_cartorio_id: string
+          p_video_aula_id: string
+          p_completo?: boolean
+          p_concluida?: boolean
+          p_data_conclusao?: string
+        }
+        Returns: Json
       }
     }
     Enums: {

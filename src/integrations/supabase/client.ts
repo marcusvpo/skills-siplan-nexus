@@ -32,18 +32,18 @@ export const createAuthenticatedClient = async (userToken?: string) => {
       return supabase; // Return default client if session error
     }
 
-    // If we have a valid Supabase session, use its access_token for Authorization header
+    // CRITICAL FIX: ALWAYS prioritize session access_token for Authorization header
     if (session?.access_token) {
-      console.log('✅ [createAuthenticatedClient] Using user access_token for Authorization header');
+      console.log('✅ [createAuthenticatedClient] Using session access_token for Authorization header (JWT standard)');
       
       const headers: Record<string, string> = {
-        'Authorization': `Bearer ${session.access_token}` // Use USER's access_token for authenticated requests
+        'Authorization': `Bearer ${session.access_token}` // ALWAYS use session access_token for Authorization
       };
       
-      // If we have a custom token (CART-token), add it as custom header for RLS functions
+      // If we have a custom token (CART-token), add it as X-Custom-Auth header for RLS functions
       if (userToken && userToken.startsWith('CART-')) {
         headers['X-Custom-Auth'] = userToken;
-        console.log('🏢 [createAuthenticatedClient] Added custom auth header for cartorio');
+        console.log('🏢 [createAuthenticatedClient] Added custom CART token as X-Custom-Auth header');
       }
       
       return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

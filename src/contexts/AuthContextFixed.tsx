@@ -50,10 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           
-          // Criar cliente autenticado usando o token customizado
+          // CRITICAL: Create authenticated client with session access_token priority
           createAuthenticatedClient(userData.token).then(authClient => {
             setAuthenticatedClient(authClient);
-            logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
+            logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio with session priority:', {
               cartorio_id: userData.cartorio_id,
               hasClient: !!authClient
             });
@@ -81,10 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(adminUser);
       
-      // Para admin, criar cliente autenticado usando a sessão ativa (sem token customizado)
+      // CRITICAL: For admin, create client using session access_token (no custom token)
       createAuthenticatedClient().then(authClient => {
         setAuthenticatedClient(authClient);
-        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin with session access token');
+        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin using session access_token only');
       }).catch(err => {
         logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin:', err);
         // Fallback para cliente padrão se houver erro
@@ -132,10 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
       
       try {
+        // CRITICAL: Pass custom token but ensure session access_token takes priority
         const authClient = await createAuthenticatedClient(token);
         setAuthenticatedClient(authClient);
         
-        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
+        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete with session access_token priority:', {
           cartorio_id: newUser.cartorio_id,
           hasAuthClient: !!authClient
         });
@@ -143,11 +144,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);
       }
     } else {
-      // Para admin, criar cliente autenticado usando a sessão ativa
+      // CRITICAL: For admin, use session access_token only
       try {
         const authClient = await createAuthenticatedClient();
         setAuthenticatedClient(authClient);
-        logger.info('🔐 [AuthContextFixed] Admin login setup complete with session access token');
+        logger.info('🔐 [AuthContextFixed] Admin login setup complete using session access_token only');
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin login:', err);
         setAuthenticatedClient(supabase);
