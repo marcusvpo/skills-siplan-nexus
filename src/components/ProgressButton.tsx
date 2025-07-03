@@ -1,8 +1,9 @@
+// src/user/ProgressButton.tsx
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContextFixed'; // Já está aqui
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -11,52 +12,52 @@ interface ProgressButtonProps {
 }
 
 export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) => {
-  const { user, authenticatedClient } = useAuth();
+  // ATENÇÃO AQUI: authenticatedClient MUDOU PARA supabaseClient
+  const { user, supabaseClient } = useAuth(); // <--- ALTERADO AQUI!
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProgress, setCheckingProgress] = useState(true);
 
   useEffect(() => {
-    const checkProgress = async () => {
-      if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
-        setCheckingProgress(false);
-        return;
-      }
+    // ATENÇÃO AQUI: authenticatedClient MUDOU PARA supabaseClient
+    if (!user?.cartorio_id || !videoAulaId || !supabaseClient) { // <--- ALTERADO AQUI!
+      setCheckingProgress(false);
+      return;
+    }
 
-      try {
-        logger.info('📊 [ProgressButton] Checking progress', {
-          videoAulaId,
-          cartorioId: user.cartorio_id,
-          hasAuthClient: !!authenticatedClient
+    try {
+      logger.info('📊 [ProgressButton] Checking progress', {
+        videoAulaId,
+        cartorioId: user.cartorio_id,
+        hasAuthClient: !!supabaseClient // <--- ALTERADO AQUI!
+      });
+
+      // ATENÇÃO AQUI: authenticatedClient MUDOU PARA supabaseClient
+      const { data: progress, error } = await supabaseClient // <--- ALTERADO AQUI!
+        .from('visualizacoes_cartorio')
+        .select('completo')
+        .eq('video_aula_id', videoAulaId)
+        .eq('cartorio_id', user.cartorio_id)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('❌ [ProgressButton] Error checking progress:', { error });
+      } else {
+        setIsCompleted(progress?.completo || false);
+        logger.info('✅ [ProgressButton] Progress checked', {
+          completo: progress?.completo || false
         });
-
-        const { data: progress, error } = await authenticatedClient
-          .from('visualizacoes_cartorio')
-          .select('completo')
-          .eq('video_aula_id', videoAulaId)
-          .eq('cartorio_id', user.cartorio_id)
-          .maybeSingle();
-
-        if (error) {
-          logger.error('❌ [ProgressButton] Error checking progress:', { error });
-        } else {
-          setIsCompleted(progress?.completo || false);
-          logger.info('✅ [ProgressButton] Progress checked', {
-            completo: progress?.completo || false
-          });
-        }
-      } catch (err) {
-        logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
-      } finally {
-        setCheckingProgress(false);
       }
-    };
-
-    checkProgress();
-  }, [videoAulaId, user?.cartorio_id, authenticatedClient]);
+    } catch (err) {
+      logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
+    } finally {
+      setCheckingProgress(false);
+    }
+  }, [videoAulaId, user?.cartorio_id, supabaseClient]); // <--- ALTERADO AQUI!
 
   const markAsComplete = async () => {
-    if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
+    // ATENÇÃO AQUI: authenticatedClient MUDOU PARA supabaseClient
+    if (!user?.cartorio_id || !videoAulaId || !supabaseClient) { // <--- ALTERADO AQUI!
       toast({
         title: "Erro",
         description: "Usuário não identificado ou cliente não autenticado",
@@ -71,7 +72,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       logger.info('📊 [ProgressButton] Marking as complete', {
         videoAulaId,
         cartorioId: user.cartorio_id,
-        hasAuthClient: !!authenticatedClient
+        hasAuthClient: !!supabaseClient // <--- ALTERADO AQUI!
       });
 
       // Dados para upsert
@@ -84,7 +85,8 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
 
       logger.info('📊 [ProgressButton] Upserting data:', progressData);
 
-      const { error } = await authenticatedClient
+      // ATENÇÃO AQUI: authenticatedClient MUDOU PARA supabaseClient
+      const { error } = await supabaseClient // <--- ALTERADO AQUI!
         .from('visualizacoes_cartorio')
         .upsert(progressData, {
           onConflict: 'video_aula_id,cartorio_id'
