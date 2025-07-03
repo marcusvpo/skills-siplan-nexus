@@ -71,8 +71,14 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       logger.info('📊 [ProgressButton] Marking as complete', {
         videoAulaId,
         cartorioId: user.cartorio_id,
-        hasAuthClient: !!authenticatedClient
+        hasAuthClient: !!authenticatedClient,
+        userToken: user.token?.substring(0, 20) + '...'
       });
+
+      // Verificar se o cliente autenticado está correto
+      if (!user.token) {
+        throw new Error('Token de autenticação não encontrado');
+      }
 
       // Dados para upsert
       const progressData = {
@@ -109,16 +115,18 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       setIsCompleted(true);
       
       toast({
-        title: "Progresso salvo",
+        title: "Sucesso!",
         description: "Aula marcada como concluída!",
       });
 
       logger.info('✅ [ProgressButton] Marked as complete successfully');
     } catch (err) {
       logger.error('❌ [ProgressButton] Unexpected error:', { error: err });
+      
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       toast({
         title: "Erro ao salvar progresso",
-        description: "Não foi possível marcar a aula como concluída.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -24,62 +24,94 @@ const clientCache = new Map<string, ReturnType<typeof createClient>>();
 
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (token: string) => {
-  console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+  console.log('🔐 [createAuthenticatedClient] Creating client with token:', token.substring(0, 20) + '...');
   
-  // Use cache para evitar múltiplas instâncias
-  const cacheKey = `auth_${token.slice(0, 10)}`;
+  // Validar se o token é um JWT válido (deve ter 3 partes separadas por pontos)
+  if (!token || typeof token !== 'string') {
+    console.error('❌ [createAuthenticatedClient] Invalid token: token is null or not a string');
+    throw new Error('Token inválido: token é nulo ou não é uma string');
+  }
+
+  // Para tokens de cartório que começam com CART-, usar como custom header
+  if (token.startsWith('CART-')) {
+    console.log('🏢 [createAuthenticatedClient] Creating cartorio client with custom token');
+    
+    const cacheKey = `cart_${token.slice(0, 15)}`;
+    if (clientCache.has(cacheKey)) {
+      console.log('🔄 [createAuthenticatedClient] Using cached cartorio client');
+      return clientCache.get(cacheKey)!;
+    }
+    
+    const client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Custom-Auth': token,
+        },
+      },
+    });
+    
+    clientCache.set(cacheKey, client);
+    
+    // Limpar cache após 5 minutos
+    setTimeout(() => {
+      clientCache.delete(cacheKey);
+    }, 5 * 60 * 1000);
+    
+    return client;
+  }
+
+  // Para JWT tokens regulares, validar formato
+  const jwtParts = token.split('.');
+  if (jwtParts.length !== 3) {
+    console.error('❌ [createAuthenticatedClient] Invalid JWT format: expected 3 parts, got', jwtParts.length);
+    console.error('❌ [createAuthenticatedClient] Token parts:', jwtParts);
+    throw new Error(`Token JWT inválido: esperado 3 partes, recebido ${jwtParts.length} partes`);
+  }
+
+  // Verificar se cada parte do JWT não está vazia
+  if (jwtParts.some(part => !part || part.trim() === '')) {
+    console.error('❌ [createAuthenticatedClient] JWT has empty parts');
+    throw new Error('Token JWT inválido: contém partes vazias');
+  }
+
+  console.log('🔑 [createAuthenticatedClient] Creating JWT client with valid token');
+  
+  const cacheKey = `jwt_${jwtParts[2].slice(-10)}`;
   if (clientCache.has(cacheKey)) {
-    console.log('🔄 [createAuthenticatedClient] Using cached client');
+    console.log('🔄 [createAuthenticatedClient] Using cached JWT client');
     return clientCache.get(cacheKey)!;
   }
   
-  let client;
+  const client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    },
+  });
   
-  // Para tokens de cartório, usar tanto Authorization quanto X-Custom-Auth headers
-  if (token.startsWith('CART-')) {
-    console.log('🏢 [createAuthenticatedClient] Creating cartorio client with custom headers');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Custom-Auth': token, // Header adicional para RLS
-        },
-      },
-    });
-  } else {
-    // Para JWT tokens regulares
-    console.log('🔑 [createAuthenticatedClient] Creating JWT client');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      },
-    });
-  }
-  
-  // Cache the client
   clientCache.set(cacheKey, client);
   
-  // Limpar cache após 5 minutos para evitar tokens expirados
+  // Limpar cache após 30 minutos para JWT tokens
   setTimeout(() => {
     clientCache.delete(cacheKey);
-  }, 5 * 60 * 1000);
+  }, 30 * 60 * 1000);
   
   return client;
 };
 
 // Function to set custom JWT token for cartorio authentication
 export const setCustomAuthToken = (token: string) => {
-  console.log('Setting custom auth token:', token);
+  console.log('Setting custom auth token:', token.substring(0, 20) + '...');
 };
 
 // Function to clear custom auth token
