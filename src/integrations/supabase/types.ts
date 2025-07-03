@@ -250,39 +250,6 @@ export type Database = {
           },
         ]
       }
-      rls_debug_log: {
-        Row: {
-          auth_uid_returned_value: string | null
-          called_function: string | null
-          get_cartorio_id_returned_value: string | null
-          id: number
-          jwt_claims: Json | null
-          message: string | null
-          timestamp: string | null
-          user_id: string | null
-        }
-        Insert: {
-          auth_uid_returned_value?: string | null
-          called_function?: string | null
-          get_cartorio_id_returned_value?: string | null
-          id?: number
-          jwt_claims?: Json | null
-          message?: string | null
-          timestamp?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          auth_uid_returned_value?: string | null
-          called_function?: string | null
-          get_cartorio_id_returned_value?: string | null
-          id?: number
-          jwt_claims?: Json | null
-          message?: string | null
-          timestamp?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       sistemas: {
         Row: {
           descricao: string | null
