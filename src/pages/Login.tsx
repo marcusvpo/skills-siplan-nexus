@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client'; // << ADICIONE ESTE IMPORT!
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -55,18 +55,35 @@ const Login = () => {
       }
 
       const data = await response.json();
-      logger.info('Login successful', { 
+      logger.info('Login successful response data:', { 
         cartorio: data.cartorio?.nome,
-        usuario: data.usuario?.username
+        usuario: data.usuario?.username,
+        hasSupabaseSession: !!data.session, 
+        supabaseUserId: data.user?.id      
       });
 
-      if (data.success && data.token && data.cartorio && data.usuario) {
-        login(data.token, 'cartorio', {
-          id: data.usuario.id,
+      // --- CRUCIAL CHANGE: Definir a sessão Supabase no cliente ---
+      if (data.success && data.session && data.user && data.cartorio && data.usuario) {
+        // Primeiro, define a sessão Supabase no cliente global
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+
+        if (setSessionError) {
+          logger.error('Failed to set Supabase session:', setSessionError);
+          throw new Error(`Falha ao estabelecer sessão Supabase: ${setSessionError.message}`);
+        }
+        logger.info('Supabase session successfully set for user:', data.user.id);
+
+        // Agora, chame a função `login` do contexto para armazenar dados customizados do cartório no localStorage.
+        login(token, 'cartorio', { 
+          id: data.user.id, 
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
-          username: data.usuario.username
+          username: data.usuario.username,
+          email: data.usuario.email 
         });
         
         toast({
@@ -74,15 +91,14 @@ const Login = () => {
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
-        navigate('/dashboard');
+        navigate('/dashboard'); 
       } else {
-        throw new Error(data.error || 'Resposta inválida do servidor');
+        throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
     } catch (error) {
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      // Mapear códigos de erro para mensagens mais amigáveis
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';
@@ -96,6 +112,10 @@ const Login = () => {
         friendlyMessage = 'Usuário não encontrado ou inativo.';
       } else if (errorMessage.includes('MISSING_FIELDS')) {
         friendlyMessage = 'Preencha todos os campos obrigatórios.';
+      } else if (errorMessage.includes('AUTH_SYSTEM_ERROR') || errorMessage.includes('AUTH_USER_CREATION_ERROR')) {
+        friendlyMessage = 'Erro na autenticação interna. Por favor, tente novamente ou contate o suporte.';
+      } else if (errorMessage.includes('NO_SESSION_RETURNED')) {
+        friendlyMessage = 'O servidor não retornou uma sessão de autenticação válida. Contate o suporte.';
       }
       
       setError(friendlyMessage);
