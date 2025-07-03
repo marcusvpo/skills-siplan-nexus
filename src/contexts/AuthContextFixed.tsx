@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Importa a instância principal do Supabase
+import { supabase } from '@/integrations/supabase/client'; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
@@ -21,7 +21,7 @@ interface AuthContextType {
   login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  supabaseClient: typeof supabase; // Agora fornece a instância principal do Supabase
+  supabaseClient: typeof supabase; 
   isLoading: boolean;
   isAdmin: boolean;
 }
@@ -30,134 +30,154 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  // O estado 'authenticatedClient' e seu setter não são mais necessários
-  // const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
-  
-  const stableAuth = useStableAuth();
+  const stableAuth = useStableAuth(); // stableAuth provides session, isAdmin, isLoading, logout
 
-  // useEffect para restaurar usuário de cartório do localStorage
+  // Efeito principal para sincronizar o estado 'user' com a sessão do Supabase (via stableAuth)
+  // e gerenciar o localStorage para dados adicionais do cartório.
   useEffect(() => {
-    const savedUser = localStorage.getItem('siplan-user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        logger.info('🔐 [AuthContextFixed] Restored user from localStorage:', { 
-          type: userData.type, 
-          cartorio_id: userData.cartorio_id,
-          token: userData.token ? 'present' : 'missing'
-        });
-        
-        if (userData.type === 'cartorio' && userData.token) {
-          setUser(userData);
-          // Não é necessário criar um cliente autenticado aqui.
-          // A instância 'supabase' principal já gerencia a sessão com persistSession.
-        }
-      } catch (err) {
-        logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
-        localStorage.removeItem('siplan-user');
-      }
+    logger.info('🔐 [AuthContextFixed] stableAuth state changed or user state changed:', {
+      stableAuthSession: !!stableAuth.session,
+      stableAuthIsLoading: stableAuth.isLoading,
+      stableAuthIsAdmin: stableAuth.isAdmin,
+      currentUserState: user ? { id: user.id, type: user.type } : null
+    });
+
+    if (stableAuth.isLoading) {
+      // Se stableAuth ainda está carregando a sessão, não faça mudanças de estado para evitar flutuações.
+      logger.info('🔐 [AuthContextFixed] stableAuth está carregando, aguardando atualização do estado.');
+      return;
     }
-  }, []);
 
-  // useEffect para sincronizar o usuário com o stableAuth (especialmente para admin)
-  useEffect(() => {
-    if (stableAuth.session?.user && stableAuth.isAdmin) {
-      logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
-      
-      const adminUser: User = {
-        id: stableAuth.session.user.id,
-        name: 'Administrador',
-        type: 'admin',
-        email: stableAuth.session.user.email || ''
-      };
-      setUser(adminUser);
-      
-      // Limpar dados de cartório do localStorage se um admin logar
-      if (localStorage.getItem('siplan-user')) {
-        const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
-        if (stored.type === 'cartorio') {
+    if (stableAuth.session) {
+      // Há uma sessão ativa do Supabase (usuário autenticado)
+      const supabaseUser = stableAuth.session.user;
+      const isAdminSession = stableAuth.isAdmin;
+
+      let currentUser: User;
+
+      if (isAdminSession) {
+        // Usuário admin (baseado na sessão do Supabase)
+        currentUser = {
+          id: supabaseUser.id,
+          name: 'Administrador', // Nome padrão para admin
+          type: 'admin',
+          email: supabaseUser.email || ''
+        };
+        // Se o usuário atual no estado for um cartório, limpe o localStorage
+        if (user?.type === 'cartorio') {
+          localStorage.removeItem('siplan-user');
+          logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
+        }
+      } else {
+        // Usuário autenticado que NÃO é admin (assumimos que é um cartório)
+        let cartorioDataFromLocalStorage: Partial<User> = {};
+        const savedUserJson = localStorage.getItem('siplan-user');
+        if (savedUserJson) {
+          try {
+            const parsed = JSON.parse(savedUserJson);
+            // Use dados do localStorage SOMENTE se corresponderem ao usuário logado e forem do tipo cartório
+            if (parsed.id === supabaseUser.id && parsed.type === 'cartorio') {
+                cartorioDataFromLocalStorage = parsed;
+                logger.info('🔐 [AuthContextFixed] Dados de cartório carregados do localStorage.');
+            } else {
+                // Mismatch ou tipo errado, limpe o localStorage
+                localStorage.removeItem('siplan-user');
+                logger.warn('🔐 [AuthContextFixed] Usuário do localStorage não corresponde à sessão ou tipo errado, limpando.');
+            }
+          } catch (e) {
+            logger.error('❌ [AuthContextFixed] Erro ao analisar usuário salvo do localStorage:', e);
             localStorage.removeItem('siplan-user');
+          }
+        }
+
+        currentUser = {
+          id: supabaseUser.id,
+          name: cartorioDataFromLocalStorage.name || supabaseUser.email || 'Usuário Cartório',
+          type: 'cartorio',
+          email: supabaseUser.email || '',
+          cartorio_id: cartorioDataFromLocalStorage.cartorio_id,
+          cartorio_name: cartorioDataFromLocalStorage.cartorio_name,
+          username: cartorioDataFromLocalStorage.username,
+          token: cartorioDataFromLocalStorage.token // Mantém o token customizado se existir
+        };
+        // Garante que o localStorage reflita o estado atual do usuário cartório logado
+        if (cartorioDataFromLocalStorage.id !== supabaseUser.id || !savedUserJson) {
+             localStorage.setItem('siplan-user', JSON.stringify(currentUser));
+             logger.info('🔐 [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
         }
       }
-    } else if (!stableAuth.session && user?.type === 'admin') {
-      // Limpar usuário admin se não há sessão (admin deslogou)
-      logger.info('🔐 [AuthContextFixed] Clearing admin user - no session');
-      setUser(null);
-      // setAuthenticatedClient(null); // Não mais necessário
-    } else if (stableAuth.session && !stableAuth.isAdmin && user?.type !== 'cartorio') {
-      // Caso haja uma sessão, mas não é admin e não é cartório do localStorage (pode ser um usuário genérico)
-      logger.info('🔐 [AuthContextFixed] Setting generic authenticated user from stableAuth (not admin or specific cartorio)');
-      const genericUser: User = {
-        id: stableAuth.session.user.id,
-        name: stableAuth.session.user.email || 'Usuário',
-        type: 'cartorio', // Assumindo 'cartorio' para usuários autenticados não-admin
-        email: stableAuth.session.user.email || ''
-      };
-      setUser(genericUser);
-    } else if (!stableAuth.session && user) { // Se não há sessão e há um usuário no estado (ex: sessão expirou)
-        logger.info('🔐 [AuthContextFixed] Clearing user state as no active session detected.');
-        setUser(null);
-        localStorage.removeItem('siplan-user'); // Garante que o localStorage também seja limpo
-    }
-  }, [stableAuth.session, stableAuth.isAdmin, user]); // Adicionado 'user' para garantir que o useEffect reage às mudanças no estado local
 
-  const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('�� [AuthContextFixed] Login called:', { 
+      // Atualiza o estado 'user' APENAS se o objeto for diferente, para evitar re-renderizações desnecessárias
+      if (JSON.stringify(user) !== JSON.stringify(currentUser)) {
+        setUser(currentUser);
+        logger.info('🔐 [AuthContextFixed] Estado do usuário atualizado pela sessão do stableAuth.');
+      }
+    } else {
+      // Nenhuma sessão ativa do Supabase (stableAuth.session é null)
+      // Limpa o estado 'user' local e o localStorage, APENAS se já não estiverem nulos.
+      if (user !== null) {
+        setUser(null);
+        localStorage.removeItem('siplan-user'); 
+        logger.info('🔐 [AuthContextFixed] Nenhuma sessão ativa, estado do usuário e localStorage limpos.');
+      }
+    }
+  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isLoading]); // Dependências: apenas mudanças no stableAuth
+
+  // A função 'login' agora é responsável por iniciar o processo de autenticação
+  // (ex: chamar uma Edge Function de login que faz o signInWithPassword do Supabase)
+  // e, para cartórios, salvar dados adicionais no localStorage.
+  // O estado 'user' será atualizado pelo useEffect acima quando stableAuth.session mudar.
+  const login = async (customToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+    logger.info('🔐 [AuthContextFixed] Função login chamada (frontend):', { 
       type, 
       userData: !!userData,
       cartorio_id: userData?.cartorio_id,
-      token: token ? 'present' : 'missing'
+      customToken: customToken ? 'present' : 'missing'
     });
     
-    const newUser: User = {
-      id: userData?.id || 'default_id', // O ID real virá da sessão Supabase via stableAuth
-      name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
-      type,
-      token: type === 'cartorio' ? token : undefined, // Mantém o token se for necessário para outras APIs
-      cartorio_id: userData?.cartorio_id,
-      cartorio_name: userData?.cartorio_name,
-      username: userData?.username,
-      email: userData?.email
-    };
-    
-    setUser(newUser);
-    
-    if (type === 'cartorio') {
-      localStorage.setItem('siplan-user', JSON.stringify(newUser));
-      // Não é necessário criar/atualizar authenticatedClient aqui.
-      // O 'supabase' de client.ts fará isso automaticamente.
+    // Para usuários de cartório, salva seus dados específicos (cartorio_id, token) no localStorage.
+    // O ID do usuário será definido posteriormente pelo `useEffect` quando a sessão do Supabase for estabelecida.
+    if (type === 'cartorio' && userData) {
+      const newUserForLocalStorage: User = {
+        id: userData.id || '', // ID será preenchido pelo stableAuth, mas salva um placeholder.
+        name: userData.name || 'Cartório',
+        type: 'cartorio',
+        token: customToken,
+        cartorio_id: userData.cartorio_id,
+        cartorio_name: userData.cartorio_name,
+        username: userData.username,
+        email: userData.email || ''
+      };
+      localStorage.setItem('siplan-user', JSON.stringify(newUserForLocalStorage));
+      logger.info('🔐 [AuthContextFixed] Dados de usuário do cartório salvos no localStorage.');
     }
-    // Para admin, 'stableAuth' e a instância 'supabase' gerenciam a autenticação
     
-    logger.info('✅ [AuthContextFixed] User login state updated (relying on global supabase client for session)');
+    logger.info('✅ [AuthContextFixed] Login frontend iniciado. O estado do usuário será sincronizado pelo stableAuth.');
   };
 
   const logout = async () => {
-    logger.info('🔐 [AuthContextFixed] Logout called');
-    
-    // Usa a instância 'supabase' principal para deslogar do Supabase Auth
+    logger.info('🔐 [AuthContextFixed] Função logout chamada');
+    // Chama o signOut do Supabase para invalidar a sessão.
     await supabase.auth.signOut();
-    
-    setUser(null);
-    // setAuthenticatedClient(null); // Não mais necessário
-    localStorage.removeItem('siplan-user'); // Limpa o localStorage personalizado
-
-    logger.info('✅ [AuthContextFixed] User logged out successfully');
+    // A limpeza do estado 'user' e do localStorage é feita pelo useEffect quando stableAuth.session se torna null.
+    logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo stableAuth.');
   };
 
-  const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.isLoading;
+  // Determina se o usuário está autenticado. Considera o estado 'user' ou a sessão do stableAuth.
+  const isAuthenticated = !!user || !!stableAuth.session; 
+  const isLoading = stableAuth.isLoading; // Estado de carregamento do stableAuth
 
-  // Debug log do estado atual
+  // Log de depuração do estado atual do contexto de autenticação
   useEffect(() => {
-    logger.info('🔐 [AuthContextFixed] Current auth state:', {
+    logger.info('🔐 [AuthContextFixed] Estado atual da autenticação (debug):', {
       hasUser: !!user,
+      userId: user?.id, 
       userType: user?.type,
       hasSession: !!stableAuth.session,
+      sessionId: stableAuth.session?.user.id, 
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
-      // hasAuthClient: !!authenticatedClient // Não mais necessário
     });
   }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading]);
 
@@ -168,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       logout, 
       isAuthenticated, 
-      supabaseClient: supabase, // Passa a instância 'supabase' principal
+      supabaseClient: supabase, 
       isLoading,
       isAdmin: stableAuth.isAdmin
     }}>
