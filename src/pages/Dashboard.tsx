@@ -1,163 +1,133 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Play, Users, BookOpen, Award } from 'lucide-react';
-import { useSistemasData } from '@/hooks/useSupabaseDataSimplified';
-import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContextFixed';
+import { Button } from '@/components/ui/button';
+import { BookOpen, LogOut, User } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { data: sistemas, isLoading, error } = useSistemasData();
 
-  if (isLoading) {
+  // Verificações de segurança críticas para usuário cartório
+  React.useEffect(() => {
+    console.log('🎯 [Dashboard] Current auth state:', { 
+      isAuthenticated, 
+      userType: user?.type,
+      cartorioId: user?.cartorio_id,
+      user: user
+    });
+
+    if (!isAuthenticated) {
+      console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    if (user?.type !== 'cartorio') {
+      console.warn('⚠️ [Dashboard] User is not cartorio type, redirecting');
+      if (user?.type === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/login');
+      }
+      return;
+    }
+
+    if (!user?.cartorio_id) {
+      console.error('❌ [Dashboard] User has no cartorio_id');
+      toast({
+        title: "Erro de configuração",
+        description: "Usuário não está associado a um cartório.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('❌ [Dashboard] Logout error:', error);
+      toast({
+        title: "Erro no logout",
+        description: "Houve um problema ao fazer logout.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Loading state
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando sistemas...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Carregando dados do usuário...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    logger.error('❌ [Dashboard] Error loading systems:', error);
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-red-600">
-          <CardContent className="p-8 text-center">
-            <h3 className="text-xl font-semibold text-red-400 mb-2">Erro ao carregar dashboard</h3>
-            <p className="text-gray-400 mb-4">{error.message}</p>
-            <Button 
-              onClick={() => window.location.reload()}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!sistemas || sistemas.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-gray-600">
-          <CardContent className="p-12 text-center">
-            <div className="text-6xl mb-6">📚</div>
-            <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhum sistema disponível</h3>
-            <p className="text-gray-400">
-              Entre em contato com o administrador para obter acesso aos sistemas de treinamento.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Dashboard de Treinamento</h1>
-          <p className="text-gray-400">Selecione um sistema para começar seu treinamento</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gray-800/50 border-gray-600 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <BookOpen className="h-8 w-8 text-blue-400" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-400">Sistemas</p>
-                  <p className="text-2xl font-bold text-white">{sistemas.length}</p>
-                </div>
+    <div className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <div className="border-b border-gray-800">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <BookOpen className="h-8 w-8 text-red-500" />
+              <div>
+                <h1 className="text-2xl font-bold">Siplan Skills</h1>
+                <p className="text-sm text-gray-400">
+                  Plataforma de Treinamento
+                </p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800/50 border-gray-600 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Play className="h-8 w-8 text-green-400" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-400">Videoaulas</p>
-                  <p className="text-2xl font-bold text-white">-</p>
-                </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium flex items-center">
+                  <User className="h-4 w-4 mr-1" />
+                  {user?.username || user?.name}
+                </p>
+                <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800/50 border-gray-600 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Award className="h-8 w-8 text-yellow-400" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-400">Concluídas</p>
-                  <p className="text-2xl font-bold text-white">-</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-800/50 border-gray-600 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="h-8 w-8 text-purple-400" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-400">Progresso</p>
-                  <p className="text-2xl font-bold text-white">-%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Systems Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sistemas
-            .sort((a, b) => a.ordem - b.ordem)
-            .map((sistema) => (
-              <Card 
-                key={sistema.id} 
-                className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group backdrop-blur-sm"
-                onClick={() => navigate(`/system/${sistema.id}`)}
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-white group-hover:text-red-400 transition-colors">
-                    {sistema.nome}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {sistema.descricao && (
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-3">
-                      {sistema.descricao}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
-                      Sistema #{sistema.ordem}
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/system/${sistema.id}`);
-                      }}
-                    >
-                      Acessar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            Bem-vindo(a), {user?.username || user?.name}!
+          </h2>
+          <p className="text-gray-400">
+            Selecione um sistema para começar seu treinamento
+          </p>
+        </div>
+
+        <TreinamentosSection />
       </div>
     </div>
   );
