@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Atualizar usuário admin baseado no stableAuth
+    // Atualizar usuário admin baseado no stableAuth e configurar authenticatedClient
     if (stableAuth.session?.user && stableAuth.isAdmin) {
       logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
       
@@ -81,8 +81,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(adminUser);
       
-      // Para admin, usar o cliente padrão do Supabase
-      setAuthenticatedClient(supabase);
+      // Para admin, criar cliente autenticado usando a sessão ativa
+      createAuthenticatedClient().then(authClient => {
+        setAuthenticatedClient(authClient);
+        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin');
+      }).catch(err => {
+        logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin:', err);
+        // Fallback para cliente padrão se houver erro
+        setAuthenticatedClient(supabase);
+      });
       
       // Limpar dados de cartório se existirem
       const savedUser = localStorage.getItem('siplan-user');
@@ -136,8 +143,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);
       }
     } else {
-      // Para admin, usar o cliente padrão
-      setAuthenticatedClient(supabase);
+      // Para admin, criar cliente autenticado
+      try {
+        const authClient = await createAuthenticatedClient();
+        setAuthenticatedClient(authClient);
+      } catch (err) {
+        logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin login:', err);
+        setAuthenticatedClient(supabase);
+      }
     }
     
     logger.info('✅ [AuthContextFixed] User logged in successfully:', { 
