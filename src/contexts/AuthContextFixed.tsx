@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => void;
+  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -50,19 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           
-          // Criar cliente autenticado para cartório
-          try {
-            const authClient = createAuthenticatedClient(userData.token);
+          // Criar cliente autenticado usando o novo método
+          createAuthenticatedClient(userData.token).then(authClient => {
             setAuthenticatedClient(authClient);
-            
             logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio:', {
               cartorio_id: userData.cartorio_id,
-              hasClient: !!authClient,
-              tokenPrefix: userData.token.substring(0, 10)
+              hasClient: !!authClient
             });
-          } catch (err) {
+          }).catch(err => {
             logger.error('❌ [AuthContextFixed] Error creating authenticated client:', err);
-          }
+          });
         }
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
@@ -103,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
-  const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+  const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     logger.info('🔐 [AuthContextFixed] Login called:', { 
       type, 
       userData: !!userData,
@@ -128,13 +125,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
       
       try {
-        const authClient = createAuthenticatedClient(token);
+        const authClient = await createAuthenticatedClient(token);
         setAuthenticatedClient(authClient);
         
         logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
           cartorio_id: newUser.cartorio_id,
-          hasAuthClient: !!authClient,
-          tokenLength: token.length
+          hasAuthClient: !!authClient
         });
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);

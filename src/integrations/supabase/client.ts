@@ -19,62 +19,51 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Cache para evitar múltiplas instâncias do GoTrueClient
-const clientCache = new Map<string, ReturnType<typeof createClient>>();
-
 // Helper function to create authenticated supabase instance
-export const createAuthenticatedClient = (token: string) => {
-  console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+export const createAuthenticatedClient = async (userToken?: string) => {
+  console.log('🔐 [createAuthenticatedClient] Creating authenticated client');
   
-  // Use cache para evitar múltiplas instâncias
-  const cacheKey = `auth_${token.slice(0, 10)}`;
-  if (clientCache.has(cacheKey)) {
-    console.log('🔄 [createAuthenticatedClient] Using cached client');
-    return clientCache.get(cacheKey)!;
-  }
-  
-  let client;
-  
-  // Para tokens de cartório, usar tanto Authorization quanto X-Custom-Auth headers
-  if (token.startsWith('CART-')) {
-    console.log('🏢 [createAuthenticatedClient] Creating cartorio client with custom headers');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Custom-Auth': token, // Header adicional para RLS
+  try {
+    // Get current session from Supabase Auth
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('❌ [createAuthenticatedClient] Error getting session:', error);
+      return supabase; // Return default client if session error
+    }
+
+    // If we have a valid Supabase session, use its access_token
+    if (session?.access_token) {
+      console.log('✅ [createAuthenticatedClient] Using Supabase session access_token');
+      
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${session.access_token}` // Use Supabase JWT
+      };
+      
+      // If we have a custom token (CART-token), add it as custom header for RLS functions
+      if (userToken && userToken.startsWith('CART-')) {
+        headers['X-Custom-Auth'] = userToken;
+        console.log('🏢 [createAuthenticatedClient] Added custom auth header for cartorio');
+      }
+      
+      return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
         },
-      },
-    });
-  } else {
-    // Para JWT tokens regulares
-    console.log('🔑 [createAuthenticatedClient] Creating JWT client');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
+        global: {
+          headers
         },
-      },
-    });
+      });
+    }
+    
+    console.log('⚠️ [createAuthenticatedClient] No valid session, returning default client');
+    return supabase;
+    
+  } catch (err) {
+    console.error('❌ [createAuthenticatedClient] Unexpected error:', err);
+    return supabase;
   }
-  
-  // Cache the client
-  clientCache.set(cacheKey, client);
-  
-  // Limpar cache após 5 minutos para evitar tokens expirados
-  setTimeout(() => {
-    clientCache.delete(cacheKey);
-  }, 5 * 60 * 1000);
-  
-  return client;
 };
 
 // Function to set custom JWT token for cartorio authentication
@@ -85,5 +74,4 @@ export const setCustomAuthToken = (token: string) => {
 // Function to clear custom auth token
 export const clearCustomAuthToken = () => {
   console.log('Clearing custom auth token');
-  clientCache.clear();
 };
