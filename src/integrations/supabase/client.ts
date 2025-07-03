@@ -11,8 +11,8 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: false, // Disable default auth since we use custom tokens
-    autoRefreshToken: false,
+    persistSession: true, // CRITICAL: Enable session persistence for user authentication
+    autoRefreshToken: true, // CRITICAL: Enable auto-refresh to prevent session expiration
   },
   global: {
     headers: {},
@@ -24,7 +24,7 @@ export const createAuthenticatedClient = async (userToken?: string) => {
   console.log('🔐 [createAuthenticatedClient] Creating authenticated client');
   
   try {
-    // Get current session from Supabase Auth
+    // Get current session from Supabase Auth (now will work with persistSession: true)
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -32,12 +32,12 @@ export const createAuthenticatedClient = async (userToken?: string) => {
       return supabase; // Return default client if session error
     }
 
-    // CRITICAL FIX: ALWAYS prioritize session access_token for Authorization header
+    // NOW this should work: session should be available after login
     if (session?.access_token) {
-      console.log('✅ [createAuthenticatedClient] Using session access_token for Authorization header (JWT standard)');
+      console.log('✅ [createAuthenticatedClient] Creating authenticated instance with user access_token');
       
       const headers: Record<string, string> = {
-        'Authorization': `Bearer ${session.access_token}` // ALWAYS use session access_token for Authorization
+        'Authorization': `Bearer ${session.access_token}` // Use user's access_token for Authentication
       };
       
       // If we have a custom token (CART-token), add it as X-Custom-Auth header for RLS functions
@@ -46,10 +46,11 @@ export const createAuthenticatedClient = async (userToken?: string) => {
         console.log('🏢 [createAuthenticatedClient] Added custom CART token as X-Custom-Auth header');
       }
       
+      // Return NEW authenticated instance (not the default supabase client)
       return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: {
-          persistSession: false,
-          autoRefreshToken: false,
+          persistSession: true,
+          autoRefreshToken: true,
         },
         global: {
           headers
