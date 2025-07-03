@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Importa a instância principal do Supabase
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
@@ -22,7 +21,7 @@ interface AuthContextType {
   login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  authenticatedClient: any;
+  supabaseClient: typeof supabase; // Agora fornece a instância principal do Supabase
   isLoading: boolean;
   isAdmin: boolean;
 }
@@ -31,12 +30,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
+  // O estado 'authenticatedClient' e seu setter não são mais necessários
+  // const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
   
   const stableAuth = useStableAuth();
 
+  // useEffect para restaurar usuário de cartório do localStorage
   useEffect(() => {
-    // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
@@ -49,17 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
-          
-          // CRITICAL: Create authenticated client with session access_token priority
-          createAuthenticatedClient(userData.token).then(authClient => {
-            setAuthenticatedClient(authClient);
-            logger.info('🔐 [AuthContextFixed] Authenticated client created for cartorio with session priority:', {
-              cartorio_id: userData.cartorio_id,
-              hasClient: !!authClient
-            });
-          }).catch(err => {
-            logger.error('❌ [AuthContextFixed] Error creating authenticated client:', err);
-          });
+          // Não é necessário criar um cliente autenticado aqui.
+          // A instância 'supabase' principal já gerencia a sessão com persistSession.
         }
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
@@ -68,8 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // useEffect para sincronizar o usuário com o stableAuth (especialmente para admin)
   useEffect(() => {
-    // Atualizar usuário admin baseado no stableAuth e configurar authenticatedClient
     if (stableAuth.session?.user && stableAuth.isAdmin) {
       logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
       
@@ -81,34 +72,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(adminUser);
       
-      // CRITICAL: For admin, create client using session access_token (no custom token)
-      createAuthenticatedClient().then(authClient => {
-        setAuthenticatedClient(authClient);
-        logger.info('🔐 [AuthContextFixed] Authenticated client created for admin using session access_token only');
-      }).catch(err => {
-        logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin:', err);
-        // Fallback para cliente padrão se houver erro
-        setAuthenticatedClient(supabase);
-      });
-      
-      // Limpar dados de cartório se existirem
-      const savedUser = localStorage.getItem('siplan-user');
-      if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        if (userData.type === 'cartorio') {
-          localStorage.removeItem('siplan-user');
+      // Limpar dados de cartório do localStorage se um admin logar
+      if (localStorage.getItem('siplan-user')) {
+        const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
+        if (stored.type === 'cartorio') {
+            localStorage.removeItem('siplan-user');
         }
       }
     } else if (!stableAuth.session && user?.type === 'admin') {
-      // Limpar usuário admin se não há sessão
+      // Limpar usuário admin se não há sessão (admin deslogou)
       logger.info('🔐 [AuthContextFixed] Clearing admin user - no session');
       setUser(null);
-      setAuthenticatedClient(null);
+      // setAuthenticatedClient(null); // Não mais necessário
+    } else if (stableAuth.session && !stableAuth.isAdmin && user?.type !== 'cartorio') {
+      // Caso haja uma sessão, mas não é admin e não é cartório do localStorage (pode ser um usuário genérico)
+      logger.info('🔐 [AuthContextFixed] Setting generic authenticated user from stableAuth (not admin or specific cartorio)');
+      const genericUser: User = {
+        id: stableAuth.session.user.id,
+        name: stableAuth.session.user.email || 'Usuário',
+        type: 'cartorio', // Assumindo 'cartorio' para usuários autenticados não-admin
+        email: stableAuth.session.user.email || ''
+      };
+      setUser(genericUser);
+    } else if (!stableAuth.session && user) { // Se não há sessão e há um usuário no estado (ex: sessão expirou)
+        logger.info('🔐 [AuthContextFixed] Clearing user state as no active session detected.');
+        setUser(null);
+        localStorage.removeItem('siplan-user'); // Garante que o localStorage também seja limpo
     }
-  }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
+  }, [stableAuth.session, stableAuth.isAdmin, user]); // Adicionado 'user' para garantir que o useEffect reage às mudanças no estado local
 
   const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('🔐 [AuthContextFixed] Login called:', { 
+    logger.info('�� [AuthContextFixed] Login called:', { 
       type, 
       userData: !!userData,
       cartorio_id: userData?.cartorio_id,
@@ -116,10 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     const newUser: User = {
-      id: userData?.id || '1',
+      id: userData?.id || 'default_id', // O ID real virá da sessão Supabase via stableAuth
       name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
       type,
-      token: type === 'cartorio' ? token : undefined,
+      token: type === 'cartorio' ? token : undefined, // Mantém o token se for necessário para outras APIs
       cartorio_id: userData?.cartorio_id,
       cartorio_name: userData?.cartorio_name,
       username: userData?.username,
@@ -130,49 +124,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (type === 'cartorio') {
       localStorage.setItem('siplan-user', JSON.stringify(newUser));
-      
-      try {
-        // CRITICAL: Pass custom token but ensure session access_token takes priority
-        const authClient = await createAuthenticatedClient(token);
-        setAuthenticatedClient(authClient);
-        
-        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete with session access_token priority:', {
-          cartorio_id: newUser.cartorio_id,
-          hasAuthClient: !!authClient
-        });
-      } catch (err) {
-        logger.error('❌ [AuthContextFixed] Error creating authenticated client during login:', err);
-      }
-    } else {
-      // CRITICAL: For admin, use session access_token only
-      try {
-        const authClient = await createAuthenticatedClient();
-        setAuthenticatedClient(authClient);
-        logger.info('🔐 [AuthContextFixed] Admin login setup complete using session access_token only');
-      } catch (err) {
-        logger.error('❌ [AuthContextFixed] Error creating authenticated client for admin login:', err);
-        setAuthenticatedClient(supabase);
-      }
+      // Não é necessário criar/atualizar authenticatedClient aqui.
+      // O 'supabase' de client.ts fará isso automaticamente.
     }
+    // Para admin, 'stableAuth' e a instância 'supabase' gerenciam a autenticação
     
-    logger.info('✅ [AuthContextFixed] User logged in successfully:', { 
-      type: newUser.type, 
-      cartorio_id: newUser.cartorio_id 
-    });
+    logger.info('✅ [AuthContextFixed] User login state updated (relying on global supabase client for session)');
   };
 
   const logout = async () => {
     logger.info('🔐 [AuthContextFixed] Logout called');
     
-    // Sign out from Supabase Auth if it's an admin
-    if (user?.type === 'admin') {
-      await stableAuth.logout();
-    }
+    // Usa a instância 'supabase' principal para deslogar do Supabase Auth
+    await supabase.auth.signOut();
     
     setUser(null);
-    setAuthenticatedClient(null);
-    localStorage.removeItem('siplan-user');
-    
+    // setAuthenticatedClient(null); // Não mais necessário
+    localStorage.removeItem('siplan-user'); // Limpa o localStorage personalizado
+
     logger.info('✅ [AuthContextFixed] User logged out successfully');
   };
 
@@ -188,9 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
-      hasAuthClient: !!authenticatedClient
+      // hasAuthClient: !!authenticatedClient // Não mais necessário
     });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, authenticatedClient]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -199,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       logout, 
       isAuthenticated, 
-      authenticatedClient,
+      supabaseClient: supabase, // Passa a instância 'supabase' principal
       isLoading,
       isAdmin: stableAuth.isAdmin
     }}>
