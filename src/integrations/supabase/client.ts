@@ -19,8 +19,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Cache para evitar múltiplas instâncias do GoTrueClient
-const clientCache = new Map<string, ReturnType<typeof createClient>>();
+// Cache para evitar múltiplas instâncias do GoTrueClient - properly typed
+const clientCache = new Map<string, ReturnType<typeof createClient<Database>>>();
 
 // Helper function to create authenticated supabase instance
 export const createAuthenticatedClient = (token: string) => {
