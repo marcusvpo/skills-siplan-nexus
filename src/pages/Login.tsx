@@ -73,11 +73,10 @@ const Login = () => {
           refreshTokenExists: !!data.session.refresh_token,
           accessTokenType: typeof data.session.access_token,
           refreshTokenType: typeof data.session.refresh_token,
-          // Se você se sentir confortável em logar os tokens completos para depuração (DESCOMENTE COM CUIDADO):
-          // rawAccessToken: data.session.access_token,
-          // rawRefreshToken: data.session.refresh_token,
         });
-        // --- FIM DO NOVO LOG ---
+        // --- NOVO LOG: IMPRIME O OBJETO SUPABASE ---
+        console.log('Objeto Supabase no momento do setSession:', supabase);
+        // --- FIM DOS NOVOS LOGS ---
 
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
