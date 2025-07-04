@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
             if (stored.type === 'cartorio' || stored.id !== supabaseUser.id) {
               localStorage.removeItem('siplan-user');
-              logger.info('�� [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
+              logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
             }
           } catch (e) {
             logger.error('❌ [AuthContextFixed] Erro ao analisar localStorage para admin, limpando.', e);
@@ -161,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    logger.info('🔐 [AuthContextFixed] Função logout chamada');
+    logger.info('�� [AuthContextFixed] Função logout chamada');
     await supabase.auth.signOut();
     setAuthenticatedClient(null);
     logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo useMemo.');
