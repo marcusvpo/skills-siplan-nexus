@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase, createAuthenticatedClient } from '@/integrations/supabase/client'; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-// import { useStableAuth } from '@/hooks/useStableAuth'; // <-- COMENTADO: Mantenha o import por enquanto, mas não será usado diretamente
+import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
 
 interface User {
@@ -30,89 +30,46 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const stableAuth = useStableAuth(); // <-- COMENTADO: Esta linha deve ser comentada
+  const stableAuth = useStableAuth(); // stableAuth provides session, isAdmin, isLoading, logout
   const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
 
-  // NOVOS ESTADOS LOCAIS PARA O TESTE (SUBSTITUEM stableAuth)
-  const [isLoadingState, setIsLoadingState] = useState(true); 
-  const [sessionState, setSessionState] = useState<Session | null>(null); 
-  const [userState, setUserState] = useState<User | null>(null); 
-  const [isAdminState, setIsAdminState] = useState(false); 
-
-  // NOVO useEffect para carregar a sessão inicial e监听 onAuthStateChange
-  useEffect(() => {
-    const loadInitialSession = async () => {
-      try {
-        logger.info('🔐 [AuthContextFixed] (TESTE) Carregando sessão inicial diretamente do supabase.auth...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          logger.error('❌ [AuthContextFixed] (TESTE) Erro ao carregar sessão inicial:', error);
-        }
-        setSessionState(session);
-        // Adapte a lógica de `user` aqui se precisar de dados do usuário da sessão
-        if (session) {
-            // Exemplo simples de derivação de userState
-            setUserState({ 
-                id: session.user.id, 
-                name: session.user.email || 'Usuário', 
-                type: 'cartorio', // Ajuste conforme sua lógica para admin/cartorio
-                email: session.user.email 
-            });
-            // Você pode verificar user_metadata para isAdminState aqui:
-            setIsAdminState(session.user.user_metadata?.is_admin === true); 
-        } else {
-            setUserState(null);
-        }
-      } catch (e) {
-        logger.error('❌ [AuthContextFixed] (TESTE) Erro inesperado ao carregar sessão inicial:', e);
-      } finally {
-        setIsLoadingState(false);
-        logger.info('🔐 [AuthContextFixed] (TESTE) Sessão inicial carregada. isLoading agora é false.');
-      }
-    };
-
-    loadInitialSession();
-
-    // Listener para mudanças de estado de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        logger.info('🔐 [AuthContextFixed] (TESTE) Auth state change detectado:', event, session);
-        setSessionState(session);
-        if (session) {
-            setUserState({ 
-                id: session.user.id, 
-                name: session.user.email || 'Usuário', 
-                type: 'cartorio', // Ajuste conforme sua lógica
-                email: session.user.email 
-            });
-            setIsAdminState(session.user.user_metadata?.is_admin === true); 
-        } else {
-            setUserState(null);
-            setIsAdminState(false);
-        }
-        setIsLoadingState(false); // Garante que loading é falso após a mudança de estado
-    });
-
-    return () => {
-        subscription.unsubscribe(); // Limpa o listener na desmontagem
-    };
-  }, []); // Executa apenas uma vez na montagem
-
-
-  // useMemo para calcular o objeto 'user' com base nas informações dos novos estados locais
+  // useMemo para calcular o objeto 'user' com base nas informações de stableAuth e localStorage
   const user = useMemo(() => {
-    logger.info('�� [AuthContextFixed] (TESTE) Calculando estado do user (useMemo):', {
-      sessionState: !!sessionState,
-      isLoadingState: isLoadingState,
-      isAdminState: isAdminState, 
-      currentUserId: sessionState?.user?.id,
+    logger.info('🔐 [AuthContextFixed] Calculando estado do user (useMemo):', {
+      stableAuthSession: !!stableAuth.session,
+      stableAuthIsLoading: stableAuth.isLoading,
+      stableAuthIsAdmin: stableAuth.isAdmin,
+      currentUserId: stableAuth.session?.user?.id,
     });
 
-    if (isLoadingState) { 
+    if (stableAuth.isLoading) {
       return null;
     }
 
-    if (sessionState) { 
-        const supabaseUser = sessionState.user;
+    if (stableAuth.session) {
+      const supabaseUser = stableAuth.session.user;
+      const isAdminSession = stableAuth.isAdmin;
+
+      if (isAdminSession) {
+        if (localStorage.getItem('siplan-user')) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
+            if (stored.type === 'cartorio' || stored.id !== supabaseUser.id) {
+              localStorage.removeItem('siplan-user');
+              logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
+            }
+          } catch (e) {
+            logger.error('❌ [AuthContextFixed] Erro ao analisar localStorage para admin, limpando.', e);
+            localStorage.removeItem('siplan-user');
+          }
+        }
+        return {
+          id: supabaseUser.id,
+          name: 'Administrador',
+          type: 'admin' as const, // Fix type assignment
+          email: supabaseUser.email || ''
+        };
+      } else {
         let cartorioDataFromLocalStorage: Partial<User> = {};
         const savedUserJson = localStorage.getItem('siplan-user');
         
@@ -121,61 +78,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const parsed = JSON.parse(savedUserJson);
             if (parsed.id === supabaseUser.id && parsed.type === 'cartorio') {
                 cartorioDataFromLocalStorage = parsed;
-                logger.info('🔐 [AuthContextFixed] (TESTE) Dados de cartório carregados do localStorage.');
+                logger.info('🔐 [AuthContextFixed] Dados de cartório carregados do localStorage.');
             } else {
                 localStorage.removeItem('siplan-user');
-                logger.warn('🔐 [AuthContextFixed] (TESTE) Usuário do localStorage não corresponde à sessão ou tipo errado, limpando.');
+                logger.warn('🔐 [AuthContextFixed] Usuário do localStorage não corresponde à sessão ou tipo errado, limpando.');
             }
           } catch (e) {
-            logger.error('❌ [AuthContextFixed] (TESTE) Erro ao analisar usuário salvo do localStorage:', e);
+            logger.error('❌ [AuthContextFixed] Erro ao analisar usuário salvo do localStorage:', e);
             localStorage.removeItem('siplan-user');
           }
         }
+
+        const currentUserDerived: User = {
+          id: supabaseUser.id,
+          name: cartorioDataFromLocalStorage.name || supabaseUser.email || 'Usuário Cartório',
+          type: 'cartorio' as const, // Fix type assignment
+          email: supabaseUser.email || '',
+          cartorio_id: cartorioDataFromLocalStorage.cartorio_id,
+          cartorio_name: cartorioDataFromLocalStorage.cartorio_name,
+          username: cartorioDataFromLocalStorage.username,
+          token: cartorioDataFromLocalStorage.token
+        };
         
-        // Se for admin, sobrescreve com dados de admin
-        if (isAdminState) {
-            return {
-                id: supabaseUser.id,
-                name: 'Administrador',
-                type: 'admin' as const,
-                email: supabaseUser.email || ''
-            };
-        } else {
-            const currentUserDerived: User = {
-                id: supabaseUser.id,
-                name: cartorioDataFromLocalStorage.name || supabaseUser.email || 'Usuário Cartório',
-                type: 'cartorio' as const,
-                email: supabaseUser.email || '',
-                cartorio_id: cartorioDataFromLocalStorage.cartorio_id,
-                cartorio_name: cartorioDataFromLocalStorage.cartorio_name,
-                username: cartorioDataFromLocalStorage.username,
-                token: cartorioDataFromLocalStorage.token
-            };
-            
-            if (!savedUserJson || JSON.stringify(cartorioDataFromLocalStorage) !== JSON.stringify(currentUserDerived)) {
-                 localStorage.setItem('siplan-user', JSON.stringify(currentUserDerived));
-                 logger.info('🔐 [AuthContextFixed] (TESTE) Atualizado o usuário do cartório no localStorage.');
-            }
-            return currentUserDerived;
+        if (!savedUserJson || JSON.stringify(cartorioDataFromLocalStorage) !== JSON.stringify(currentUserDerived)) {
+             localStorage.setItem('siplan-user', JSON.stringify(currentUserDerived));
+             logger.info('🔐 [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
         }
+        return currentUserDerived;
+      }
     } else {
       if (localStorage.getItem('siplan-user')) {
          localStorage.removeItem('siplan-user'); 
-         logger.info('🔐 [AuthContextFixed] (TESTE) Nenhuma sessão ativa, limpando localStorage.');
+         logger.info('🔐 [AuthContextFixed] Nenhuma sessão ativa, limpando localStorage.');
       }
       return null;
     }
-  }, [sessionState, isAdminState, isLoadingState]); // Dependências ajustadas
+  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isLoading]);
 
-
-  // COMENTADO: Este useEffect deve ser comentado COMPLETAMENTE
-  /*
+  // Update authenticated client whenever user changes
   useEffect(() => {
     const updateAuthenticatedClient = async () => {
+      // Importante: verificar se stableAuth.session e user estão disponíveis
       if (user?.token && user.type === 'cartorio') {
+        // Para usuários de cartório com tokens customizados
         const authClient = await createAuthenticatedClient(user.token);
         setAuthenticatedClient(authClient);
       } else if (stableAuth.session) {
+        // Para usuários admin ou autenticados normalmente via Supabase (sem token customizado)
         const authClient = await createAuthenticatedClient();
         setAuthenticatedClient(authClient);
       } else {
@@ -184,12 +133,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     updateAuthenticatedClient();
-  }, [user, stableAuth.session]);
-  */
-
+  }, [user, stableAuth.session]); // Depende do user e stableAuth.session
 
   const login = async (customToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('🔐 [AuthContextFixed] (TESTE) Função login chamada (frontend):', { 
+    logger.info('🔐 [AuthContextFixed] Função login chamada (frontend):', { 
       type, 
       userData: !!userData,
       cartorio_id: userData?.cartorio_id,
@@ -208,58 +155,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email || ''
       };
       localStorage.setItem('siplan-user', JSON.stringify(newUserForLocalStorage));
-      logger.info('🔐 [AuthContextFixed] (TESTE) Dados de usuário do cartório salvos no localStorage para posterior derivação.');
+      logger.info('🔐 [AuthContextFixed] Dados de usuário do cartório salvos no localStorage para posterior derivação.');
     }
     
-    logger.info('✅ [AuthContextFixed] (TESTE) Processo de login frontend iniciado. O estado do user será derivado da sessão inicial.');
+    logger.info('✅ [AuthContextFixed] Processo de login frontend iniciado. O estado do user será derivado do stableAuth.');
   };
 
   const logout = async () => {
-    logger.info('🔐 [AuthContextFixed] (TESTE) Função logout chamada');
+    logger.info('🔐 [AuthContextFixed] Função logout chamada');
     await supabase.auth.signOut();
     setAuthenticatedClient(null);
-    // Atualize os estados locais após o logout
-    setSessionState(null);
-    setUserState(null);
-    setIsAdminState(false);
-    localStorage.removeItem('siplan-user');
-    logger.info('✅ [AuthContextFixed] (TESTE) Logout do Supabase iniciado. Estados locais atualizados.');
+    logger.info('✅ [AuthContextFixed] Logout do Supabase iniciado. O estado será sincronizado pelo useMemo.');
   };
 
-  // const isAuthenticated = !!stableAuth.session; // <-- COMENTADO: Use o novo estado local
-  const isAuthenticated = !!sessionState; 
-
-  // const isLoading = stableAuth.isLoading; // <-- COMENTADO: Use o novo estado local
-  const isLoading = isLoadingState; 
-
-  // const isAdmin = stableAuth.isAdmin; // <-- COMENTADO: Use o novo estado local
-  const isAdmin = isAdminState; 
+  const isAuthenticated = !!stableAuth.session; 
+  const isLoading = stableAuth.isLoading;
 
   useEffect(() => {
-    logger.info('🔐 [AuthContextFixed] (TESTE) Estado atual da autenticação (debug):', {
+    logger.info('🔐 [AuthContextFixed] Estado atual da autenticação (debug):', {
       hasUser: !!user,
       userId: user?.id, 
       userType: user?.type,
-      hasSession: !!sessionState, 
-      sessionId: sessionState?.user?.id, 
-      isAdmin: isAdminState, 
+      hasSession: !!stableAuth.session,
+      sessionId: stableAuth.session?.user?.id, 
+      isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
       hasAuthenticatedClient: !!authenticatedClient,
     });
-  }, [user, sessionState, isAdminState, isAuthenticated, isLoading, authenticatedClient]); // Dependências ajustadas
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, authenticatedClient]);
 
   return (
     <AuthContext.Provider value={{ 
       user,
-      session: sessionState, 
+      session: stableAuth.session, 
       login, 
       logout, 
       isAuthenticated, 
       supabaseClient: supabase, 
-      authenticatedClient, 
+      authenticatedClient, // Include the authenticated client
       isLoading,
-      isAdmin 
+      isAdmin: stableAuth.isAdmin
     }}>
       {children}
     </AuthContext.Provider>
