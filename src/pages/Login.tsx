@@ -1,4 +1,4 @@
-
+// UI atualizada com padrão visual da página de videoaula
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ const Login = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`, // omitido
         },
         body: JSON.stringify({ username, login_token: token }),
       });
@@ -82,7 +82,6 @@ const Login = () => {
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      // Mapear códigos de erro para mensagens mais amigáveis
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';
@@ -97,9 +96,9 @@ const Login = () => {
       } else if (errorMessage.includes('MISSING_FIELDS')) {
         friendlyMessage = 'Preencha todos os campos obrigatórios.';
       }
-      
+
       setError(friendlyMessage);
-      
+
       toast({
         title: "Erro no login",
         description: friendlyMessage,
@@ -111,8 +110,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800/80 border-gray-600 shadow-modern backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-[#2a2a2a] via-[#1c1c1c] to-black flex items-center justify-center p-4">
+      <Card className="w-full max-w-md glass-effect shadow-modern page-transition">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <BookOpen className="h-12 w-12 text-red-500" />
@@ -132,54 +131,50 @@ const Login = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Nome de Usuário"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    setError('');
-                  }}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
-                  required
-                  disabled={isLoading}
-                />
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Nome de Usuário"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError('');
+                }}
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                required
+                disabled={isLoading}
+              />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
 
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  type={showToken ? "text" : "password"}
-                  placeholder="Token do Cartório"
-                  value={token}
-                  onChange={(e) => {
-                    setToken(e.target.value);
-                    setError('');
-                  }}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
-                  required
-                  disabled={isLoading}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  onClick={() => setShowToken(!showToken)}
-                  disabled={isLoading}
-                >
-                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
+            <div className="relative">
+              <Input
+                type={showToken ? "text" : "password"}
+                placeholder="Token do Cartório"
+                value={token}
+                onChange={(e) => {
+                  setToken(e.target.value);
+                  setError('');
+                }}
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                required
+                disabled={isLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                onClick={() => setShowToken(!showToken)}
+                disabled={isLoading}
+              >
+                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
             </div>
             
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50 btn-hover-lift"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -196,7 +191,7 @@ const Login = () => {
           <div className="space-y-3">
             <Button
               variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200 btn-hover-lift"
               onClick={handleDemo}
               disabled={isLoading}
             >
