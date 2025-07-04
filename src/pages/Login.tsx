@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
+// import { supabase } from '@/integrations/supabase/client'; // Não é necessário importar aqui
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,6 +16,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  // Obtém isAuthenticated e isLoading diretamente do AuthContextFixed
   const { login, isAuthenticated, isLoading: authContextLoading } = useAuth(); 
 
   // Efeito para monitorar as mudanças de estado de autenticação
@@ -27,7 +28,7 @@ const Login = () => {
     });
 
     if (isAuthenticated && !authContextLoading && isLoading) {
-      logger.info('🔑 [LoginComponent] AuthContext indica autenticação bem-sucedida, navegando.');
+      logger.info('�� [LoginComponent] AuthContext indica autenticação bem-sucedida, navegando.');
       setIsLoading(false);
       navigate('/dashboard');
     } else if (isAuthenticated && !authContextLoading && !isLoading) {
@@ -35,7 +36,6 @@ const Login = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, authContextLoading, isLoading, navigate]);
-
 
   const handleDemo = () => {
     setUsername('demo');
@@ -51,7 +51,7 @@ const Login = () => {
 
     try {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
-      
+
       const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
         method: 'POST',
         headers: {
@@ -62,13 +62,13 @@ const Login = () => {
       });
 
       logger.info('Login response received', { status: response.status });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ 
           error: `Erro HTTP ${response.status}`,
           code: 'HTTP_ERROR'
         }));
-        
+
         logger.error('Login failed', { error: errorData, status: response.status });
         throw new Error(errorData.error || `Erro HTTP ${response.status}`);
       }
@@ -87,7 +87,7 @@ const Login = () => {
           username: data.usuario.username,
           email: data.usuario.email 
         });
-        
+
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
@@ -99,7 +99,7 @@ const Login = () => {
     } catch (error) {
       logger.error('Erro no login:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      
+
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';
@@ -118,9 +118,9 @@ const Login = () => {
       } else if (errorMessage.includes('NO_SESSION_RETURNED')) {
         friendlyMessage = 'O servidor não retornou uma sessão de autenticação válida. Contate o suporte.';
       }
-      
+
       setError(friendlyMessage);
-      
+
       toast({
         title: "Erro no login",
         description: friendlyMessage,
