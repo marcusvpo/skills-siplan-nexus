@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!savedUserJson || JSON.stringify(cartorioDataFromLocalStorage) !== JSON.stringify(currentUserDerived)) {
              localStorage.setItem('siplan-user', JSON.stringify(currentUserDerived));
-             logger.info('�� [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
+             logger.info('🔐 [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
         }
         return currentUserDerived;
       }
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email || ''
       };
       localStorage.setItem('siplan-user', JSON.stringify(newUserForLocalStorage));
-      logger.info('🔐 [AuthContextFixed] Dados de usuário do cartório salvos no localStorage para posterior derivação.');
+      logger.info('�� [AuthContextFixed] Dados de usuário do cartório salvos no localStorage para posterior derivação.');
     }
     
     logger.info('✅ [AuthContextFixed] Processo de login frontend iniciado. O estado do user será derivado do stableAuth.');
