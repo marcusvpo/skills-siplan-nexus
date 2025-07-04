@@ -74,9 +74,11 @@ const Login = () => {
           refreshTokenType: typeof data.session.refresh_token,
         });
         
-        // --- REMOVIDO: A chamada await supabase.auth.getSession(); foi removida aqui ---
-        // Pois o AuthContextFixed agora gerencia a inicialização, evitando conflitos.
-        // --- FIM DA REMOÇÃO ---
+        // --- RE-ADICIONADO: Este passo se mostrou necessário para garantir a inicialização ---
+        logger.info('Aguardando inicialização do módulo Auth do Supabase...');
+        await supabase.auth.getSession(); // Força a inicialização interna do Auth
+        logger.info('Módulo Auth do Supabase inicializado.');
+        // --- FIM DA RE-ADIÇÃO ---
 
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
