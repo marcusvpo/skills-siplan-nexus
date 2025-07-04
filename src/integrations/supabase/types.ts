@@ -182,48 +182,6 @@ export type Database = {
         }
         Relationships: []
       }
-      document_chunks: {
-        Row: {
-          chunk_order: number | null
-          content: string
-          created_at: string | null
-          embedding: string
-          id: string
-          metadata: Json | null
-          page_number: number | null
-          product_id: string
-          source_type: string
-          timestamp_start: number | null
-          video_lesson_id: string | null
-        }
-        Insert: {
-          chunk_order?: number | null
-          content: string
-          created_at?: string | null
-          embedding: string
-          id?: string
-          metadata?: Json | null
-          page_number?: number | null
-          product_id: string
-          source_type: string
-          timestamp_start?: number | null
-          video_lesson_id?: string | null
-        }
-        Update: {
-          chunk_order?: number | null
-          content?: string
-          created_at?: string | null
-          embedding?: string
-          id?: string
-          metadata?: Json | null
-          page_number?: number | null
-          product_id?: string
-          source_type?: string
-          timestamp_start?: number | null
-          video_lesson_id?: string | null
-        }
-        Relationships: []
-      }
       favoritos_cartorio: {
         Row: {
           cartorio_id: string

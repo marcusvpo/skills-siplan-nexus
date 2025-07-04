@@ -69,37 +69,35 @@ const Dashboard = () => {
   // Loading state
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-6"></div>
-          <p className="text-white text-lg">Carregando dados do usuário...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-white">Carregando dados do usuário...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-white page-transition">
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
-        <div className="container mx-auto px-6 py-6">
+      <div className="border-b border-gray-800">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 gradient-card rounded-lg shadow-modern">
-                <BookOpen className="h-8 w-8 text-red-500" />
-              </div>
+              <BookOpen className="h-8 w-8 text-red-500" />
               <div>
-                <h1 className="text-2xl font-bold text-enhanced">Siplan Skills</h1>
+                <h1 className="text-2xl font-bold">Siplan Skills</h1>
                 <p className="text-sm text-gray-400">
                   Plataforma de Treinamento
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium flex items-center text-enhanced">
-                  <User className="h-4 w-4 mr-2" />
+                <p className="text-sm font-medium flex items-center">
+                  <User className="h-4 w-4 mr-1" />
                   {user?.username || user?.name}
                 </p>
                 <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
@@ -108,7 +106,7 @@ const Dashboard = () => {
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="border-gray-600/50 text-gray-300 hover:bg-gray-700/30 hover:text-white shadow-modern btn-hover-lift glass-effect"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -119,16 +117,14 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-12">
-          <div className="gradient-card p-8 rounded-xl shadow-elevated border-gray-700/50 mb-8">
-            <h2 className="text-4xl font-bold text-white mb-3 text-enhanced">
-              Bem-vindo(a), {user?.username || user?.name}!
-            </h2>
-            <p className="text-gray-300 text-lg leading-relaxed">
-              Selecione um sistema para começar seu treinamento
-            </p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            Bem-vindo(a), {user?.username || user?.name}!
+          </h2>
+          <p className="text-gray-400">
+            Selecione um sistema para começar seu treinamento
+          </p>
         </div>
 
         <TreinamentosSection />

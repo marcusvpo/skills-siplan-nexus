@@ -135,7 +135,7 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen page-transition">
+      <div className="min-h-screen bg-black">
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
@@ -143,17 +143,12 @@ const ProductPage = () => {
             { label: currentProduct?.nome || 'Produto' }
           ]} />
           
-          <div className="mt-8 mb-12">
+          <div className="mt-6 mb-8">
             <ProductHeader product={currentProduct} system={currentSystem} />
           </div>
 
-          <div className="space-y-6">
-            <div className="gradient-card p-6 rounded-xl shadow-modern border-gray-700/50">
-              <h2 className="text-2xl font-bold text-white mb-2 text-enhanced">Videoaulas</h2>
-              <p className="text-gray-300">
-                Conteúdo de treinamento disponível para este produto
-              </p>
-            </div>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white mb-4">Videoaulas</h2>
             
             <VideoAulasList 
               videoAulas={videoAulas} 
