@@ -76,10 +76,10 @@ const Login = () => {
           refreshTokenType: typeof data.session.refresh_token,
         });
         
-        // REMOVIDO: A chamada await supabase.auth.getSession() e seus logs,
-        // para evitar o deadlock com o AuthContextFixed. O AuthContextFixed
-        // e o useStableAuth já lidam com a inicialização.
-
+        // --- REMOVIDO: A chamada await supabase.auth.getSession() e seus logs ---
+        // Este é o ponto crucial para o seu problema atual de "Verificando..."
+        // Ela não deve estar aqui.
+        
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
