@@ -1,135 +1,83 @@
-
+// UI atualizada com padrão visual da página de videoaula
 import React from 'react';
+import Layout from '@/user/Layout';
+import { BookOpen, Video, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
-import { Button } from '@/components/ui/button';
-import { BookOpen, LogOut, User } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
 const Dashboard = () => {
-  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-  // Verificações de segurança críticas para usuário cartório
-  React.useEffect(() => {
-    console.log('🎯 [Dashboard] Current auth state:', { 
-      isAuthenticated, 
-      userType: user?.type,
-      cartorioId: user?.cartorio_id,
-      user: user
-    });
-
-    if (!isAuthenticated) {
-      console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
-      navigate('/login');
-      return;
-    }
-
-    if (user?.type !== 'cartorio') {
-      console.warn('⚠️ [Dashboard] User is not cartorio type, redirecting');
-      if (user?.type === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/login');
-      }
-      return;
-    }
-
-    if (!user?.cartorio_id) {
-      console.error('❌ [Dashboard] User has no cartorio_id');
-      toast({
-        title: "Erro de configuração",
-        description: "Usuário não está associado a um cartório.",
-        variant: "destructive",
-      });
-      navigate('/login');
-      return;
-    }
-  }, [isAuthenticated, user, navigate]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
-      });
-      navigate('/');
-    } catch (error) {
-      console.error('❌ [Dashboard] Logout error:', error);
-      toast({
-        title: "Erro no logout",
-        description: "Houve um problema ao fazer logout.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Loading state
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando dados do usuário...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <BookOpen className="h-8 w-8 text-red-500" />
-              <div>
-                <h1 className="text-2xl font-bold">Siplan Skills</h1>
-                <p className="text-sm text-gray-400">
-                  Plataforma de Treinamento
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  {user?.username || user?.name}
-                </p>
-                <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Bem-vindo(a), {user?.username || user?.name}!
-          </h2>
-          <p className="text-gray-400">
-            Selecione um sistema para começar seu treinamento
+    <Layout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 page-transition">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            Bem-vindo(a), {user?.name}
+          </h1>
+          <p className="mt-4 text-gray-300 text-lg max-w-2xl mx-auto">
+            Gerencie os treinamentos do seu cartório e explore os recursos disponíveis.
           </p>
         </div>
 
-        <TreinamentosSection />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Videoaulas */}
+          <div className="gradient-card border border-gray-600 p-6 rounded-lg hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-center justify-center mb-4">
+              <Video className="h-10 w-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white text-center mb-2">Videoaulas</h2>
+            <p className="text-gray-400 text-center mb-4">
+              Acesse os vídeos de treinamento dos sistemas disponíveis no seu cartório.
+            </p>
+            <Button 
+              className="w-full bg-red-600 hover:bg-red-700 text-white transition-all duration-200 btn-hover-lift"
+              onClick={() => navigate('/products')}
+            >
+              Acessar Videoaulas
+            </Button>
+          </div>
+
+          {/* Documentos */}
+          <div className="gradient-card border border-gray-600 p-6 rounded-lg hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-center justify-center mb-4">
+              <FileText className="h-10 w-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white text-center mb-2">Documentos</h2>
+            <p className="text-gray-400 text-center mb-4">
+              Em breve: consulte materiais de apoio e manuais técnicos dos produtos.
+            </p>
+            <Button 
+              variant="outline"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200 btn-hover-lift"
+              disabled
+            >
+              Em Breve
+            </Button>
+          </div>
+
+          {/* Suporte */}
+          <div className="gradient-card border border-gray-600 p-6 rounded-lg hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-center justify-center mb-4">
+              <BookOpen className="h-10 w-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white text-center mb-2">Ajuda com IA</h2>
+            <p className="text-gray-400 text-center mb-4">
+              Tire dúvidas com o assistente virtual treinado para atender cartórios.
+            </p>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/chat')}
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200 btn-hover-lift"
+            >
+              Acessar Chat
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
