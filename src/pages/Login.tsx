@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,29 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  // Obtém isAuthenticated e isLoading diretamente do AuthContextFixed
   const { login, isAuthenticated, isLoading: authContextLoading } = useAuth(); 
+
+  // Efeito para monitorar as mudanças de estado de autenticação para depuração e navegação
+  useEffect(() => {
+    logger.info('🔑 [LoginComponent] Auth state update:', {
+      isAuthenticated: isAuthenticated,
+      authContextLoading: authContextLoading,
+      componentIsLoading: isLoading // estado de carregamento local
+    });
+    // Se a autenticação foi bem-sucedida e o AuthContext não está mais carregando,
+    // e o componente local ainda está em loading, force a parada e navegue.
+    if (isAuthenticated && !authContextLoading && isLoading) {
+      logger.info('�� [LoginComponent] AuthContext indica autenticação bem-sucedida, mas componente ainda carregando. Forçando parada e navegando.');
+      setIsLoading(false); // Força a parada do loading local
+      navigate('/dashboard'); // Navega para o dashboard
+    } else if (isAuthenticated && !authContextLoading && !isLoading) {
+      // Caso já esteja autenticado e não esteja carregando localmente, mas não navegou ainda
+      logger.info('🔑 [LoginComponent] AuthContext já autenticado e estável. Navegando para dashboard.');
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, authContextLoading, isLoading, navigate]);
+
 
   const handleDemo = () => {
     setUsername('demo');
@@ -28,7 +49,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoading(true); // O isLoading local do componente Login
     setError('');
 
     try {
@@ -57,47 +78,38 @@ const Login = () => {
 
       const data = await response.json();
       logger.info('Login successful response data:', data);
+      logger.info('Verificando se data.session e data.user estão presentes:', {
+          hasSession: !!data.session,
+          hasUser: !!data.user
+      });
 
+      // --- LÓGICA CRÍTICA: DEFINIR SESSÃO SUPABASE ---
       if (data.success && data.session && data.user && data.cartorio && data.usuario) {
-        logger.info('🔐 [Login] Setting Supabase session...');
-        
-        logger.info('🔐 [Login] Session tokens received:', {
-          accessTokenExists: !!data.session.access_token,
-          refreshTokenExists: !!data.session.refresh_token,
-        });
-        
-        // **CRÍTICO**: Definir sessão Supabase SEM chamar getSession() antes
-        const { error: setSessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+        logger.info('✅ [Login] Edge Function retornou sucesso. Chamando login do contexto...');
 
-        if (setSessionError) {
-          logger.error('❌ [Login] Falha ao definir sessão Supabase:', setSessionError);
-          throw new Error(`Falha ao estabelecer sessão Supabase: ${setSessionError.message}`);
-        }
-        
-        logger.info('✅ [Login] Sessão Supabase definida com sucesso');
-
-        // Atualizar o contexto local (sem aguardar estabilização)
+        // Chamada para a função 'login' do AuthContextFixed.
+        // Essa função armazena dados customizados no localStorage e notifica o contexto.
+        // A atualização da sessão no Supabase Auth é feita automaticamente pelo Supabase Client
+        // e capturada pelo onAuthStateChange no useStableAuth.
         login(token, 'cartorio', { 
-          id: data.user.id, 
+          id: data.user.id, // O ID do usuário do Supabase Auth
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
           username: data.usuario.username,
           email: data.usuario.email 
         });
+        logger.info('✅ [Login] Função login do contexto completada. O useEffect agora observará o estado de autenticação.');
         
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
-        // **SIMPLIFICADO**: Navegar imediatamente sem aguardar contexto
-        logger.info('🚀 [Login] Navegando para dashboard...');
-        navigate('/dashboard'); 
-        
+        // **NÃO NAVEGAMOS MAIS DIRETAMENTE AQUI.**
+        // A navegação será controlada pelo useEffect baseado no estado global de autenticação
+        // para garantir que o contexto esteja totalmente carregado e estável.
+
       } else {
         throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
@@ -132,8 +144,8 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      logger.info('🔚 [Login] Finalizando processo de login');
-      setIsLoading(false);
+      logger.info('�� [Login] Finalizando processo de login, setando isLoading para false.');
+      setIsLoading(false); // Garante que o loading local do Login seja desativado
     }
   };
 
