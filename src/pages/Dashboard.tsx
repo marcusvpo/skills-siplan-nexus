@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
@@ -69,25 +70,29 @@ const Dashboard = () => {
   // Loading state
   if (!user) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Carregando dados do usuário...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center page-transition">
+        <Card className="gradient-card shadow-elevated border-gray-600/50">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-white text-enhanced">Carregando dados do usuário...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white page-transition">
       {/* Header */}
-      <div className="border-b border-gray-800">
+      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <BookOpen className="h-8 w-8 text-red-500" />
+              <div className="p-2 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold">Siplan Skills</h1>
+                <h1 className="text-2xl font-bold text-enhanced">Siplan Skills</h1>
                 <p className="text-sm text-gray-400">
                   Plataforma de Treinamento
                 </p>
@@ -95,18 +100,22 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  {user?.username || user?.name}
-                </p>
-                <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
-              </div>
+              <Card className="gradient-card shadow-modern border-gray-600/50">
+                <CardContent className="p-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium flex items-center text-white text-enhanced">
+                      <User className="h-4 w-4 mr-2" />
+                      {user?.username || user?.name}
+                    </p>
+                    <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
+                  </div>
+                </CardContent>
+              </Card>
               <Button
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift shadow-modern"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -118,14 +127,16 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Bem-vindo(a), {user?.username || user?.name}!
-          </h2>
-          <p className="text-gray-400">
-            Selecione um sistema para começar seu treinamento
-          </p>
-        </div>
+        <Card className="gradient-card shadow-elevated border-gray-600/50 mb-8 card-enter">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-white text-enhanced">
+              Bem-vindo(a), {user?.username || user?.name}!
+            </CardTitle>
+            <p className="text-gray-400 text-lg">
+              Selecione um sistema para começar seu treinamento
+            </p>
+          </CardHeader>
+        </Card>
 
         <TreinamentosSection />
       </div>

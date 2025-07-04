@@ -65,25 +65,29 @@ const AdminDashboard = () => {
   // Não renderizar nada enquanto fazemos as verificações de segurança
   if (!isAuthenticated || (!isAdmin && user?.type !== 'admin')) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-white">Verificando permissões...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center page-transition">
+        <Card className="gradient-card shadow-elevated border-gray-600/50">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-white text-enhanced">Verificando permissões...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white page-transition">
       {/* Header */}
-      <div className="border-b border-gray-800">
+      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <BookOpen className="h-8 w-8 text-red-500" />
+              <div className="p-2 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold">Siplan Skills - Admin</h1>
+                <h1 className="text-2xl font-bold text-enhanced">Siplan Skills - Admin</h1>
                 <p className="text-sm text-gray-400">
                   Painel de Administração
                 </p>
@@ -91,15 +95,19 @@ const AdminDashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium">{user?.name || 'Administrador'}</p>
-                <p className="text-xs text-gray-400">{user?.email}</p>
-              </div>
+              <Card className="gradient-card shadow-modern border-gray-600/50">
+                <CardContent className="p-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-white text-enhanced">{user?.name || 'Administrador'}</p>
+                    <p className="text-xs text-gray-400">{user?.email}</p>
+                  </div>
+                </CardContent>
+              </Card>
               <Button
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift shadow-modern"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -112,29 +120,33 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <TabsTrigger 
-              value="cartorios" 
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
-            >
-              <Building className="h-4 w-4 mr-2" />
-              Cartórios
-            </TabsTrigger>
-            <TabsTrigger 
-              value="conteudo"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Conteúdo
-            </TabsTrigger>
-            <TabsTrigger 
-              value="configuracoes"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configurações
-            </TabsTrigger>
-          </TabsList>
+          <Card className="gradient-card shadow-modern border-gray-600/50">
+            <CardContent className="p-1">
+              <TabsList className="grid w-full grid-cols-3 glass-effect border-gray-700/50 p-1">
+                <TabsTrigger 
+                  value="cartorios" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                >
+                  <Building className="h-4 w-4 mr-2" />
+                  Cartórios
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="conteudo"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Conteúdo
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="configuracoes"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurações
+                </TabsTrigger>
+              </TabsList>
+            </CardContent>
+          </Card>
 
           <TabsContent value="cartorios" className="space-y-6">
             <CartorioManagerRestored />
@@ -145,17 +157,25 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card className="gradient-card shadow-elevated border-gray-600/50 card-enter">
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
+                <CardTitle className="text-white flex items-center text-enhanced">
+                  <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
+                    <Settings className="h-5 w-5 text-white" />
+                  </div>
                   Configurações do Sistema
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-400">
+                <p className="text-gray-400 text-lg leading-relaxed">
                   Configurações avançadas em desenvolvimento...
                 </p>
+                <div className="mt-6 p-4 glass-effect rounded-lg border border-gray-600/50">
+                  <p className="text-sm text-gray-500">
+                    Funcionalidades futuras incluirão configurações de sistema, 
+                    personalização de temas e gerenciamento de notificações.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -23,17 +23,17 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
   if (products.length === 0) {
     return (
       <div className="page-transition">
-        <Card className="gradient-card shadow-elevated border-gray-700/50">
+        <Card className="gradient-card shadow-elevated border-gray-600/50 card-enter">
           <CardContent className="p-12 text-center">
             <div className="text-6xl mb-6 animate-bounce">📚</div>
             <h3 className="text-2xl font-semibold text-gray-300 mb-3 text-enhanced">Nenhum produto disponível</h3>
-            <p className="text-gray-400 mb-6 leading-relaxed">
+            <p className="text-gray-400 mb-6 leading-relaxed text-lg">
               Os produtos de treinamento para este sistema serão disponibilizados em breve.
             </p>
             <Button 
               onClick={() => navigate('/dashboard')} 
               variant="outline" 
-              className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift shadow-modern"
             >
               Voltar ao Dashboard
             </Button>
@@ -51,7 +51,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
         return (
           <Card 
             key={produto.id} 
-            className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 cursor-pointer group card-enter"
+            className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 cursor-pointer group card-enter btn-hover-lift"
             style={{ animationDelay: `${index * 0.1}s` }}
             onClick={() => navigate(`/system/${systemId}/product/${produto.id}`)}
           >
@@ -68,12 +68,14 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between text-sm text-gray-400">
                 <div className="flex items-center space-x-2">
-                  <div className="p-1 bg-blue-600/20 rounded-full">
-                    <Clock className="h-3 w-3 text-blue-400" />
+                  <div className="p-1 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full shadow-modern">
+                    <Clock className="h-3 w-3 text-white" />
                   </div>
                   <span>{totalAulas} videoaula{totalAulas !== 1 ? 's' : ''}</span>
                 </div>
-                <BookOpen className="h-4 w-4 text-gray-500 group-hover:text-red-400 transition-colors duration-300" />
+                <div className="p-1 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full">
+                  <BookOpen className="h-4 w-4 text-gray-300 group-hover:text-red-400 transition-colors duration-300" />
+                </div>
               </div>
               
               <Button 

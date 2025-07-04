@@ -82,14 +82,16 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800/80 border-gray-600 shadow-modern backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center p-4 page-transition">
+      <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-red-500" />
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
+              <BookOpen className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-white">Painel Administrativo</CardTitle>
-          <p className="text-gray-300 mt-2">
+          <CardTitle className="text-3xl font-bold text-white text-enhanced">Painel Administrativo</CardTitle>
+          <p className="text-gray-300 mt-3 text-lg">
             Acesso restrito a administradores
           </p>
         </CardHeader>
@@ -102,7 +104,7 @@ const AdminLogin = () => {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                 required
               />
             </div>
@@ -114,14 +116,14 @@ const AdminLogin = () => {
                   placeholder="Senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                  className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -131,24 +133,31 @@ const AdminLogin = () => {
             
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg"
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
               disabled={isLoading}
             >
-              {isLoading ? 'Entrando...' : 'Entrar no Painel'}
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Entrando...
+                </div>
+              ) : (
+                'Entrar no Painel'
+              )}
             </Button>
           </form>
           
-          <div className="space-y-3">
+          <div className="space-y-4 pt-4 border-t border-gray-700/50">
             <Link 
               to="#"
-              className="block text-center text-sm text-red-400 hover:text-red-300 transition-colors"
+              className="block text-center text-sm text-red-400 hover:text-red-300 transition-colors btn-hover-lift"
             >
               Esqueceu sua senha?
             </Link>
             
             <Link 
               to="/"
-              className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors"
+              className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar ao início

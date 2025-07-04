@@ -85,7 +85,7 @@ const SystemPage = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen page-transition">
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
@@ -97,10 +97,14 @@ const SystemPage = () => {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
-              Produtos de Treinamento
-            </h2>
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white text-enhanced">
+                Produtos de Treinamento
+              </h2>
+            </div>
             
             <ProductsList products={produtos} systemId={systemId!} />
           </div>

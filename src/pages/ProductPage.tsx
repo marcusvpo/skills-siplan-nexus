@@ -135,7 +135,7 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen page-transition">
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
@@ -148,7 +148,7 @@ const ProductPage = () => {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white mb-4">Videoaulas</h2>
+            <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
             
             <VideoAulasList 
               videoAulas={videoAulas} 
