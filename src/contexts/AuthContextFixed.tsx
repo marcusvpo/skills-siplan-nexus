@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const stored = JSON.parse(localStorage.getItem('siplan-user') || '{}');
             if (stored.type === 'cartorio' || stored.id !== supabaseUser.id) {
               localStorage.removeItem('siplan-user');
-              logger.info('🔐 [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
+              logger.info('�� [AuthContextFixed] Admin logado, limpando localStorage do cartório.');
             }
           } catch (e) {
             logger.error('❌ [AuthContextFixed] Erro ao analisar localStorage para admin, limpando.', e);
@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 logger.info('🔐 [AuthContextFixed] Dados de cartório carregados do localStorage.');
             } else {
                 localStorage.removeItem('siplan-user');
-                logger.warn('🔐 [AuthContextFixed] Usuário do localStorage não corresponde à sessão ou tipo errado, limpando.');
+                logger.warn('�� [AuthContextFixed] Usuário do localStorage não corresponde à sessão ou tipo errado, limpando.');
             }
           } catch (e) {
             logger.error('❌ [AuthContextFixed] Erro ao analisar usuário salvo do localStorage:', e);
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!savedUserJson || JSON.stringify(cartorioDataFromLocalStorage) !== JSON.stringify(currentUserDerived)) {
              localStorage.setItem('siplan-user', JSON.stringify(currentUserDerived));
-             logger.info('🔐 [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
+             logger.info('�� [AuthContextFixed] Atualizado o usuário do cartório no localStorage.');
         }
         return currentUserDerived;
       }
@@ -118,13 +118,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Update authenticated client whenever user changes
   useEffect(() => {
     const updateAuthenticatedClient = async () => {
-      // Importante: verificar se stableAuth.session e user estão disponíveis
       if (user?.token && user.type === 'cartorio') {
-        // Para usuários de cartório com tokens customizados
+        // For cartorio users with custom tokens
         const authClient = await createAuthenticatedClient(user.token);
         setAuthenticatedClient(authClient);
       } else if (stableAuth.session) {
-        // Para usuários admin ou autenticados normalmente via Supabase (sem token customizado)
+        // For admin users or regular authenticated users
         const authClient = await createAuthenticatedClient();
         setAuthenticatedClient(authClient);
       } else {
@@ -133,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     updateAuthenticatedClient();
-  }, [user, stableAuth.session]); // Depende do user e stableAuth.session
+  }, [user, stableAuth.session]);
 
   const login = async (customToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     logger.info('🔐 [AuthContextFixed] Função login chamada (frontend):', { 
