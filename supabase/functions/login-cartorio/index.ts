@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -173,98 +173,32 @@ serve(async (req) => {
       });
     }
 
-    console.log('🔐 Creating Supabase Auth session...');
+    console.log('Creating authentication token...');
     
-    // Criar uma sessão REAL do Supabase Auth
-    const userEmail = usuario.email || `${usuario.username}@cartorio.local`;
-    let authData;
+    // Criar token de autenticação customizado
+    const authPayload = {
+      cartorio_id: acesso.cartorio_id,
+      cartorio_nome: acesso.cartorios.nome,
+      user_id: usuario.id,
+      username: usuario.username,
+      login_token: login_token,
+      role: 'cartorio_user',
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 8), // 8 horas
+      iat: Math.floor(Date.now() / 1000),
+      iss: 'siplan-skills'
+    };
 
-    // Tentar fazer login primeiro
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: userEmail,
-      password: login_token,
-    });
-
-    if (signInError) {
-      console.log('Auth sign-in failed, attempting to create user:', signInError.message);
-      
-      // Se falhar, tentar criar o usuário
-      const { data: createData, error: createError } = await supabase.auth.admin.createUser({
-        email: userEmail,
-        password: login_token,
-        email_confirm: true,
-        user_metadata: {
-          cartorio_id: acesso.cartorio_id,
-          cartorio_name: acesso.cartorios.nome,
-          username: usuario.username,
-          source: 'cartorio_login_token'
-        }
-      });
-
-      if (createError) {
-        console.error('Failed to create auth user:', createError);
-        return new Response(JSON.stringify({ 
-          error: 'Erro na criação da sessão de autenticação',
-          code: 'AUTH_USER_CREATION_ERROR',
-          debug: createError.message
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Tentar fazer login novamente após criar o usuário
-      const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: login_token,
-      });
-
-      if (retryError || !retryData.session) {
-        console.error('Failed to sign in after user creation:', retryError);
-        return new Response(JSON.stringify({ 
-          error: 'Erro no sistema de autenticação após criação do usuário',
-          code: 'AUTH_SYSTEM_ERROR',
-          debug: retryError?.message
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      authData = retryData;
-    } else {
-      authData = signInData;
-    }
-
-    if (!authData?.session) {
-      console.error('No session returned from Supabase Auth');
-      return new Response(JSON.stringify({ 
-        error: 'Sistema de autenticação não retornou uma sessão válida',
-        code: 'NO_SESSION_RETURNED'
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('✅ Supabase Auth session created successfully');
+    // Usar base64 simples para o token customizado
+    const customToken = `CART-${btoa(JSON.stringify(authPayload))}`;
     
     console.log('Login successful for:', {
       cartorio: acesso.cartorios.nome,
-      usuario: usuario.username,
-      sessionId: authData.session.user.id
+      usuario: usuario.username
     });
 
     return new Response(JSON.stringify({
       success: true,
-      session: {
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-        expires_in: authData.session.expires_in,
-        expires_at: authData.session.expires_at,
-        token_type: authData.session.token_type
-      },
-      user: authData.session.user,
+      token: customToken,
       cartorio: {
         id: acesso.cartorio_id,
         nome: acesso.cartorios.nome,

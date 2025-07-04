@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
@@ -10,15 +11,14 @@ interface ProgressButtonProps {
 }
 
 export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) => {
-  const { user, supabaseClient } = useAuth();
+  const { user, authenticatedClient } = useAuth();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProgress, setCheckingProgress] = useState(true);
 
   useEffect(() => {
-    // A FUNÇÃO AQUI PRECISA SER ASYNC
-    const checkProgress = async () => { // <--- Adicione 'async' aqui!
-      if (!user?.cartorio_id || !videoAulaId || !supabaseClient) {
+    const checkProgress = async () => {
+      if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
         setCheckingProgress(false);
         return;
       }
@@ -27,10 +27,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
         logger.info('📊 [ProgressButton] Checking progress', {
           videoAulaId,
           cartorioId: user.cartorio_id,
-          hasAuthClient: !!supabaseClient
+          hasAuthClient: !!authenticatedClient
         });
 
-        const { data: progress, error } = await supabaseClient
+        const { data: progress, error } = await authenticatedClient
           .from('visualizacoes_cartorio')
           .select('completo')
           .eq('video_aula_id', videoAulaId)
@@ -53,10 +53,10 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
     };
 
     checkProgress();
-  }, [videoAulaId, user?.cartorio_id, supabaseClient]);
+  }, [videoAulaId, user?.cartorio_id, authenticatedClient]);
 
-  const markAsComplete = async () => { // Esta função já estava correta como async
-    if (!user?.cartorio_id || !videoAulaId || !supabaseClient) {
+  const markAsComplete = async () => {
+    if (!user?.cartorio_id || !videoAulaId || !authenticatedClient) {
       toast({
         title: "Erro",
         description: "Usuário não identificado ou cliente não autenticado",
@@ -71,7 +71,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
       logger.info('📊 [ProgressButton] Marking as complete', {
         videoAulaId,
         cartorioId: user.cartorio_id,
-        hasAuthClient: !!supabaseClient
+        hasAuthClient: !!authenticatedClient
       });
 
       // Dados para upsert
@@ -84,7 +84,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({ videoAulaId }) =
 
       logger.info('📊 [ProgressButton] Upserting data:', progressData);
 
-      const { error } = await supabaseClient
+      const { error } = await authenticatedClient
         .from('visualizacoes_cartorio')
         .upsert(progressData, {
           onConflict: 'video_aula_id,cartorio_id'

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-// import { supabase } from '@/integrations/supabase/client'; // Não é necessário importar aqui
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,26 +16,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  // Obtém isAuthenticated e isLoading diretamente do AuthContextFixed
-  const { login, isAuthenticated, isLoading: authContextLoading } = useAuth(); 
-
-  // Efeito para monitorar as mudanças de estado de autenticação
-  useEffect(() => {
-    logger.info('🔑 [LoginComponent] Auth state update:', {
-      isAuthenticated: isAuthenticated,
-      authContextLoading: authContextLoading,
-      componentIsLoading: isLoading
-    });
-
-    if (isAuthenticated && !authContextLoading && isLoading) {
-      logger.info('�� [LoginComponent] AuthContext indica autenticação bem-sucedida, navegando.');
-      setIsLoading(false);
-      navigate('/dashboard');
-    } else if (isAuthenticated && !authContextLoading && !isLoading) {
-      logger.info('🔑 [LoginComponent] AuthContext já autenticado e estável. Navegando para dashboard.');
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, authContextLoading, isLoading, navigate]);
+  const { login } = useAuth();
 
   const handleDemo = () => {
     setUsername('demo');
@@ -51,7 +32,7 @@ const Login = () => {
 
     try {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
-
+      
       const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
         method: 'POST',
         headers: {
@@ -62,44 +43,46 @@ const Login = () => {
       });
 
       logger.info('Login response received', { status: response.status });
-
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ 
           error: `Erro HTTP ${response.status}`,
           code: 'HTTP_ERROR'
         }));
-
+        
         logger.error('Login failed', { error: errorData, status: response.status });
         throw new Error(errorData.error || `Erro HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      logger.info('Login successful response data:', data);
+      logger.info('Login successful', { 
+        cartorio: data.cartorio?.nome,
+        usuario: data.usuario?.username
+      });
 
-      if (data.success && data.session && data.user && data.cartorio && data.usuario) {
-        logger.info('✅ [Login] Edge Function retornou sucesso. Chamando login do contexto...');
-
-        login(token, 'cartorio', { 
-          id: data.user.id,
+      if (data.success && data.token && data.cartorio && data.usuario) {
+        login(data.token, 'cartorio', {
+          id: data.usuario.id,
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
-          username: data.usuario.username,
-          email: data.usuario.email 
+          username: data.usuario.username
         });
-
+        
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
-
+        
+        navigate('/dashboard');
       } else {
-        throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
+        throw new Error(data.error || 'Resposta inválida do servidor');
       }
     } catch (error) {
-      logger.error('Erro no login:', error);
+      logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-
+      
+      // Mapear códigos de erro para mensagens mais amigáveis
       let friendlyMessage = errorMessage;
       if (errorMessage.includes('INVALID_TOKEN')) {
         friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';
@@ -113,21 +96,16 @@ const Login = () => {
         friendlyMessage = 'Usuário não encontrado ou inativo.';
       } else if (errorMessage.includes('MISSING_FIELDS')) {
         friendlyMessage = 'Preencha todos os campos obrigatórios.';
-      } else if (errorMessage.includes('AUTH_SYSTEM_ERROR') || errorMessage.includes('AUTH_USER_CREATION_ERROR')) {
-        friendlyMessage = 'Erro na autenticação interna. Por favor, tente novamente ou contate o suporte.';
-      } else if (errorMessage.includes('NO_SESSION_RETURNED')) {
-        friendlyMessage = 'O servidor não retornou uma sessão de autenticação válida. Contate o suporte.';
       }
-
+      
       setError(friendlyMessage);
-
+      
       toast({
         title: "Erro no login",
         description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
-      logger.info('🔑 [Login] Finalizando processo de login.');
       setIsLoading(false);
     }
   };
@@ -207,7 +185,7 @@ const Login = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Autenticando...</span>
+                  <span>Verificando...</span>
                 </div>
               ) : (
                 'Entrar na Plataforma'
