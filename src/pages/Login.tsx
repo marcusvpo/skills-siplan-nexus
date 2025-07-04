@@ -66,6 +66,19 @@ const Login = () => {
       // --- LÓGICA CRÍTICA: DEFINIR SESSÃO SUPABASE ---
       if (data.success && data.session && data.user && data.cartorio && data.usuario) {
         logger.info('Tentando definir sessão Supabase...');
+        
+        // --- NOVO LOG DE VALIDAÇÃO DOS TOKENS ---
+        logger.info('Tokens recebidos para setSession:', {
+          accessTokenExists: !!data.session.access_token,
+          refreshTokenExists: !!data.session.refresh_token,
+          accessTokenType: typeof data.session.access_token,
+          refreshTokenType: typeof data.session.refresh_token,
+          // Se você se sentir confortável em logar os tokens completos para depuração (DESCOMENTE COM CUIDADO):
+          // rawAccessToken: data.session.access_token,
+          // rawRefreshToken: data.session.refresh_token,
+        });
+        // --- FIM DO NOVO LOG ---
+
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
