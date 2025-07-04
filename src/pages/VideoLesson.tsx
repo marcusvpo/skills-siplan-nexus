@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
-import { ProgressButton } from '@/components/ProgressButton';
 import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
 
@@ -118,7 +117,6 @@ const VideoLesson: React.FC = () => {
                 </p>
               </div>
             </div>
-            <ProgressButton videoAulaId={videoId} />
           </div>
         </div>
       </div>
