@@ -16,7 +16,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  // Obtém isAuthenticated e isLoading diretamente do AuthContextFixed
+  const { login, isAuthenticated, isLoading: authContextLoading } = useAuth(); 
 
   const handleDemo = () => {
     setUsername('demo');
@@ -27,7 +28,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoading(true); // O isLoading local do componente Login
+
     setError('');
 
     try {
@@ -57,7 +59,7 @@ const Login = () => {
       }
 
       const data = await response.json();
-      logger.info('Login successful response data:', data); // Log agora mostra o objeto completo
+      logger.info('Login successful response data:', data);
       logger.info('Verificando se data.session e data.user estão presentes:', {
           hasSession: !!data.session,
           hasUser: !!data.user
@@ -74,11 +76,9 @@ const Login = () => {
           refreshTokenType: typeof data.session.refresh_token,
         });
         
-        // --- RE-ADICIONADO: Este passo se mostrou necessário para garantir a inicialização ---
-        logger.info('Aguardando inicialização do módulo Auth do Supabase...');
-        await supabase.auth.getSession(); // Força a inicialização interna do Auth
-        logger.info('Módulo Auth do Supabase inicializado.');
-        // --- FIM DA RE-ADIÇÃO ---
+        // REMOVIDO: A chamada await supabase.auth.getSession() e seus logs,
+        // para evitar o deadlock com o AuthContextFixed. O AuthContextFixed
+        // e o useStableAuth já lidam com a inicialização.
 
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -91,9 +91,8 @@ const Login = () => {
         }
         logger.info('Sessão Supabase definida com sucesso para o usuário:', data.user.id);
 
-        // Agora, chame a função `login` do contexto para armazenar dados customizados do cartório no localStorage.
         login(token, 'cartorio', { 
-          id: data.user.id, // Use o ID do usuário do Supabase Auth
+          id: data.user.id, 
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
@@ -106,12 +105,30 @@ const Login = () => {
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
+        // --- NOVO PASSO: ESPERAR O CONTEXTO DE AUTENTICAÇÃO SE ESTABILIZAR ANTES DE NAVEGAR ---
+        logger.info('Aguardando AuthContextFixed se estabilizar...');
+        let attempts = 0;
+        const maxAttempts = 50; // Tentar por no máximo 5 segundos (50 * 100ms)
+        // Usa o isLoading do AuthContextFixed para saber se está pronto
+        while ((!isAuthenticated || authContextLoading) && attempts < maxAttempts) {
+            logger.info(`Aguardando... isAuthenticated: ${isAuthenticated}, isLoading (AuthContext): ${authContextLoading}. Tentativa ${attempts + 1}/${maxAttempts}`);
+            await new Promise(resolve => setTimeout(resolve, 100)); // Espera 100ms
+            attempts++;
+        }
+
+        if (!isAuthenticated) {
+            logger.error('AuthContextFixed não se estabilizou a tempo. Navegando mesmo assim.');
+        } else {
+            logger.info('AuthContextFixed estabilizado. Navegando para o Dashboard.');
+        }
+        // --- FIM DO NOVO PASSO ---
+
         navigate('/dashboard'); 
       } else {
         throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
     } catch (error) {
-      logger.error('Erro no login:', error); // Log mais específico aqui
+      logger.error('Erro no login:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
       let friendlyMessage = errorMessage;
@@ -142,7 +159,7 @@ const Login = () => {
       });
     } finally {
       logger.info('Finalizando processo de login, setando isLoading para false.');
-      setIsLoading(false);
+      setIsLoading(false); // Garante que o loading local do Login seja desativado
     }
   };
 
@@ -180,7 +197,7 @@ const Login = () => {
                   }}
                   className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
                   required
-                  disabled={isLoading}
+                  disabled={isLoading} // Usa o isLoading local
                 />
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               </div>
@@ -198,7 +215,7 @@ const Login = () => {
                   }}
                   className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
                   required
-                  disabled={isLoading}
+                  disabled={isLoading} // Usa o isLoading local
                 />
                 <Button
                   type="button"
@@ -206,7 +223,7 @@ const Login = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                   onClick={() => setShowToken(!showToken)}
-                  disabled={isLoading}
+                  disabled={isLoading} // Usa o isLoading local
                 >
                   {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -216,9 +233,9 @@ const Login = () => {
             <Button 
               type="submit" 
               className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50"
-              disabled={isLoading}
+              disabled={isLoading} // Usa o isLoading local
             >
-              {isLoading ? (
+              {isLoading ? ( // Usa o isLoading local para o texto do botão
                 <div className="flex items-center justify-center space-x-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   <span>Verificando...</span>
@@ -234,7 +251,7 @@ const Login = () => {
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
               onClick={handleDemo}
-              disabled={isLoading}
+              disabled={isLoading} // Usa o isLoading local
             >
               Acessar Demonstração
             </Button>
