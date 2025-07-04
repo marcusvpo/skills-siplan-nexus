@@ -32,12 +32,15 @@ const VideoLesson: React.FC = () => {
   if (!videoId) {
     logger.error('❌ [VideoLesson] Missing video ID');
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-red-600">
+      <div className="min-h-screen flex items-center justify-center page-transition">
+        <Card className="gradient-card shadow-elevated max-w-md">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-red-400 mb-2">ID da videoaula não encontrado</h3>
-            <Button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700">
+            <h3 className="text-xl font-semibold text-red-400 mb-2 text-enhanced">ID da videoaula não encontrado</h3>
+            <Button 
+              onClick={() => navigate('/dashboard')} 
+              className="bg-red-600 hover:bg-red-700 btn-hover-lift mt-4"
+            >
               Voltar ao Dashboard
             </Button>
           </CardContent>
@@ -48,10 +51,11 @@ const VideoLesson: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center page-transition">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-red-400 mx-auto mb-4" />
-          <p className="text-white">Carregando videoaula...</p>
+          <p className="text-white text-enhanced">Carregando videoaula...</p>
+          <div className="loading-shimmer w-32 h-2 rounded-full mx-auto mt-4"></div>
         </div>
       </div>
     );
@@ -60,22 +64,26 @@ const VideoLesson: React.FC = () => {
   if (error || !videoAulaData) {
     logger.error('❌ [VideoLesson] Error or no data:', { error: error?.message });
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-red-600">
+      <div className="min-h-screen flex items-center justify-center page-transition">
+        <Card className="gradient-card shadow-elevated max-w-md">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-red-400 mb-2">Erro ao carregar videoaula</h3>
+            <h3 className="text-xl font-semibold text-red-400 mb-2 text-enhanced">Erro ao carregar videoaula</h3>
             <p className="text-gray-400 mb-4">
               {error instanceof Error ? error.message : 'Videoaula não encontrada ou sem permissão de acesso'}
             </p>
             <div className="flex space-x-2 justify-center">
               <Button 
                 onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')} 
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 btn-hover-lift"
               >
                 Voltar
               </Button>
-              <Button onClick={() => window.location.reload()} variant="outline" className="border-gray-600 text-gray-300">
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline" 
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift"
+              >
                 Tentar Novamente
               </Button>
             </div>
@@ -95,24 +103,23 @@ const VideoLesson: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="border-b border-gray-700 bg-gray-800/50">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen text-white page-transition">
+      {/* Enhanced Header */}
+      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')}
-                className="text-gray-300 hover:text-white"
+                className="text-gray-300 hover:text-white hover:bg-gray-700/50 btn-hover-lift"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-white">{videoAulaData.titulo}</h1>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-400 mb-1">
                   {sistema?.nome} • {produto?.nome}
                 </p>
               </div>
@@ -121,12 +128,13 @@ const VideoLesson: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Player */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-900 rounded-lg overflow-hidden">
+      {/* Main Content with enhanced layout */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Video Player Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Video Player */}
+            <div className="gradient-card rounded-xl overflow-hidden shadow-elevated card-enter">
               <VideoPlayer 
                 videoUrl={videoAulaData.url_video}
                 title={videoAulaData.titulo}
@@ -134,34 +142,56 @@ const VideoLesson: React.FC = () => {
               />
             </div>
             
-            {/* Description */}
-            {videoAulaData.descricao && (
-              <Card className="mt-4 bg-gray-800/50 border-gray-600">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Descrição</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 leading-relaxed">
-                    {videoAulaData.descricao}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Video Title */}
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold text-white text-enhanced leading-tight">
+                {videoAulaData.titulo}
+              </h1>
+              
+              {/* Video Description */}
+              {videoAulaData.descricao && (
+                <Card className="gradient-card shadow-modern border-gray-700/50 card-enter">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white text-xl text-enhanced">Sobre esta aula</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-invert max-w-none">
+                      <p className="text-gray-300 leading-relaxed text-lg">
+                        {videoAulaData.descricao}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
 
-          {/* AI Chat */}
+          {/* Enhanced AI Chat Section */}
           <div className="lg:col-span-1">
-            <Card className="bg-gray-800/50 border-gray-600 h-[600px]">
-              <CardHeader>
-                <CardTitle className="text-white text-lg">Assistente de IA</CardTitle>
-                <p className="text-gray-400 text-sm">
-                  Faça perguntas sobre esta videoaula
-                </p>
-              </CardHeader>
-              <CardContent className="h-full p-0">
-                <AIChat lessonTitle={videoAulaData.titulo} />
-              </CardContent>
-            </Card>
+            <div className="sticky top-6">
+              <Card className="gradient-card shadow-elevated border-gray-700/50 card-enter">
+                <CardHeader className="border-b border-gray-700/50 pb-4">
+                  <CardTitle className="text-white text-xl flex items-center text-enhanced">
+                    <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
+                      <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span>Assistente IA</span>
+                      <p className="text-sm font-normal text-gray-400 mt-1">
+                        Tire suas dúvidas sobre esta aula
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="h-[600px] overflow-hidden">
+                    <AIChat lessonTitle={videoAulaData.titulo} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
