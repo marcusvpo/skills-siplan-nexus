@@ -45,15 +45,25 @@ export const useStableAuth = () => {
 
   useEffect(() => {
     let mounted = true;
+    let initializationComplete = false;
+
+    logger.info('🔐 [useStableAuth] Initializing auth state listener');
 
     const handleAuthStateChange = async (event: string, session: Session | null) => {
       if (!mounted) return;
-
-      logger.info('🔐 [useStableAuth] Auth state changed:', { 
+      
+      logger.info('🔐 [useStableAuth] Auth state change event:', { 
         event, 
         hasSession: !!session,
+        sessionId: session?.user?.id,
         email: session?.user?.email 
       });
+
+      // Prevenir processamento múltiplo do mesmo evento durante inicialização
+      if (event === 'INITIAL_SESSION' && initializationComplete) {
+        logger.info('🔐 [useStableAuth] Skipping duplicate INITIAL_SESSION event');
+        return;
+      }
 
       try {
         const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
@@ -66,8 +76,19 @@ export const useStableAuth = () => {
             isAdmin,
             error: null
           });
+          
+          if (event === 'INITIAL_SESSION') {
+            initializationComplete = true;
+          }
+          
+          logger.info('✅ [useStableAuth] Auth state updated:', {
+            hasUser: !!session?.user,
+            isAdmin,
+            isLoading: false
+          });
         }
       } catch (err) {
+        logger.error('❌ [useStableAuth] Error processing auth state change:', err);
         if (mounted) {
           setAuthState(prev => ({
             ...prev,
@@ -78,16 +99,17 @@ export const useStableAuth = () => {
       }
     };
 
-    // Configurar listener
+    // Configurar listener ANTES de verificar sessão inicial
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-
-    // Verificar sessão inicial
+    
+    // Verificar sessão inicial APENAS uma vez
     const initAuth = async () => {
       try {
+        logger.info('🔐 [useStableAuth] Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          logger.error('❌ [useStableAuth] Error getting session:', { error });
+          logger.error('❌ [useStableAuth] Error getting initial session:', { error });
           if (mounted) {
             setAuthState(prev => ({
               ...prev,
@@ -98,9 +120,15 @@ export const useStableAuth = () => {
           return;
         }
 
-        await handleAuthStateChange('initial', session);
+        logger.info('🔐 [useStableAuth] Initial session retrieved:', { 
+          hasSession: !!session,
+          sessionId: session?.user?.id 
+        });
+
+        // Processar sessão inicial
+        await handleAuthStateChange('INITIAL_SESSION', session);
       } catch (err) {
-        logger.error('❌ [useStableAuth] Error in initAuth:', { error: err });
+        logger.error('❌ [useStableAuth] Error in initial auth check:', { error: err });
         if (mounted) {
           setAuthState(prev => ({
             ...prev,
@@ -116,12 +144,15 @@ export const useStableAuth = () => {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      logger.info('🔐 [useStableAuth] Cleanup completed');
     };
   }, [checkAdminStatus]);
 
   const logout = useCallback(async () => {
     try {
+      logger.info('🚪 [useStableAuth] Starting logout...');
       await supabase.auth.signOut();
+      logger.info('✅ [useStableAuth] Logout completed');
     } catch (err) {
       logger.error('❌ [useStableAuth] Error during logout:', { error: err });
     }

@@ -173,32 +173,92 @@ serve(async (req) => {
       });
     }
 
-    console.log('Creating authentication token...');
+    console.log('🔐 Creating Supabase Auth session...');
     
-    // Criar token de autenticação customizado
-    const authPayload = {
-      cartorio_id: acesso.cartorio_id,
-      cartorio_nome: acesso.cartorios.nome,
-      user_id: usuario.id,
-      username: usuario.username,
-      login_token: login_token,
-      role: 'cartorio_user',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 8), // 8 horas
-      iat: Math.floor(Date.now() / 1000),
-      iss: 'siplan-skills'
-    };
+    // Criar uma sessão REAL do Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: usuario.email || `${usuario.username}@cartorio.local`,
+      password: login_token, // Usar o token como senha temporária
+    });
 
-    // Usar base64 simples para o token customizado
-    const customToken = `CART-${btoa(JSON.stringify(authPayload))}`;
+    // Se falhar, tentar criar o usuário
+    if (authError) {
+      console.log('Auth sign-in failed, attempting to create user:', authError.message);
+      
+      const { data: createData, error: createError } = await supabase.auth.admin.createUser({
+        email: usuario.email || `${usuario.username}@cartorio.local`,
+        password: login_token,
+        email_confirm: true,
+        user_metadata: {
+          cartorio_id: acesso.cartorio_id,
+          cartorio_name: acesso.cartorios.nome,
+          username: usuario.username,
+          source: 'cartorio_login_token'
+        }
+      });
+
+      if (createError) {
+        console.error('Failed to create auth user:', createError);
+        return new Response(JSON.stringify({ 
+          error: 'Erro na criação da sessão de autenticação',
+          code: 'AUTH_USER_CREATION_ERROR',
+          debug: createError.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Tentar fazer login novamente após criar o usuário
+      const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
+        email: usuario.email || `${usuario.username}@cartorio.local`,
+        password: login_token,
+      });
+
+      if (retryAuthError || !retryAuthData.session) {
+        console.error('Failed to sign in after user creation:', retryAuthError);
+        return new Response(JSON.stringify({ 
+          error: 'Erro no sistema de autenticação após criação do usuário',
+          code: 'AUTH_SYSTEM_ERROR',
+          debug: retryAuthError?.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      authData = retryAuthData;
+    }
+
+    if (!authData.session) {
+      console.error('No session returned from Supabase Auth');
+      return new Response(JSON.stringify({ 
+        error: 'Sistema de autenticação não retornou uma sessão válida',
+        code: 'NO_SESSION_RETURNED'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('✅ Supabase Auth session created successfully');
     
     console.log('Login successful for:', {
       cartorio: acesso.cartorios.nome,
-      usuario: usuario.username
+      usuario: usuario.username,
+      sessionId: authData.session.user.id
     });
 
     return new Response(JSON.stringify({
       success: true,
-      token: customToken,
+      session: {
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+        expires_in: authData.session.expires_in,
+        expires_at: authData.session.expires_at,
+        token_type: authData.session.token_type
+      },
+      user: authData.session.user,
       cartorio: {
         id: acesso.cartorio_id,
         nome: acesso.cartorios.nome,

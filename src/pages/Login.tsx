@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { supabase } from '@/integrations/supabase/client'; // Importar a instância global do Supabase
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,7 +17,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  // Obtém isAuthenticated e isLoading diretamente do AuthContextFixed
   const { login, isAuthenticated, isLoading: authContextLoading } = useAuth(); 
 
   const handleDemo = () => {
@@ -28,8 +28,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true); // O isLoading local do componente Login
-
+    setIsLoading(true);
     setError('');
 
     try {
@@ -39,8 +38,6 @@ const Login = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Certifique-se que esta ANONYMOUS KEY é a sua REAL ANONYMOUS KEY do Supabase
-          // Você pode encontrá-la em Project Settings -> API -> Project API keys -> public anon key
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
         },
         body: JSON.stringify({ username, login_token: token }),
@@ -60,37 +57,29 @@ const Login = () => {
 
       const data = await response.json();
       logger.info('Login successful response data:', data);
-      logger.info('Verificando se data.session e data.user estão presentes:', {
-          hasSession: !!data.session,
-          hasUser: !!data.user
-      });
 
-      // --- LÓGICA CRÍTICA: DEFINIR SESSÃO SUPABASE ---
       if (data.success && data.session && data.user && data.cartorio && data.usuario) {
-        logger.info('Tentando definir sessão Supabase...');
+        logger.info('🔐 [Login] Setting Supabase session...');
         
-        logger.info('Tokens recebidos para setSession:', {
+        logger.info('🔐 [Login] Session tokens received:', {
           accessTokenExists: !!data.session.access_token,
           refreshTokenExists: !!data.session.refresh_token,
-          accessTokenType: typeof data.session.access_token,
-          refreshTokenType: typeof data.session.refresh_token,
         });
         
-        // --- REMOVIDO: A chamada await supabase.auth.getSession() e seus logs ---
-        // Este é o ponto crucial para o seu problema atual de "Verificando..."
-        // Ela não deve estar aqui.
-        
+        // **CRÍTICO**: Definir sessão Supabase SEM chamar getSession() antes
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
 
         if (setSessionError) {
-          logger.error('Falha ao definir sessão Supabase:', setSessionError);
+          logger.error('❌ [Login] Falha ao definir sessão Supabase:', setSessionError);
           throw new Error(`Falha ao estabelecer sessão Supabase: ${setSessionError.message}`);
         }
-        logger.info('Sessão Supabase definida com sucesso para o usuário:', data.user.id);
+        
+        logger.info('✅ [Login] Sessão Supabase definida com sucesso');
 
+        // Atualizar o contexto local (sem aguardar estabilização)
         login(token, 'cartorio', { 
           id: data.user.id, 
           name: data.usuario.username,
@@ -105,25 +94,10 @@ const Login = () => {
           description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
-        // --- NOVO PASSO: ESPERAR O CONTEXTO DE AUTENTICAÇÃO SE ESTABILIZAR ANTES DE NAVEGAR ---
-        logger.info('Aguardando AuthContextFixed se estabilizar...');
-        let attempts = 0;
-        const maxAttempts = 50; // Tentar por no máximo 5 segundos (50 * 100ms)
-        // Usa o isLoading do AuthContextFixed para saber se está pronto
-        while ((!isAuthenticated || authContextLoading) && attempts < maxAttempts) {
-            logger.info(`Aguardando... isAuthenticated: ${isAuthenticated}, isLoading (AuthContext): ${authContextLoading}. Tentativa ${attempts + 1}/${maxAttempts}`);
-            await new Promise(resolve => setTimeout(resolve, 100)); // Espera 100ms
-            attempts++;
-        }
-
-        if (!isAuthenticated) {
-            logger.error('AuthContextFixed não se estabilizou a tempo. Navegando mesmo assim.');
-        } else {
-            logger.info('AuthContextFixed estabilizado. Navegando para o Dashboard.');
-        }
-        // --- FIM DO NOVO PASSO ---
-
+        // **SIMPLIFICADO**: Navegar imediatamente sem aguardar contexto
+        logger.info('🚀 [Login] Navegando para dashboard...');
         navigate('/dashboard'); 
+        
       } else {
         throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
@@ -158,8 +132,8 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      logger.info('Finalizando processo de login, setando isLoading para false.');
-      setIsLoading(false); // Garante que o loading local do Login seja desativado
+      logger.info('🔚 [Login] Finalizando processo de login');
+      setIsLoading(false);
     }
   };
 
@@ -197,7 +171,7 @@ const Login = () => {
                   }}
                   className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
                   required
-                  disabled={isLoading} // Usa o isLoading local
+                  disabled={isLoading}
                 />
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               </div>
@@ -215,7 +189,7 @@ const Login = () => {
                   }}
                   className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
                   required
-                  disabled={isLoading} // Usa o isLoading local
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -223,7 +197,7 @@ const Login = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                   onClick={() => setShowToken(!showToken)}
-                  disabled={isLoading} // Usa o isLoading local
+                  disabled={isLoading}
                 >
                   {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -233,12 +207,12 @@ const Login = () => {
             <Button 
               type="submit" 
               className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50"
-              disabled={isLoading} // Usa o isLoading local
+              disabled={isLoading}
             >
-              {isLoading ? ( // Usa o isLoading local para o texto do botão
+              {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Verificando...</span>
+                  <span>Autenticando...</span>
                 </div>
               ) : (
                 'Entrar na Plataforma'
@@ -251,7 +225,7 @@ const Login = () => {
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
               onClick={handleDemo}
-              disabled={isLoading} // Usa o isLoading local
+              disabled={isLoading}
             >
               Acessar Demonstração
             </Button>
