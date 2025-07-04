@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.3';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -176,17 +176,21 @@ serve(async (req) => {
     console.log('🔐 Creating Supabase Auth session...');
     
     // Criar uma sessão REAL do Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: usuario.email || `${usuario.username}@cartorio.local`,
-      password: login_token, // Usar o token como senha temporária
+    const userEmail = usuario.email || `${usuario.username}@cartorio.local`;
+    let authData;
+
+    // Tentar fazer login primeiro
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: userEmail,
+      password: login_token,
     });
 
-    // Se falhar, tentar criar o usuário
-    if (authError) {
-      console.log('Auth sign-in failed, attempting to create user:', authError.message);
+    if (signInError) {
+      console.log('Auth sign-in failed, attempting to create user:', signInError.message);
       
+      // Se falhar, tentar criar o usuário
       const { data: createData, error: createError } = await supabase.auth.admin.createUser({
-        email: usuario.email || `${usuario.username}@cartorio.local`,
+        email: userEmail,
         password: login_token,
         email_confirm: true,
         user_metadata: {
@@ -210,27 +214,29 @@ serve(async (req) => {
       }
 
       // Tentar fazer login novamente após criar o usuário
-      const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
-        email: usuario.email || `${usuario.username}@cartorio.local`,
+      const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
         password: login_token,
       });
 
-      if (retryAuthError || !retryAuthData.session) {
-        console.error('Failed to sign in after user creation:', retryAuthError);
+      if (retryError || !retryData.session) {
+        console.error('Failed to sign in after user creation:', retryError);
         return new Response(JSON.stringify({ 
           error: 'Erro no sistema de autenticação após criação do usuário',
           code: 'AUTH_SYSTEM_ERROR',
-          debug: retryAuthError?.message
+          debug: retryError?.message
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      authData = retryAuthData;
+      authData = retryData;
+    } else {
+      authData = signInData;
     }
 
-    if (!authData.session) {
+    if (!authData?.session) {
       console.error('No session returned from Supabase Auth');
       return new Response(JSON.stringify({ 
         error: 'Sistema de autenticação não retornou uma sessão válida',
