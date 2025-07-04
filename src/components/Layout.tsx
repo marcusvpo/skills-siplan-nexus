@@ -1,4 +1,4 @@
-
+// UI atualizada com padrão visual da página de videoaula
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,16 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#2a2a2a] via-[#1c1c1c] to-black flex items-center justify-center">
         <div className="text-white">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#2a2a2a] via-[#1c1c1c] to-black text-white transition-all duration-300">
       {showNavigation && user && (
-        <header className="bg-gray-800/80 border-b border-gray-600 px-6 py-4 backdrop-blur-sm">
+        <header className="bg-gray-800/80 border-b border-gray-600 px-6 py-4 backdrop-blur-sm shadow-modern">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div 
               className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200 btn-hover-lift"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -68,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
         </header>
       )}
       
-      <main className={`${showNavigation ? "min-h-[calc(100vh-80px)]" : "min-h-screen"} bg-[#1a1a1a]`}>
+      <main className={`${showNavigation ? "min-h-[calc(100vh-80px)]" : "min-h-screen"} px-4 py-6 page-transition`}>
         {children}
       </main>
     </div>
