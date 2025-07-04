@@ -1,45 +1,93 @@
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Edit, Users, Shield, Calendar, MapPin } from 'lucide-react';
 
-interface Cartorio {
-  id: string;
-  nome: string;
-  cidade: string;
-  estado: string;
+interface CartorioCardProps {
+  cartorio: any;
+  onEditCartorio: (cartorio: any) => void;
+  onManageUsers: (cartorio: any) => void;
+  onManageAccess?: (cartorio: any) => void;
 }
 
-interface Props {
-  cartorio: Cartorio;
-  onSelecionar: (id: string) => void;
-}
-
-const CartorioCard: React.FC<Props> = ({ cartorio, onSelecionar }) => {
+export const CartorioCard: React.FC<CartorioCardProps> = ({
+  cartorio,
+  onEditCartorio,
+  onManageUsers,
+  onManageAccess
+}) => {
   return (
-    <Card className="gradient-card p-6 hover:shadow-elevated transition-all duration-300 cursor-pointer">
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0">
-          <Building2 className="w-8 h-8 text-red-500" />
+    <Card className="bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-colors">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-lg text-white mb-1">
+              {cartorio.nome}
+            </CardTitle>
+            <div className="flex items-center space-x-4 text-sm text-gray-400">
+              {cartorio.cidade && cartorio.estado && (
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {cartorio.cidade}, {cartorio.estado}
+                </div>
+              )}
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                {new Date(cartorio.data_cadastro).toLocaleDateString('pt-BR')}
+              </div>
+            </div>
+          </div>
+          <Badge 
+            variant={cartorio.is_active ? 'secondary' : 'destructive'}
+            className={cartorio.is_active ? 'bg-green-600 text-white' : ''}
+          >
+            {cartorio.is_active ? 'Ativo' : 'Inativo'}
+          </Badge>
         </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white mb-1">
-            {cartorio.nome}
-          </h3>
-          <p className="text-sm text-gray-400">
-            {cartorio.cidade} - {cartorio.estado}
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        {cartorio.observacoes && (
+          <p className="text-sm text-gray-400 mb-4 line-clamp-2">
+            {cartorio.observacoes}
           </p>
+        )}
+        
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => onEditCartorio(cartorio)}
+            variant="outline"
+            size="sm"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Editar
+          </Button>
+          
+          <Button
+            onClick={() => onManageUsers(cartorio)}
+            variant="outline"
+            size="sm"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+          >
+            <Users className="h-4 w-4 mr-1" />
+            Usuários
+          </Button>
+          
+          {onManageAccess && (
+            <Button
+              onClick={() => onManageAccess(cartorio)}
+              variant="outline"
+              size="sm"
+              className="border-red-600 text-red-300 hover:bg-red-700/20"
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              Acesso
+            </Button>
+          )}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => onSelecionar(cartorio.id)}
-          className="btn-hover-lift border-gray-600 text-white hover:border-red-600"
-        >
-          Acessar
-        </Button>
-      </div>
+      </CardContent>
     </Card>
   );
 };
-
-export default CartorioCard;
