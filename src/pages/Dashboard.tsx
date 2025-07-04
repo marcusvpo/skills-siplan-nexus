@@ -1,6 +1,6 @@
 // UI atualizada com padrão visual da página de videoaula
 import React from 'react';
-import Layout from '@/user/Layout';
+import Layout from '@/components/Layout';
 import { BookOpen, Video, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
