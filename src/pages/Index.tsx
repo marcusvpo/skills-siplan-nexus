@@ -1,4 +1,4 @@
-
+// UI atualizada com padrão visual da página de videoaula
 import React from 'react';
 import { BookOpen, ArrowRight, Users, Video, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#2a2a2a] via-[#1c1c1c] to-black text-white page-transition">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
@@ -27,7 +27,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg"
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg transition-all duration-200 hover:shadow-lg"
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg transition-all duration-200 hover:shadow-lg btn-hover-lift"
               onClick={() => navigate('/login')}
             >
               Acessar Plataforma
@@ -36,7 +36,7 @@ const Index = () => {
             <Button 
               size="lg"
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-4 text-lg transition-all duration-200"
+              className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-4 text-lg transition-all duration-200 btn-hover-lift"
               onClick={() => navigate('/admin-login')}
             >
               Acesso Administrativo
@@ -46,7 +46,7 @@ const Index = () => {
 
         {/* Features Section */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
+          <Card className="gradient-card hover:shadow-elevated border border-gray-600 transition-all duration-300">
             <CardContent className="p-6 text-center">
               <Video className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-white">Videoaulas Interativas</h3>
@@ -56,7 +56,7 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
+          <Card className="gradient-card hover:shadow-elevated border border-gray-600 transition-all duration-300">
             <CardContent className="p-6 text-center">
               <Users className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-white">Chat com IA</h3>
@@ -66,7 +66,7 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-all duration-300 hover:shadow-xl">
+          <Card className="gradient-card hover:shadow-elevated border border-gray-600 transition-all duration-300">
             <CardContent className="p-6 text-center">
               <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-white">Acesso Seguro</h3>
