@@ -37,6 +37,8 @@ const Login = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Certifique-se que esta ANONYMOUS KEY é a sua REAL ANONYMOUS KEY do Supabase
+          // Você pode encontrá-la em Project Settings -> API -> Project API keys -> public anon key
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
         },
         body: JSON.stringify({ username, login_token: token }),
@@ -55,7 +57,7 @@ const Login = () => {
       }
 
       const data = await response.json();
-      logger.info('Login successful response data:', data);
+      logger.info('Login successful response data:', data); // Log agora mostra o objeto completo
       logger.info('Verificando se data.session e data.user estão presentes:', {
           hasSession: !!data.session,
           hasUser: !!data.user
@@ -72,13 +74,9 @@ const Login = () => {
           refreshTokenType: typeof data.session.refresh_token,
         });
         
-        // --- NOVO PASSO CRÍTICO: Esperar a inicialização do Supabase Auth ---
-        logger.info('Aguardando inicialização do módulo Auth do Supabase...');
-        await supabase.auth.getSession(); // Força a inicialização interna do Auth
-        logger.info('Módulo Auth do Supabase inicializado.');
-        // --- FIM DO NOVO PASSO ---
-
-        console.log('Objeto Supabase NOVO LOG APÓS getSession():', supabase); // NOVO LOG para verificar o initializePromise
+        // --- REMOVIDO: A chamada await supabase.auth.getSession(); foi removida aqui ---
+        // Pois o AuthContextFixed agora gerencia a inicialização, evitando conflitos.
+        // --- FIM DA REMOÇÃO ---
 
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -91,8 +89,9 @@ const Login = () => {
         }
         logger.info('Sessão Supabase definida com sucesso para o usuário:', data.user.id);
 
+        // Agora, chame a função `login` do contexto para armazenar dados customizados do cartório no localStorage.
         login(token, 'cartorio', { 
-          id: data.user.id, 
+          id: data.user.id, // Use o ID do usuário do Supabase Auth
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,
           cartorio_name: data.cartorio.nome,
@@ -110,7 +109,7 @@ const Login = () => {
         throw new Error(data.error || 'Resposta inválida do servidor ou sessão Supabase ausente.');
       }
     } catch (error) {
-      logger.error('Erro no login:', error);
+      logger.error('Erro no login:', error); // Log mais específico aqui
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
       let friendlyMessage = errorMessage;
