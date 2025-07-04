@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -8,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/utils/logger';
-import { useQueryInvalidation } from '@/hooks/useQueryInvalidation';
 
 interface Sistema {
   id: string;
@@ -40,7 +38,6 @@ const EditarVideoaula: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { invalidateVideoAulaQueries } = useQueryInvalidation();
   
   // Get videoaula ID from URL params or search params
   const videoAulaId = id || searchParams.get('id');
@@ -132,11 +129,6 @@ const EditarVideoaula: React.FC = () => {
 
   const handleSuccess = () => {
     logger.info('✅ [EditarVideoaula] Videoaula updated successfully');
-    
-    // Invalidar queries para garantir atualização imediata
-    if (produto?.id) {
-      invalidateVideoAulaQueries(produto.id);
-    }
     
     // Navegar de volta para o admin
     navigate('/admin');
