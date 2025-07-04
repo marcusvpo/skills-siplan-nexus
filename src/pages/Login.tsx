@@ -1,4 +1,4 @@
-// UI atualizada com padrão visual da página de videoaula
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,27 +110,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2a2a2a] via-[#1c1c1c] to-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-md glass-effect shadow-modern page-transition">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-red-500" />
+    <div className="min-h-screen flex items-center justify-center p-4 page-transition">
+      <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-700/50">
+        <CardHeader className="text-center pb-6">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-3 gradient-card rounded-full shadow-modern">
+              <BookOpen className="h-12 w-12 text-red-500" />
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-white">Siplan Skills</CardTitle>
-          <p className="text-gray-300 mt-2">
+          <CardTitle className="text-3xl font-bold text-white text-enhanced">Siplan Skills</CardTitle>
+          <p className="text-gray-300 mt-3 leading-relaxed">
             Insira suas credenciais para acessar a plataforma
           </p>
         </CardHeader>
         
         <CardContent className="space-y-6">
           {error && (
-            <div className="flex items-center space-x-2 text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center space-x-3 text-red-400 gradient-card p-4 rounded-lg border border-red-500/30 shadow-modern">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="relative">
               <Input
                 type="text"
@@ -140,11 +142,11 @@ const Login = () => {
                   setUsername(e.target.value);
                   setError('');
                 }}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                className="bg-gray-700/30 border-gray-600/50 text-white placeholder-gray-400 pl-12 py-3 rounded-xl focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                 required
                 disabled={isLoading}
               />
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
 
             <div className="relative">
@@ -156,7 +158,7 @@ const Login = () => {
                   setToken(e.target.value);
                   setError('');
                 }}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all"
+                className="bg-gray-700/30 border-gray-600/50 text-white placeholder-gray-400 pr-12 py-3 rounded-xl focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                 required
                 disabled={isLoading}
               />
@@ -164,22 +166,22 @@ const Login = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 onClick={() => setShowToken(!showToken)}
                 disabled={isLoading}
               >
-                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showToken ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
             
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50 btn-hover-lift"
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg shadow-modern btn-hover-lift disabled:opacity-50 rounded-xl"
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <RefreshCw className="h-5 w-5 animate-spin" />
                   <span>Verificando...</span>
                 </div>
               ) : (
@@ -188,10 +190,10 @@ const Login = () => {
             </Button>
           </form>
           
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Button
               variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200 btn-hover-lift"
+              className="w-full border-gray-600/50 text-gray-300 hover:bg-gray-700/30 hover:text-white py-3 shadow-modern btn-hover-lift glass-effect rounded-xl"
               onClick={handleDemo}
               disabled={isLoading}
             >
@@ -201,7 +203,7 @@ const Login = () => {
             <div className="text-center">
               <Link 
                 to="/admin-login"
-                className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium"
               >
                 Acesso Administrativo
               </Link>

@@ -85,22 +85,27 @@ const SystemPage = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen page-transition">
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
             { label: currentSystem?.nome || 'Sistema' }
           ]} />
           
-          <div className="mt-6 mb-8">
+          <div className="mt-8 mb-12">
             <SystemHeader system={currentSystem} />
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
-              Produtos de Treinamento
-            </h2>
+            <div className="gradient-card p-6 rounded-xl shadow-modern border-gray-700/50 mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2 flex items-center text-enhanced">
+                <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
+                Produtos de Treinamento
+              </h2>
+              <p className="text-gray-300">
+                Explore os produtos disponíveis para este sistema
+              </p>
+            </div>
             
             <ProductsList products={produtos} systemId={systemId!} />
           </div>
