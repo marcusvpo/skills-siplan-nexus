@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { VideoAulasList } from '@/components/video-aulas/VideoAulasList';
+import VideoAulasList from '@/components/product/VideoAulasList'; // ✅ caminho corrigido
 
 const ProductPage = () => {
   const { id } = useParams();
