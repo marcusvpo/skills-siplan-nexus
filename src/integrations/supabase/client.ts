@@ -88,30 +88,9 @@ export const clearCartorioAuthContext = () => {
 
 // Função para obter cliente com contexto de autenticação apropriado
 export const getAuthenticatedClient = () => {
-  const client = getSupabaseInstance();
-  
-  // Se há contexto de cartório, aplicar headers
-  if (authContextManager.hasContext()) {
-    const headers = authContextManager.getHeaders();
-    console.log('🔐 [AuthContext] Applying cartorio headers to request');
-    
-    // Retorna uma versão do cliente com headers customizados
-    return {
-      ...client,
-      from: (table: string) => {
-        return client.from(table).select('*', { 
-          head: false,
-          headers 
-        });
-      },
-      rpc: (fn: string, args?: any) => {
-        return client.rpc(fn, args, { headers });
-      }
-    };
-  }
-  
-  // Para casos padrão (admin), retorna o cliente normal
-  return client;
+  // Sempre retorna a instância única do cliente Supabase
+  // O contexto de cartório é gerenciado via headers nas Edge Functions
+  return getSupabaseInstance();
 };
 
 // Helper function compatível com o código existente
