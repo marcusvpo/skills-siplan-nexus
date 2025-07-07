@@ -18,19 +18,25 @@ const AdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log('🔍 DEBUG: Admin login form submitted');
 
     try {
-      console.log('Attempting admin login with email:', email);
+      console.log('🔍 DEBUG: Attempting admin login with email:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Supabase auth result:', { data, error });
+      console.log('🔍 DEBUG: Supabase auth result:', { 
+        hasData: !!data, 
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        error: error ? error.message : null 
+      });
 
       if (error) {
-        console.error('Supabase auth error:', error);
+        console.log('🔍 DEBUG: Supabase auth error:', error);
         toast({
           title: "Credenciais inválidas",
           description: error.message || "Email ou senha incorretos.",
@@ -40,7 +46,7 @@ const AdminLogin = () => {
       }
 
       if (data.user) {
-        console.log('User authenticated, checking admin status for:', data.user.email);
+        console.log('🔍 DEBUG: User authenticated, checking admin status for:', data.user.email);
         
         const { data: adminData, error: adminError } = await supabase
           .from('admins')
@@ -48,10 +54,14 @@ const AdminLogin = () => {
           .eq('email', data.user.email)
           .single();
 
-        console.log('Admin check result:', { adminData, adminError });
+        console.log('🔍 DEBUG: Admin check result:', { 
+          hasAdminData: !!adminData, 
+          adminError: adminError ? adminError.message : null,
+          adminData 
+        });
 
         if (adminError || !adminData) {
-          console.error('User is not an admin:', adminError);
+          console.log('🔍 DEBUG: User is not an admin:', adminError);
           await supabase.auth.signOut();
           toast({
             title: "Acesso negado",
@@ -61,25 +71,29 @@ const AdminLogin = () => {
           return;
         }
 
-        console.log('Admin login successful for:', adminData.nome);
+        console.log('🔍 DEBUG: Admin login successful for:', adminData.nome);
         toast({
           title: "Login administrativo realizado!",
           description: `Bem-vindo(a), ${adminData.nome}!`,
         });
         
+        console.log('🔍 DEBUG: Navigating to /admin');
         navigate('/admin');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.log('🔍 DEBUG: Login catch error:', error);
       toast({
         title: "Erro de conexão",
         description: "Não foi possível conectar ao servidor. Tente novamente.",
         variant: "destructive",
       });
     } finally {
+      console.log('🔍 DEBUG: Setting isLoading to false');
       setIsLoading(false);
     }
   };
+
+  console.log('🔍 DEBUG: AdminLogin render - isLoading:', isLoading);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 page-transition">

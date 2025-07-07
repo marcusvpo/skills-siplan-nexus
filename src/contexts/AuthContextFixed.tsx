@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -34,12 +33,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const stableAuth = useStableAuth();
 
+  console.log('🔍 DEBUG: AuthProvider render - stableAuth state:', {
+    hasUser: !!stableAuth.user,
+    hasSession: !!stableAuth.session,
+    isLoading: stableAuth.isLoading,
+    isAdmin: stableAuth.isAdmin,
+    error: stableAuth.error
+  });
+
   useEffect(() => {
+    console.log('🔍 DEBUG: AuthProvider localStorage check starting...');
     // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
+        console.log('🔍 DEBUG: Found saved user in localStorage:', userData);
         logger.info('🔐 [AuthContextFixed] Restored user from localStorage:', { 
           type: userData.type, 
           cartorio_id: userData.cartorio_id,
@@ -62,15 +71,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (err) {
+        console.log('🔍 DEBUG: Error parsing saved user from localStorage:', err);
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
         localStorage.removeItem('siplan-user');
       }
+    } else {
+      console.log('🔍 DEBUG: No saved user found in localStorage');
     }
   }, []);
 
   useEffect(() => {
+    console.log('🔍 DEBUG: AuthProvider stableAuth effect triggered with:', {
+      hasSession: !!stableAuth.session,
+      isAdmin: stableAuth.isAdmin,
+      userType: user?.type,
+      sessionUserEmail: stableAuth.session?.user?.email
+    });
+
     // Atualizar usuário admin baseado no stableAuth
     if (stableAuth.session?.user && stableAuth.isAdmin) {
+      console.log('🔍 DEBUG: Setting admin user from stableAuth');
       logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
       
       const adminUser: User = {
@@ -94,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } else if (!stableAuth.session && user?.type === 'admin') {
       // Limpar usuário admin se não há sessão
+      console.log('🔍 DEBUG: Clearing admin user - no session');
       logger.info('🔐 [AuthContextFixed] Clearing admin user - no session');
       setUser(null);
       clearCartorioAuthContext();
@@ -168,6 +189,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Debug log do estado atual
   useEffect(() => {
+    console.log('🔍 DEBUG: AuthContextFixed current state update:', {
+      hasUser: !!user,
+      userType: user?.type,
+      hasSession: !!stableAuth.session,
+      stableAuthIsAdmin: stableAuth.isAdmin,
+      isAuthenticated,
+      isLoading,
+      usingSharedClient: true
+    });
+
     logger.info('🔐 [AuthContextFixed] Current auth state:', {
       hasUser: !!user,
       userType: user?.type,
