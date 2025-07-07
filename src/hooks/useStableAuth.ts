@@ -78,7 +78,8 @@ export const useStableAuth = () => {
       }
     };
 
-    // Configurar listener
+    // Configurar listener - usando a instância única
+    logger.info('🔐 [useStableAuth] Setting up auth state listener on shared instance');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     // Verificar sessão inicial

@@ -6,84 +6,132 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// Singleton pattern: Uma única instância do cliente Supabase para toda a aplicação
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: false, // Disable default auth since we use custom tokens
-    autoRefreshToken: false,
-  },
-  global: {
-    headers: {},
-  },
-});
-
-// Cache para evitar múltiplas instâncias do GoTrueClient
-const clientCache = new Map<string, ReturnType<typeof createClient>>();
-
-// Helper function to create authenticated supabase instance
-export const createAuthenticatedClient = (token: string) => {
-  console.log('🔐 [createAuthenticatedClient] Creating client with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
-  
-  // Use cache para evitar múltiplas instâncias
-  const cacheKey = `auth_${token.slice(0, 10)}`;
-  if (clientCache.has(cacheKey)) {
-    console.log('🔄 [createAuthenticatedClient] Using cached client');
-    return clientCache.get(cacheKey)!;
-  }
-  
-  let client;
-  
-  // Para tokens de cartório, usar tanto Authorization quanto X-Custom-Auth headers
-  if (token.startsWith('CART-')) {
-    console.log('🏢 [createAuthenticatedClient] Creating cartorio client with custom headers');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Função para obter a instância única do cliente Supabase
+const getSupabaseInstance = () => {
+  if (!supabaseInstance) {
+    console.log('🔧 [Supabase] Creating single client instance');
+    supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        persistSession: true, // Mantém a sessão persistente para admins
+        autoRefreshToken: true, // Auto-refresh de tokens
+        detectSessionInUrl: true,
       },
       global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Custom-Auth': token, // Header adicional para RLS
-        },
-      },
-    });
-  } else {
-    // Para JWT tokens regulares
-    console.log('🔑 [createAuthenticatedClient] Creating JWT client');
-    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: {},
       },
     });
   }
+  return supabaseInstance;
+};
+
+// Export da instância única
+export const supabase = getSupabaseInstance();
+
+// Sistema de gerenciamento de contexto de autenticação para cartórios
+class AuthContextManager {
+  private currentToken: string | null = null;
+  private currentHeaders: Record<string, string> = {};
+
+  setCartorioContext(token: string) {
+    console.log('🔐 [AuthContext] Setting cartorio context with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+    
+    this.currentToken = token;
+    this.currentHeaders = {};
+    
+    // Para tokens de cartório, configurar headers customizados
+    if (token.startsWith('CART-')) {
+      this.currentHeaders = {
+        'Authorization': `Bearer ${token}`,
+        'X-Custom-Auth': token,
+      };
+    } else {
+      this.currentHeaders = {
+        'Authorization': `Bearer ${token}`,
+      };
+    }
+  }
+
+  clearContext() {
+    console.log('🔐 [AuthContext] Clearing cartorio context');
+    this.currentToken = null;
+    this.currentHeaders = {};
+  }
+
+  getHeaders(): Record<string, string> {
+    return { ...this.currentHeaders };
+  }
+
+  hasContext(): boolean {
+    return this.currentToken !== null;
+  }
+
+  getCurrentToken(): string | null {
+    return this.currentToken;
+  }
+}
+
+// Instância única do gerenciador de contexto
+const authContextManager = new AuthContextManager();
+
+// Função para configurar o contexto de autenticação de cartório
+export const setCartorioAuthContext = (token: string) => {
+  authContextManager.setCartorioContext(token);
+};
+
+// Função para limpar o contexto de autenticação de cartório
+export const clearCartorioAuthContext = () => {
+  authContextManager.clearContext();
+};
+
+// Função para obter cliente com contexto de autenticação apropriado
+export const getAuthenticatedClient = () => {
+  const client = getSupabaseInstance();
   
-  // Cache the client
-  clientCache.set(cacheKey, client);
+  // Se há contexto de cartório, aplicar headers
+  if (authContextManager.hasContext()) {
+    const headers = authContextManager.getHeaders();
+    console.log('🔐 [AuthContext] Applying cartorio headers to request');
+    
+    // Retorna uma versão do cliente com headers customizados
+    return {
+      ...client,
+      from: (table: string) => {
+        return client.from(table).select('*', { 
+          head: false,
+          headers 
+        });
+      },
+      rpc: (fn: string, args?: any) => {
+        return client.rpc(fn, args, { headers });
+      }
+    };
+  }
   
-  // Limpar cache após 5 minutos para evitar tokens expirados
-  setTimeout(() => {
-    clientCache.delete(cacheKey);
-  }, 5 * 60 * 1000);
-  
+  // Para casos padrão (admin), retorna o cliente normal
   return client;
 };
 
-// Function to set custom JWT token for cartorio authentication
-export const setCustomAuthToken = (token: string) => {
-  console.log('Setting custom auth token:', token);
+// Helper function compatível com o código existente
+export const createAuthenticatedClient = (token: string) => {
+  console.log('🔐 [createAuthenticatedClient] Setting up context for token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+  
+  // Em vez de criar nova instância, configuramos o contexto
+  setCartorioAuthContext(token);
+  
+  // Retorna a instância única configurada
+  return getAuthenticatedClient();
 };
 
-// Function to clear custom auth token
+// Funções de compatibilidade (mantidas para não quebrar código existente)
+export const setCustomAuthToken = (token: string) => {
+  console.log('Setting custom auth token via compatibility function:', token);
+  setCartorioAuthContext(token);
+};
+
 export const clearCustomAuthToken = () => {
-  console.log('Clearing custom auth token');
-  clientCache.clear();
+  console.log('Clearing custom auth token via compatibility function');
+  clearCartorioAuthContext();
 };

@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 // Hook simplificado que confia inteiramente no RLS do Supabase
+// Agora usando a instância única global
 export const useSistemasCartorio = () => {
   return useQuery({
     queryKey: ['sistemas-cartorio-rls'],
     queryFn: async () => {
-      logger.info('🏢 [useSistemasCartorio] Fetching sistemas via RLS');
+      logger.info('🏢 [useSistemasCartorio] Fetching sistemas via RLS using shared instance');
 
       const { data: sistemas, error } = await supabase
         .from('sistemas')
@@ -41,7 +42,7 @@ export const useVideoAulaData = (videoAulaId: string) => {
   return useQuery({
     queryKey: ['video-aula-data', videoAulaId],
     queryFn: async () => {
-      logger.info('🎥 [useVideoAulaData] Fetching video aula:', { videoId: videoAulaId });
+      logger.info('🎥 [useVideoAulaData] Fetching video aula using shared instance:', { videoId: videoAulaId });
 
       const { data: videoAula, error } = await supabase
         .from('video_aulas')
