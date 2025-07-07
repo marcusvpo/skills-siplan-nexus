@@ -12,6 +12,7 @@ import { logger } from '@/utils/logger';
 // Componentes restaurados
 import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored';
 import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
+import { DashboardStats } from '@/components/admin/DashboardStats';
 
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
@@ -119,6 +120,9 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Indicadores de estatísticas */}
+        <DashboardStats />
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <Card className="gradient-card shadow-modern border-gray-600/50">
             <CardContent className="p-1">

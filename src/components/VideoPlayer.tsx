@@ -1,7 +1,5 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Maximize, Settings } from 'lucide-react';
 import { logger } from '@/utils/logger';
 
 interface VideoPlayerProps {
@@ -83,7 +81,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }
 
   return (
-    <div className="relative bg-black rounded-lg overflow-hidden group">
+    <div className="relative bg-black rounded-lg overflow-hidden">
       {/* Video Player - Support for both iframe URLs and direct video URLs */}
       {videoUrl.includes('iframe') || videoUrl.includes('embed') ? (
         <iframe
@@ -151,38 +149,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
       
-      {/* Video Info Overlay */}
+      {/* Video Info Overlay - apenas duração se disponível */}
       {videoDuration && isVideoReady && (
         <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-md text-sm">
           {formatTime(videoDuration)}
         </div>
       )}
-      
-      {/* Controls Overlay */}
-      <div className="absolute bottom-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="text-white hover:bg-white/20 bg-black/50"
-          onClick={() => {
-            const element = iframeRef.current;
-            if (element) {
-              if (element.requestFullscreen) {
-                element.requestFullscreen();
-              }
-            }
-          }}
-        >
-          <Maximize className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="text-white hover:bg-white/20 bg-black/50"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
-      </div>
     </div>
   );
 };

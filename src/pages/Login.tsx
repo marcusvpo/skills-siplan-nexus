@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
@@ -17,13 +17,6 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  const handleDemo = () => {
-    setUsername('demo');
-    setToken('DEMO-SIPLANSKILLS-CARTORIO');
-    setError('');
-    logger.userAction('Demo credentials filled');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +104,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4 relative">
+      {/* Acesso Administrativo - posição discreta no canto superior direito */}
+      <Link 
+        to="/admin-login"
+        className="absolute top-4 right-4 flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-400 transition-colors"
+      >
+        <Settings className="h-3 w-3" />
+        <span>Admin</span>
+      </Link>
+
       <Card className="w-full max-w-md bg-gray-800/80 border-gray-600 shadow-modern backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
@@ -177,41 +179,22 @@ const Login = () => {
               </div>
             </div>
             
+            {/* Botão principal centralizado e destacado */}
             <Button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-4 text-xl font-semibold transition-all duration-200 hover:shadow-lg disabled:opacity-50 shadow-lg"
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <RefreshCw className="h-5 w-5 animate-spin" />
                   <span>Verificando...</span>
                 </div>
               ) : (
-                'Entrar na Plataforma'
+                'Acessar Plataforma'
               )}
             </Button>
           </form>
-          
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
-              onClick={handleDemo}
-              disabled={isLoading}
-            >
-              Acessar Demonstração
-            </Button>
-            
-            <div className="text-center">
-              <Link 
-                to="/admin-login"
-                className="text-sm text-red-400 hover:text-red-300 transition-colors"
-              >
-                Acesso Administrativo
-              </Link>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
