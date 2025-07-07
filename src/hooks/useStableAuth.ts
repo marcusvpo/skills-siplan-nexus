@@ -34,11 +34,23 @@ export const useStableAuth = () => {
     console.log('🔍 DEBUG: Attempting Supabase query for admin status...');
     
     try {
-      const { data: adminData, error } = await supabase
+      // Implementar timeout para diagnosticar se a query está travando
+      const queryPromise = supabase
         .from('admins')
         .select('id')
         .eq('email', user.email)
         .single();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Admin query timeout after 10 seconds')), 10000)
+      );
+
+      console.log('🔍 DEBUG: Racing query against timeout...');
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      
+      console.log('🔍 DEBUG: Query completed, extracting data...');
+      const { data: adminData, error } = result as any;
 
       console.log('🔍 DEBUG: Supabase query result for admin:', { adminData, error });
 
@@ -54,7 +66,13 @@ export const useStableAuth = () => {
       return isAdminResult;
     } catch (err) {
       console.log('🔍 DEBUG: Error in checkAdminStatus catch block:', err);
-      logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
+      
+      if (err instanceof Error && err.message.includes('timeout')) {
+        console.log('🔍 DEBUG: Query timed out - this indicates a hanging request');
+        logger.error('❌ [useStableAuth] Admin query timed out:', { error: err });
+      } else {
+        logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
+      }
       return false;
     }
   }, []);
