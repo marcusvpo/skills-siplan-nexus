@@ -15,10 +15,7 @@ const Index = () => {
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-enhanced text-zinc-50 md:text-8xl">
             Siplan Skills
           </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Plataforma de treinamento especializada para cartórios clientes da Siplan. 
-            Aprenda sobre nossos sistemas com videoaulas interativas e suporte de IA.
-          </p>
+          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-normal md:text-2xl">Plataforma de treinamento especializada para cartórios clientes Siplan. Aprenda sobre nossos sistemas com videoaulas interativas e suporte de IA.</p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 text-lg btn-hover-lift shadow-modern" onClick={() => navigate('/login')}>
