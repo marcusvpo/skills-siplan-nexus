@@ -75,15 +75,12 @@ const Index = () => {
         {/* CTA Section */}
         <div className="text-center">
           <Card className="gradient-card shadow-elevated border-gray-600/50 max-w-2xl mx-auto">
-            <CardContent className="p-8">
+            <CardContent className="p-8 px-[25px]">
               <h2 className="text-3xl font-bold mb-4 text-white text-enhanced">Pronto para começar?</h2>
               <p className="text-gray-400 mb-6 leading-relaxed">
                 Entre em contato com seu representante Siplan para obter seu token de acesso.
               </p>
-              <Button className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 btn-hover-lift shadow-modern" onClick={() => navigate('/login')}>
-                Começar Agora
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              
             </CardContent>
           </Card>
         </div>
