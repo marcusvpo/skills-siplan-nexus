@@ -12,7 +12,7 @@ const Index = () => {
           <div className="flex items-center justify-center mb-6">
             <BookOpen className="h-16 w-16 text-red-500" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent text-enhanced">
+          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-enhanced text-zinc-50 md:text-8xl">
             Siplan Skills
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
