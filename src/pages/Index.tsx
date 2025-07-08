@@ -1,15 +1,11 @@
-
 import React from 'react';
 import { BookOpen, ArrowRight, Users, Video, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-
 const Index = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen text-white page-transition">
+  return <div className="min-h-screen text-white page-transition">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
@@ -25,22 +21,11 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 text-lg btn-hover-lift shadow-modern"
-              onClick={() => navigate('/login')}
-            >
+            <Button size="lg" className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 text-lg btn-hover-lift shadow-modern" onClick={() => navigate('/login')}>
               Acessar Plataforma
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-white px-8 py-4 text-lg btn-hover-lift shadow-modern"
-              onClick={() => navigate('/admin-login')}
-            >
-              Acesso Administrativo
-            </Button>
+            
           </div>
         </div>
 
@@ -58,7 +43,9 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 card-enter" style={{ animationDelay: '0.1s' }}>
+          <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 card-enter" style={{
+          animationDelay: '0.1s'
+        }}>
             <CardContent className="p-8 text-center">
               <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl w-fit mx-auto mb-6 shadow-modern">
                 <Users className="h-8 w-8 text-white" />
@@ -70,7 +57,9 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 card-enter" style={{ animationDelay: '0.2s' }}>
+          <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 card-enter" style={{
+          animationDelay: '0.2s'
+        }}>
             <CardContent className="p-8 text-center">
               <div className="p-3 bg-gradient-to-br from-green-600 to-green-700 rounded-xl w-fit mx-auto mb-6 shadow-modern">
                 <Shield className="h-8 w-8 text-white" />
@@ -91,10 +80,7 @@ const Index = () => {
               <p className="text-gray-400 mb-6 leading-relaxed">
                 Entre em contato com seu representante Siplan para obter seu token de acesso.
               </p>
-              <Button 
-                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 btn-hover-lift shadow-modern"
-                onClick={() => navigate('/login')}
-              >
+              <Button className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 btn-hover-lift shadow-modern" onClick={() => navigate('/login')}>
                 Começar Agora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -102,8 +88,6 @@ const Index = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
