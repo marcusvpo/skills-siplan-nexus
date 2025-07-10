@@ -62,6 +62,20 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Cores carmesim personalizadas
+				crimson: {
+					50: 'hsl(0, 95%, 97%)',
+					100: 'hsl(0, 95%, 93%)',
+					200: 'hsl(0, 95%, 86%)',
+					300: 'hsl(0, 95%, 77%)',
+					400: 'hsl(0, 95%, 65%)',
+					500: 'hsl(0, 95%, 50%)',
+					600: 'hsl(0, 95%, 35%)',
+					700: 'hsl(0, 95%, 25%)',
+					800: 'hsl(0, 95%, 18%)',
+					900: 'hsl(0, 95%, 12%)',
+					950: 'hsl(0, 95%, 6%)'
 				}
 			},
 			borderRadius: {
