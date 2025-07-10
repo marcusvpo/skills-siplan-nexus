@@ -1,28 +1,35 @@
+
 import React from 'react';
-import { BookOpen, ArrowRight, Users, Video, Shield } from 'lucide-react';
+import { ArrowRight, Users, Video, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+
 const Index = () => {
   const navigate = useNavigate();
-  return <div className="min-h-screen text-white page-transition">
+
+  return (
+    <div className="min-h-screen text-white page-transition">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <BookOpen className="h-16 w-16 text-red-500" />
+            <img 
+              src="/lovable-uploads/938cc4b0-f47e-4bb5-9eb9-1848eaade9af.png" 
+              alt="Siplan Logo" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-enhanced text-zinc-50 md:text-8xl">
             Siplan Skills
           </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-normal md:text-2xl">Plataforma de treinamento especializada para cartórios clientes Siplan. Aprenda sobre nossos sistemas com videoaulas interativas e suporte de IA.</p>
+          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-normal md:text-2xl">Plataforma de treinamento especializada para cartórios clientes Siplan. Aprenda sobre nossos sistemas com videoaulas interativas e suporte de IA.</p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 text-lg btn-hover-lift shadow-modern" onClick={() => navigate('/login')}>
               Acessar Plataforma
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
-            
           </div>
         </div>
 
@@ -77,11 +84,12 @@ const Index = () => {
               <p className="text-gray-400 mb-6 leading-relaxed">
                 Entre em contato com seu representante Siplan para obter seu token de acesso.
               </p>
-              
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
