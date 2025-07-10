@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
@@ -39,9 +39,11 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
               className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity btn-hover-lift"
               onClick={() => navigate(user.type === 'admin' ? '/admin' : '/dashboard')}
             >
-              <div className="p-2 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
+                alt="Siplan Logo" 
+                className="h-8 w-auto object-contain"
+              />
               <span className="text-2xl font-bold text-white text-enhanced">Siplan Skills</span>
             </div>
             

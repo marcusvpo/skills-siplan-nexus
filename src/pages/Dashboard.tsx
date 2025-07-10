@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, LogOut, User } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
@@ -88,9 +88,11 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
+                alt="Siplan Logo" 
+                className="h-8 w-auto object-contain"
+              />
               <div>
                 <h1 className="text-2xl font-bold text-enhanced">Siplan Skills</h1>
                 <p className="text-sm text-gray-400">

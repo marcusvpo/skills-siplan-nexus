@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
@@ -117,7 +117,11 @@ const Login = () => {
       <Card className="w-full max-w-md bg-gray-800/80 border-gray-600 shadow-modern backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-red-500" />
+            <img 
+              src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
+              alt="Siplan Logo" 
+              className="h-12 w-auto object-contain"
+            />
           </div>
           <CardTitle className="text-3xl font-bold text-white">Siplan Skills</CardTitle>
           <p className="text-gray-300 mt-2">

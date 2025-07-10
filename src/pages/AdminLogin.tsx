@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,9 +100,11 @@ const AdminLogin = () => {
       <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-6">
-            <div className="p-4 bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-modern">
-              <BookOpen className="h-8 w-8 text-white" />
-            </div>
+            <img 
+              src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
+              alt="Siplan Logo" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
           <CardTitle className="text-3xl font-bold text-white text-enhanced">Painel Administrativo</CardTitle>
           <p className="text-gray-300 mt-3 text-lg">
