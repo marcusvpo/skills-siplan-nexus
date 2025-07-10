@@ -359,6 +359,7 @@ export type Database = {
           ordem: number
           produto_id: string | null
           titulo: string
+          transcricao_completa_texto: string | null
           url_thumbnail: string | null
           url_video: string
         }
@@ -369,6 +370,7 @@ export type Database = {
           ordem?: number
           produto_id?: string | null
           titulo: string
+          transcricao_completa_texto?: string | null
           url_thumbnail?: string | null
           url_video?: string
         }
@@ -379,6 +381,7 @@ export type Database = {
           ordem?: number
           produto_id?: string | null
           titulo?: string
+          transcricao_completa_texto?: string | null
           url_thumbnail?: string | null
           url_video?: string
         }
