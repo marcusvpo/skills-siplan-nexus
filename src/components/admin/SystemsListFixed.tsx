@@ -29,21 +29,21 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
   const deleteSistemaMutation = useDeleteSistema();
 
   const handleDelete = async (systemId: string, systemName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o sistema "${systemName}"?`)) {
+    if (!confirm(`Tem certeza que deseja excluir a categoria "${systemName}"?`)) {
       return;
     }
 
     try {
       await deleteSistemaMutation.mutateAsync(systemId);
       toast({
-        title: "Sistema excluído",
-        description: `O sistema "${systemName}" foi excluído com sucesso.`,
+        title: "Categoria excluída",
+        description: `A categoria "${systemName}" foi excluída com sucesso.`,
       });
     } catch (error) {
       console.error('Error deleting system:', error);
       toast({
-        title: "Erro ao excluir sistema",
-        description: "Ocorreu um erro ao excluir o sistema.",
+        title: "Erro ao excluir categoria",
+        description: "Ocorreu um erro ao excluir a categoria.",
         variant: "destructive",
       });
     }
@@ -62,13 +62,13 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Sistemas</h2>
+        <h2 className="text-2xl font-bold text-white">Categorias</h2>
         <Button
           onClick={() => setShowForm(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Cadastrar Novo Sistema
+          Cadastrar Nova Categoria
         </Button>
       </div>
 
@@ -130,9 +130,9 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
 
       {sistemas.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-lg">Nenhum sistema cadastrado</p>
+          <p className="text-gray-400 text-lg">Nenhuma categoria cadastrada</p>
           <p className="text-gray-500 text-sm mt-2">
-            Clique em "Cadastrar Novo Sistema" para começar
+            Clique em "Cadastrar Nova Categoria" para começar
           </p>
         </div>
       )}

@@ -50,7 +50,7 @@ const SystemPage = () => {
 
   // Early return for loading state
   if (isLoading) {
-    return <LoadingState message="Carregando sistema..." />;
+    return <LoadingState message="Carregando categoria..." />;
   }
 
   // Early return for error state
@@ -58,7 +58,7 @@ const SystemPage = () => {
     logger.error('❌ [SystemPage] Error loading system:', { error: error.message });
     return (
       <ErrorState 
-        title="Erro ao carregar sistema"
+        title="Erro ao carregar categoria"
         message={error instanceof Error ? error.message : 'Erro desconhecido'}
         onRetry={() => refetch()}
       />
@@ -74,8 +74,8 @@ const SystemPage = () => {
     
     return (
       <ErrorState 
-        title="Sistema não encontrado"
-        message="O sistema solicitado não foi encontrado ou você não tem permissão para acessá-lo."
+        title="Categoria não encontrada"
+        message="A categoria solicitada não foi encontrada ou você não tem permissão para acessá-la."
       />
     );
   }
@@ -89,7 +89,7 @@ const SystemPage = () => {
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
-            { label: currentSystem?.nome || 'Sistema' }
+            { label: currentSystem?.nome || 'Categoria' }
           ]} />
           
           <div className="mt-6 mb-8">

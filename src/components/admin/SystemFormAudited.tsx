@@ -66,7 +66,7 @@ export const SystemFormAudited: React.FC<SystemFormAuditedProps> = ({
   const handleDelete = async () => {
     if (!sistema?.id) return;
     
-    if (confirm(`Tem certeza que deseja excluir o sistema "${sistema.nome}"?`)) {
+    if (confirm(`Tem certeza que deseja excluir a categoria "${sistema.nome}"?`)) {
       try {
         await deleteSistema.mutateAsync(sistema.id);
         onSuccess();
@@ -80,7 +80,7 @@ export const SystemFormAudited: React.FC<SystemFormAuditedProps> = ({
     <Card className="bg-gray-800/50 border-gray-600">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-white">
-          {sistema ? 'Editar Sistema' : 'Novo Sistema'}
+          {sistema ? 'Editar Categoria' : 'Nova Categoria'}
         </CardTitle>
         <Button
           variant="outline"
@@ -95,13 +95,13 @@ export const SystemFormAudited: React.FC<SystemFormAuditedProps> = ({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="nome" className="text-gray-300">Nome do Sistema *</Label>
+            <Label htmlFor="nome" className="text-gray-300">Nome da Categoria *</Label>
             <Input
               id="nome"
               value={formData.nome}
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
               className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-              placeholder="Ex: Sistema de Gestão"
+              placeholder="Ex: Gestão de Cartórios"
               required
               disabled={isLoading}
             />
@@ -114,7 +114,7 @@ export const SystemFormAudited: React.FC<SystemFormAuditedProps> = ({
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
               className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-              placeholder="Descrição do sistema..."
+              placeholder="Descrição da categoria..."
               rows={3}
               disabled={isLoading}
             />

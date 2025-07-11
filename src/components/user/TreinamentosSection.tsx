@@ -30,7 +30,7 @@ export const TreinamentosSection: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando sistemas de treinamento...</p>
+          <p className="text-gray-400">Carregando categorias de treinamento...</p>
         </div>
       </div>
     );
@@ -47,9 +47,9 @@ export const TreinamentosSection: React.FC = () => {
         <Card className="bg-gray-800/50 border-red-600 max-w-lg">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar sistemas</h3>
+            <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar categorias</h3>
             <p className="text-gray-400 text-center mb-6">
-              {error.message || 'Não foi possível carregar os sistemas de treinamento.'}
+              {error.message || 'Não foi possível carregar as categorias de treinamento.'}
             </p>
             <div className="space-y-3">
               <Button
@@ -75,9 +75,9 @@ export const TreinamentosSection: React.FC = () => {
         <Card className="bg-gray-800/50 border-yellow-600 max-w-lg mx-auto">
           <CardContent className="p-8 text-center">
             <div className="text-6xl mb-6">📚</div>
-            <h3 className="text-2xl font-semibold text-yellow-400 mb-3">Nenhum sistema disponível</h3>
+            <h3 className="text-2xl font-semibold text-yellow-400 mb-3">Nenhuma categoria disponível</h3>
             <p className="text-gray-400 mb-6">
-              Os sistemas de treinamento aparecerão aqui quando estiverem disponíveis para seu cartório.
+              As categorias de treinamento aparecerão aqui quando estiverem disponíveis para seu cartório.
             </p>
             <p className="text-sm text-gray-500">
               Entre em contato com o administrador para mais informações.
@@ -94,10 +94,10 @@ export const TreinamentosSection: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center">
             <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
-            Sistemas de Treinamento
+            Categorias de Treinamento
           </h2>
           <p className="text-gray-400 mt-1">
-            Selecione um sistema para acessar seus produtos de treinamento
+            Selecione uma categoria para acessar seus produtos de treinamento
           </p>
         </div>
       </div>
@@ -151,7 +151,7 @@ export const TreinamentosSection: React.FC = () => {
                     navigate(`/system/${sistema.id}`);
                   }}
                 >
-                  Acessar Sistema
+                  Acessar Categoria
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </CardContent>

@@ -42,7 +42,7 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
     if (!formData.nome.trim()) {
       toast({
         title: "Nome obrigatório",
-        description: "Informe o nome do sistema.",
+        description: "Informe o nome da categoria.",
         variant: "destructive",
       });
       return;
@@ -58,8 +58,8 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
         });
 
         toast({
-          title: "Sistema atualizado",
-          description: `Sistema "${formData.nome}" foi atualizado com sucesso.`,
+          title: "Categoria atualizada",
+          description: `Categoria "${formData.nome}" foi atualizada com sucesso.`,
         });
       } else {
         await createSistemaMutation.mutateAsync({
@@ -69,8 +69,8 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
         });
 
         toast({
-          title: "Sistema criado",
-          description: `Sistema "${formData.nome}" foi criado com sucesso.`,
+          title: "Categoria criada",
+          description: `Categoria "${formData.nome}" foi criada com sucesso.`,
         });
       }
 
@@ -78,8 +78,8 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
     } catch (error) {
       console.error('Error saving system:', error);
       toast({
-        title: "Erro ao salvar sistema",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar o sistema.",
+        title: "Erro ao salvar categoria",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar a categoria.",
         variant: "destructive",
       });
     }
@@ -91,7 +91,7 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
     <Card className="bg-gray-800/50 border-gray-600 shadow-modern">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-white">
-          {sistema ? 'Editar Sistema' : 'Novo Sistema'}
+          {sistema ? 'Editar Categoria' : 'Nova Categoria'}
         </CardTitle>
         <Button
           variant="outline"
@@ -106,13 +106,13 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="nome" className="text-gray-300">Nome do Sistema *</Label>
+              <Label htmlFor="nome" className="text-gray-300">Nome da Categoria *</Label>
               <Input
                 id="nome"
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
-                placeholder="Ex: Sistema de Gestão"
+                placeholder="Ex: Gestão de Cartórios"
                 required
               />
             </div>
@@ -135,7 +135,7 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
               className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
-              placeholder="Descrição do sistema..."
+              placeholder="Descrição da categoria..."
               rows={3}
             />
           </div>
@@ -156,7 +156,7 @@ export const SystemFormFixed: React.FC<SystemFormFixedProps> = ({
               {isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : null}
-              {sistema ? 'Atualizar' : 'Criar'} Sistema
+              {sistema ? 'Atualizar' : 'Criar'} Categoria
             </Button>
           </div>
         </form>

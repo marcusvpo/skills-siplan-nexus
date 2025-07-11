@@ -47,7 +47,7 @@ export const VideoAulasHeader: React.FC<VideoAulasHeaderProps> = ({
         <div>
           <h2 className="text-2xl font-bold text-white text-enhanced">Videoaulas</h2>
           <p className="text-gray-300">
-            Sistema: {sistema.nome} | Produto: {produto.nome}
+            Categoria: {sistema.nome} | Produto: {produto.nome}
           </p>
         </div>
       </div>

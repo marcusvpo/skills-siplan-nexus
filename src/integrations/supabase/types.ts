@@ -265,6 +265,92 @@ export type Database = {
           },
         ]
       }
+      knowledge_base: {
+        Row: {
+          chunk_index: number | null
+          chunk_texto: string | null
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          produto_id: string | null
+          video_aula_id: string | null
+        }
+        Insert: {
+          chunk_index?: number | null
+          chunk_texto?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          produto_id?: string | null
+          video_aula_id?: string | null
+        }
+        Update: {
+          chunk_index?: number | null
+          chunk_texto?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          produto_id?: string | null
+          video_aula_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_base_video_aula_id_fkey"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_conhecimento_base: {
+        Row: {
+          conteudo_completo: string | null
+          created_at: string | null
+          id: string
+          produto_id: string | null
+          titulo: string | null
+          updated_at: string | null
+          versao: string | null
+        }
+        Insert: {
+          conteudo_completo?: string | null
+          created_at?: string | null
+          id?: string
+          produto_id?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          versao?: string | null
+        }
+        Update: {
+          conteudo_completo?: string | null
+          created_at?: string | null
+          id?: string
+          produto_id?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          versao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_conhecimento_base_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           descricao: string | null
