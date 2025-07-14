@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Video } from 'lucide-react';
 
-interface Sistema {
+interface Categoria {
   id: string;
   nome: string;
   descricao?: string;
@@ -19,7 +19,7 @@ interface Produto {
 }
 
 interface VideoAulasHeaderProps {
-  sistema: Sistema;
+  sistema: Categoria;
   produto: Produto;
   onBack: () => void;
   onCreateNew: () => void;

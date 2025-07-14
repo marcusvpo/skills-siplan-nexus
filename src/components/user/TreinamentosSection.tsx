@@ -16,7 +16,7 @@ export const TreinamentosSection: React.FC = () => {
 
   React.useEffect(() => {
     logger.info('📚 [TreinamentosSection] Component state:', {
-      sistemasCount: sistemas.length,
+      categoriasCount: sistemas.length,
       isLoading,
       hasError: !!error,
       errorMessage: error?.message,
@@ -30,7 +30,7 @@ export const TreinamentosSection: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando categorias de treinamento...</p>
+          <p className="text-gray-400">Carregando categorias...</p>
         </div>
       </div>
     );
@@ -49,7 +49,7 @@ export const TreinamentosSection: React.FC = () => {
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar categorias</h3>
             <p className="text-gray-400 text-center mb-6">
-              {error.message || 'Não foi possível carregar as categorias de treinamento.'}
+              {error.message || 'Não foi possível carregar as categorias.'}
             </p>
             <div className="space-y-3">
               <Button
@@ -77,7 +77,7 @@ export const TreinamentosSection: React.FC = () => {
             <div className="text-6xl mb-6">📚</div>
             <h3 className="text-2xl font-semibold text-yellow-400 mb-3">Nenhuma categoria disponível</h3>
             <p className="text-gray-400 mb-6">
-              As categorias de treinamento aparecerão aqui quando estiverem disponíveis para seu cartório.
+              As categorias aparecerão aqui quando estiverem disponíveis para seu cartório.
             </p>
             <p className="text-sm text-gray-500">
               Entre em contato com o administrador para mais informações.
@@ -94,36 +94,36 @@ export const TreinamentosSection: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center">
             <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
-            Categorias de Treinamento
+            Categorias
           </h2>
           <p className="text-gray-400 mt-1">
-            Selecione uma categoria para acessar seus produtos de treinamento
+            Selecione uma categoria para acessar seus produtos
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {sistemas.map((sistema) => {
-          const totalProdutos = sistema.produtos?.length || 0;
-          const totalVideoaulas = sistema.produtos?.reduce((acc, produto) => 
+        {sistemas.map((categoria) => {
+          const totalProdutos = categoria.produtos?.length || 0;
+          const totalVideoaulas = categoria.produtos?.reduce((acc, produto) => 
             acc + (produto.video_aulas?.length || 0), 0) || 0;
 
           return (
             <Card 
-              key={sistema.id} 
+              key={categoria.id} 
               className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:scale-105"
-              onClick={() => navigate(`/system/${sistema.id}`)}
+              onClick={() => navigate(`/system/${categoria.id}`)}
             >
               <CardHeader>
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
                     <span className="text-xl font-bold text-white">
-                      {sistema.nome.charAt(0).toUpperCase()}
+                      {categoria.nome.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-white group-hover:text-red-400 transition-colors">
-                      {sistema.nome}
+                      {categoria.nome}
                     </CardTitle>
                     <div className="flex items-center space-x-2 mt-2">
                       <Badge variant="secondary" className="bg-blue-600/20 text-blue-300">
@@ -136,9 +136,9 @@ export const TreinamentosSection: React.FC = () => {
                   </div>
                 </div>
                 
-                {sistema.descricao && (
+                {categoria.descricao && (
                   <p className="text-gray-400 text-sm leading-relaxed">
-                    {sistema.descricao}
+                    {categoria.descricao}
                   </p>
                 )}
               </CardHeader>
@@ -148,7 +148,7 @@ export const TreinamentosSection: React.FC = () => {
                   className="w-full bg-red-600 hover:bg-red-700 transition-all duration-200 group-hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/system/${sistema.id}`);
+                    navigate(`/system/${categoria.id}`);
                   }}
                 >
                   Acessar Categoria

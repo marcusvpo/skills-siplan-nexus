@@ -7,7 +7,7 @@ import { SystemForm } from './SystemForm';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Sistema {
+interface Categoria {
   id: string;
   nome: string;
   descricao?: string;
@@ -15,9 +15,9 @@ interface Sistema {
 }
 
 interface SystemsListProps {
-  sistemas: Sistema[];
+  sistemas: Categoria[];
   onSystemsChange: () => void;
-  onSelectSystem: (sistema: Sistema) => void;
+  onSelectSystem: (categoria: Categoria) => void;
 }
 
 export const SystemsList: React.FC<SystemsListProps> = ({
@@ -26,11 +26,11 @@ export const SystemsList: React.FC<SystemsListProps> = ({
   onSelectSystem
 }) => {
   const [showForm, setShowForm] = useState(false);
-  const [editingSystem, setEditingSystem] = useState<Sistema | null>(null);
+  const [editingSystem, setEditingSystem] = useState<Categoria | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleDelete = async (systemId: string, systemName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir a categoria "${systemName}"?`)) {
+  const handleDelete = async (categoriaId: string, categoriaNome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a categoria "${categoriaNome}"?`)) {
       return;
     }
 
@@ -39,18 +39,18 @@ export const SystemsList: React.FC<SystemsListProps> = ({
       const { error } = await supabase
         .from('sistemas')
         .delete()
-        .eq('id', systemId);
+        .eq('id', categoriaId);
 
       if (error) throw error;
 
       toast({
         title: "Categoria excluída",
-        description: `A categoria "${systemName}" foi excluída com sucesso.`,
+        description: `A categoria "${categoriaNome}" foi excluída com sucesso.`,
       });
 
       onSystemsChange();
     } catch (error) {
-      console.error('Error deleting system:', error);
+      console.error('Error deleting categoria:', error);
       toast({
         title: "Erro ao excluir categoria",
         description: "Ocorreu um erro ao excluir a categoria.",
@@ -67,8 +67,8 @@ export const SystemsList: React.FC<SystemsListProps> = ({
     onSystemsChange();
   };
 
-  const handleEdit = (sistema: Sistema) => {
-    setEditingSystem(sistema);
+  const handleEdit = (categoria: Categoria) => {
+    setEditingSystem(categoria);
     setShowForm(true);
   };
 
@@ -97,12 +97,12 @@ export const SystemsList: React.FC<SystemsListProps> = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sistemas.map((sistema) => (
-          <Card key={sistema.id} className="bg-gray-800/50 border-gray-600 shadow-modern">
+        {sistemas.map((categoria) => (
+          <Card key={categoria.id} className="bg-gray-800/50 border-gray-600 shadow-modern">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">{sistema.nome}</CardTitle>
-              {sistema.descricao && (
-                <p className="text-gray-300 text-sm">{sistema.descricao}</p>
+              <CardTitle className="text-white text-lg">{categoria.nome}</CardTitle>
+              {categoria.descricao && (
+                <p className="text-gray-300 text-sm">{categoria.descricao}</p>
               )}
             </CardHeader>
             <CardContent className="pt-0">
@@ -110,7 +110,7 @@ export const SystemsList: React.FC<SystemsListProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectSystem(sistema)}
+                  onClick={() => onSelectSystem(categoria)}
                   className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                 >
                   <FolderOpen className="h-4 w-4 mr-2" />
@@ -120,7 +120,7 @@ export const SystemsList: React.FC<SystemsListProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(sistema)}
+                    onClick={() => handleEdit(categoria)}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                   >
                     <Edit className="h-4 w-4" />
@@ -128,7 +128,7 @@ export const SystemsList: React.FC<SystemsListProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(sistema.id, sistema.nome)}
+                    onClick={() => handleDelete(categoria.id, categoria.nome)}
                     disabled={isLoading}
                     className="border-red-600 text-red-400 hover:bg-red-700/20"
                   >

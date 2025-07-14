@@ -7,7 +7,7 @@ import { ProductForm } from './ProductForm';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Sistema {
+interface Categoria {
   id: string;
   nome: string;
   descricao?: string;
@@ -23,7 +23,7 @@ interface Produto {
 }
 
 interface ProductsListProps {
-  sistema: Sistema;
+  sistema: Categoria;
   produtos: Produto[];
   onProductsChange: () => void;
   onBack: () => void;
@@ -94,11 +94,11 @@ export const ProductsList: React.FC<ProductsListProps> = ({
             className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar aos Sistemas
+            Voltar às Categorias
           </Button>
           <div>
             <h2 className="text-2xl font-bold text-white">Produtos</h2>
-            <p className="text-gray-300">Sistema: {sistema.nome}</p>
+            <p className="text-gray-300">Categoria: {sistema.nome}</p>
           </div>
         </div>
         <Button
@@ -169,7 +169,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({
 
       {produtos.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-lg">Nenhum produto cadastrado neste sistema</p>
+          <p className="text-gray-400 text-lg">Nenhum produto cadastrado nesta categoria</p>
           <p className="text-gray-500 text-sm mt-2">
             Clique em "Cadastrar Novo Produto" para começar
           </p>

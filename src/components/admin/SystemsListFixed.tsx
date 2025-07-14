@@ -7,7 +7,7 @@ import { SystemFormFixed } from './SystemFormFixed';
 import { toast } from '@/hooks/use-toast';
 import { useDeleteSistema } from '@/hooks/useSupabaseDataFixed';
 
-interface Sistema {
+interface Categoria {
   id: string;
   nome: string;
   descricao?: string;
@@ -15,8 +15,8 @@ interface Sistema {
 }
 
 interface SystemsListFixedProps {
-  sistemas: Sistema[];
-  onViewProdutos: (sistema: Sistema) => void;
+  sistemas: Categoria[];
+  onViewProdutos: (categoria: Categoria) => void;
 }
 
 export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
@@ -24,23 +24,23 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
   onViewProdutos
 }) => {
   const [showForm, setShowForm] = useState(false);
-  const [editingSystem, setEditingSystem] = useState<Sistema | null>(null);
+  const [editingSystem, setEditingSystem] = useState<Categoria | null>(null);
   
   const deleteSistemaMutation = useDeleteSistema();
 
-  const handleDelete = async (systemId: string, systemName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir a categoria "${systemName}"?`)) {
+  const handleDelete = async (categoriaId: string, categoriaNome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a categoria "${categoriaNome}"?`)) {
       return;
     }
 
     try {
-      await deleteSistemaMutation.mutateAsync(systemId);
+      await deleteSistemaMutation.mutateAsync(categoriaId);
       toast({
         title: "Categoria excluída",
-        description: `A categoria "${systemName}" foi excluída com sucesso.`,
+        description: `A categoria "${categoriaNome}" foi excluída com sucesso.`,
       });
     } catch (error) {
-      console.error('Error deleting system:', error);
+      console.error('Error deleting categoria:', error);
       toast({
         title: "Erro ao excluir categoria",
         description: "Ocorreu um erro ao excluir a categoria.",
@@ -54,8 +54,8 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
     setEditingSystem(null);
   };
 
-  const handleEdit = (sistema: Sistema) => {
-    setEditingSystem(sistema);
+  const handleEdit = (categoria: Categoria) => {
+    setEditingSystem(categoria);
     setShowForm(true);
   };
 
@@ -84,12 +84,12 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sistemas.map((sistema) => (
-          <Card key={sistema.id} className="bg-gray-800/50 border-gray-600 shadow-modern">
+        {sistemas.map((categoria) => (
+          <Card key={categoria.id} className="bg-gray-800/50 border-gray-600 shadow-modern">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">{sistema.nome}</CardTitle>
-              {sistema.descricao && (
-                <p className="text-gray-300 text-sm">{sistema.descricao}</p>
+              <CardTitle className="text-white text-lg">{categoria.nome}</CardTitle>
+              {categoria.descricao && (
+                <p className="text-gray-300 text-sm">{categoria.descricao}</p>
               )}
             </CardHeader>
             <CardContent className="pt-0">
@@ -97,7 +97,7 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onViewProdutos(sistema)}
+                  onClick={() => onViewProdutos(categoria)}
                   className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                 >
                   <FolderOpen className="h-4 w-4 mr-2" />
@@ -107,7 +107,7 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(sistema)}
+                    onClick={() => handleEdit(categoria)}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                   >
                     <Edit className="h-4 w-4" />
@@ -115,7 +115,7 @@ export const SystemsListFixed: React.FC<SystemsListFixedProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(sistema.id, sistema.nome)}
+                    onClick={() => handleDelete(categoria.id, categoria.nome)}
                     disabled={deleteSistemaMutation.isPending}
                     className="border-red-600 text-red-400 hover:bg-red-700/20"
                   >

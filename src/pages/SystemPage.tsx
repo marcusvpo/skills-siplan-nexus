@@ -17,7 +17,7 @@ const SystemPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
+  const { data: categorias, isLoading, error, refetch } = useSistemasCartorioWithAccess();
 
   useEffect(() => {
     logger.info('🎯 [SystemPage] Page loaded', {
@@ -35,18 +35,18 @@ const SystemPage = () => {
   }, [isAuthenticated, user, navigate, systemId]);
 
   // Find the current system
-  const currentSystem = sistemas?.find(system => system.id === systemId);
+  const currentCategoria = categorias?.find(categoria => categoria.id === systemId);
 
   useEffect(() => {
-    logger.info('🎯 [SystemPage] Systems data received', {
+    logger.info('🎯 [SystemPage] Categories data received', {
       systemId,
-      sistemasCount: sistemas?.length,
-      currentSystemFound: !!currentSystem,
-      currentSystemName: currentSystem?.nome,
-      currentSystemProductsCount: currentSystem?.produtos?.length || 0,
-      allSystemIds: sistemas?.map(s => s.id) || []
+      categoriasCount: categorias?.length,
+      currentCategoriaFound: !!currentCategoria,
+      currentCategoriaName: currentCategoria?.nome,
+      currentCategoriaProdutosCount: currentCategoria?.produtos?.length || 0,
+      allCategoriaIds: categorias?.map(c => c.id) || []
     });
-  }, [systemId, sistemas, currentSystem]);
+  }, [systemId, categorias, currentCategoria]);
 
   // Early return for loading state
   if (isLoading) {
@@ -55,7 +55,7 @@ const SystemPage = () => {
 
   // Early return for error state
   if (error) {
-    logger.error('❌ [SystemPage] Error loading system:', { error: error.message });
+    logger.error('❌ [SystemPage] Error loading categoria:', { error: error.message });
     return (
       <ErrorState 
         title="Erro ao carregar categoria"
@@ -66,10 +66,10 @@ const SystemPage = () => {
   }
 
   // Early return for system not found
-  if (!currentSystem) {
-    logger.error('❌ [SystemPage] System not found:', { 
+  if (!currentCategoria) {
+    logger.error('❌ [SystemPage] Categoria not found:', { 
       systemId, 
-      availableSystems: sistemas?.map(s => ({ id: s.id, nome: s.nome })) 
+      availableCategorias: categorias?.map(c => ({ id: c.id, nome: c.nome })) 
     });
     
     return (
@@ -80,7 +80,7 @@ const SystemPage = () => {
     );
   }
 
-  const produtos = currentSystem.produtos || [];
+  const produtos = currentCategoria.produtos || [];
   logger.info('🎯 [SystemPage] Products found', { count: produtos.length });
 
   return (
@@ -89,11 +89,11 @@ const SystemPage = () => {
         <div className="container mx-auto px-6 py-8">
           <Breadcrumbs items={[
             { label: 'Dashboard', href: '/dashboard' },
-            { label: currentSystem?.nome || 'Categoria' }
+            { label: currentCategoria?.nome || 'Categoria' }
           ]} />
           
           <div className="mt-6 mb-8">
-            <SystemHeader system={currentSystem} />
+            <SystemHeader system={currentCategoria} />
           </div>
 
           <div className="mb-8">
@@ -102,7 +102,7 @@ const SystemPage = () => {
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-white text-enhanced">
-                Produtos de Treinamento
+                Produtos
               </h2>
             </div>
             

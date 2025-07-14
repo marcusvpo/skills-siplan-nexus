@@ -24,7 +24,7 @@ const SystemHeader: React.FC<SystemHeaderProps> = ({ system }) => {
           <h1 className="text-3xl font-bold text-white">{system.nome}</h1>
           <Badge variant="secondary" className="bg-blue-600/20 text-blue-300 border-0 mt-2">
             <BookOpen className="h-3 w-3 mr-1" />
-            Categoria de Treinamento
+            Categoria
           </Badge>
         </div>
       </div>
