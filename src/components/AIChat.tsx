@@ -3,7 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, MessageCircle } from 'lucide-react';
+import { Send, Bot, User, MessageCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface ChatMessage {
   id: string;
@@ -28,6 +30,7 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,30 +53,67 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
     setInputMessage('');
     setIsLoading(true);
 
-    // Simular resposta da IA (em produção, seria conectado ao backend)
-    setTimeout(() => {
+    try {
+      logger.info('🤖 [AIChat] Sending message to OpenAI assistant', {
+        messageLength: currentMessage.length,
+        threadId,
+        lessonTitle
+      });
+
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: {
+          message: currentMessage,
+          threadId: threadId,
+          lessonTitle: lessonTitle
+        }
+      });
+
+      if (error) {
+        logger.error('❌ [AIChat] Function error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Nenhuma resposta recebida do assistente');
+      }
+
+      logger.info('✅ [AIChat] Response received from assistant');
+
+      // Update thread ID if this is the first message
+      if (data.threadId && !threadId) {
+        setThreadId(data.threadId);
+        logger.info('🧵 [AIChat] Thread ID stored:', data.threadId);
+      }
+
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: `Entendi sua pergunta sobre "${inputMessage}". Esta funcionalidade será implementada em breve e permitirá que você tire dúvidas específicas sobre o conteúdo da videoaula "${lessonTitle}".
-
-A IA será capaz de:
-• Responder perguntas sobre o conteúdo específico desta videoaula
-• Explicar funcionalidades do sistema mostradas no vídeo
-• Fornecer contexto adicional sobre os procedimentos apresentados
-• Sugerir próximos passos de aprendizado
-
-Em breve, esta conversa será enriquecida com o conhecimento específico do vídeo que você está assistindo.`,
+        content: data.response || data.fallback_response || 'Desculpe, não consegui processar sua solicitação.',
         sender: 'ai',
         timestamp: new Date(),
-        source: `Baseado no conteúdo da videoaula: ${lessonTitle}`
+        source: data.fallback ? 'Resposta de fallback' : `Assistente OpenAI - ${lessonTitle}`
       };
 
       setMessages(prev => [...prev, aiResponse]);
+
+    } catch (error) {
+      logger.error('❌ [AIChat] Error sending message:', error);
+      
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente em alguns instantes.',
+        sender: 'ai',
+        timestamp: new Date(),
+        source: 'Mensagem de erro'
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -140,10 +180,9 @@ Em breve, esta conversa será enriquecida com o conhecimento específico do víd
                   <Bot className="h-3 w-3 text-white" />
                 </div>
                 <div className="bg-gradient-to-br from-gray-700/50 to-gray-800/50 border border-gray-600/30 rounded-xl p-4 shadow-modern">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                    <span className="text-sm text-gray-300">O assistente está pensando...</span>
                   </div>
                 </div>
               </div>
@@ -168,11 +207,15 @@ Em breve, esta conversa será enriquecida com o conhecimento específico do víd
             disabled={!inputMessage.trim() || isLoading}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-4 rounded-xl btn-hover-lift shadow-modern"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          IA contextual será ativada em breve • Pressione Enter para enviar
+          Assistente OpenAI integrado • Pressione Enter para enviar
         </p>
       </div>
     </div>
