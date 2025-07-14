@@ -96,10 +96,10 @@ serve(async (req) => {
       );
     }
 
-    // Get Bunny.net credentials from environment
+    // Get Bunny.net credentials from environment - UPDATED FOR NEW ACCOUNT
     const BUNNY_VIDEO_LIBRARY_API_KEY = Deno.env.get('BUNNY_API_KEY');
-    const LIBRARY_ID = '461543';
-    const CDN_HOSTNAME = 'vz-2e72e0ff-de5.b-cdn.net';
+    const LIBRARY_ID = '467408';
+    const CDN_HOSTNAME = 'vz-f849dcb4-55a.b-cdn.net';
 
     console.log('🔑 [get-bunny-video-details] Environment check - API Key exists:', !!BUNNY_VIDEO_LIBRARY_API_KEY);
     console.log('📚 [get-bunny-video-details] Using Library ID:', LIBRARY_ID);
@@ -166,7 +166,7 @@ serve(async (req) => {
             debug: {
               status: response.status,
               apiKeyPrefix: BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...',
-              expectedKey: '0f94a759-6635-403e-89b3fb1c6aa3-700f-4c4e'
+              expectedKey: '43c05ec2-4e64-4882-b80b0898ea98-d2f0-4ca8'
             }
           }),
           {
