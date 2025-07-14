@@ -60,11 +60,11 @@ export const DashboardStats: React.FC = () => {
       description: 'Videoaulas cadastradas'
     },
     {
-      title: 'Sistemas & Produtos',
+      title: 'Categorias & Produtos',
       value: `${stats?.totalSistemas || 0} / ${stats?.totalProdutos || 0}`,
       icon: Package,
       color: 'from-purple-600 to-purple-700',
-      description: 'Sistemas e produtos cadastrados'
+      description: 'Categorias e produtos cadastrados'
     }
   ];
 
