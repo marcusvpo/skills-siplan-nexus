@@ -66,6 +66,27 @@ serve(async (req) => {
       );
     }
 
+    // UPDATED FOR NEW BUNNY.NET ACCOUNT
+    const BUNNY_VIDEO_LIBRARY_API_KEY = Deno.env.get('BUNNY_API_KEY');
+    const LIBRARY_ID = '467408';
+    const CDN_HOSTNAME = 'vz-f849dcb4-55a.b-cdn.net';
+
+    console.log('🔑 [upload-video-bunny] Environment check - API Key exists:', !!BUNNY_VIDEO_LIBRARY_API_KEY);
+    console.log('📚 [upload-video-bunny] Using Library ID:', LIBRARY_ID);
+
+    if (!BUNNY_VIDEO_LIBRARY_API_KEY) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Configuração da API Bunny.net não encontrada. Verifique se o secret BUNNY_API_KEY está configurado.',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
+
     // TODO: Integrate with Bunny.net API
     // For now, return a mock response with enhanced data
     // In a real implementation, you would:
@@ -77,8 +98,8 @@ serve(async (req) => {
     const mockVideoId = `bunny_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const mockResponse = {
       videoId: mockVideoId,
-      playbackUrl: `https://vz-xxxxxxxx-xxx.b-cdn.net/${mockVideoId}/playlist.m3u8`,
-      thumbnailUrl: `https://vz-xxxxxxxx-xxx.b-cdn.net/${mockVideoId}/thumbnail.jpg`,
+      playbackUrl: `https://iframe.mediadelivery.net/embed/${LIBRARY_ID}/${mockVideoId}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`,
+      thumbnailUrl: `https://${CDN_HOSTNAME}/${mockVideoId}/thumbnail.jpg`,
       duration: Math.floor(Math.random() * 600) + 60, // Random duration between 1-10 minutes
       fileSize: videoFile.size,
       fileName: videoFile.name,
