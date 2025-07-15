@@ -13,7 +13,17 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
   produtoId, 
   produtoNome 
 }) => {
+  console.log('🟢 [ProductProgressReativo] Componente renderizado:', { produtoId, produtoNome });
+  
   const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId);
+  
+  console.log('🟢 [ProductProgressReativo] Hook retornou:', { 
+    totalAulas, 
+    aulasCompletas, 
+    percentual, 
+    isLoading, 
+    error 
+  });
 
   if (isLoading) {
     return (

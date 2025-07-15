@@ -22,9 +22,17 @@ interface VideoAulasListProps {
 }
 
 const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId }) => {
+  console.log('🔵 [VideoAulasList] Componente renderizado:', { 
+    videoAulasCount: videoAulas.length, 
+    systemId, 
+    productId 
+  });
+  
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const { marcarVideoCompleto } = useProgressoReativo(productId);
+  
+  console.log('🔵 [VideoAulasList] Hook useProgressoReativo chamado para productId:', productId);
 
   // Filtrar videoaulas com base no termo de pesquisa
   const filteredVideoAulas = useMemo(() => {
@@ -140,6 +148,7 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                       videoTitle={aula.titulo}
                       produtoId={productId}
                       onProgressChange={(videoId, completo) => {
+                        console.log('🔵 [VideoAulasList] onProgressChange chamado:', { videoId, completo });
                         marcarVideoCompleto(videoId, completo);
                       }}
                     />

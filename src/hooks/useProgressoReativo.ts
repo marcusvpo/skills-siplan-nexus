@@ -12,6 +12,8 @@ export interface ProgressoReativo {
 }
 
 export const useProgressoReativo = (produtoId: string) => {
+  console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId);
+  
   const { user } = useAuth();
   const [progresso, setProgresso] = useState<ProgressoReativo>({
     totalAulas: 0,
@@ -23,11 +25,18 @@ export const useProgressoReativo = (produtoId: string) => {
   });
 
   const cartorioId = user?.cartorio_id;
+  console.log('🟡 [useProgressoReativo] cartorioId:', cartorioId);
 
   const carregarProgresso = async () => {
-    if (!cartorioId || !produtoId) return;
+    console.log('🟡 [useProgressoReativo] carregarProgresso chamado:', { cartorioId, produtoId });
+    
+    if (!cartorioId || !produtoId) {
+      console.log('🟡 [useProgressoReativo] Parâmetros faltando - retornando');
+      return;
+    }
 
     try {
+      console.log('🟡 [useProgressoReativo] Iniciando carregamento...');
       setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
 
       // Buscar todas as videoaulas do produto
@@ -41,8 +50,10 @@ export const useProgressoReativo = (produtoId: string) => {
 
       const totalAulas = videoAulas?.length || 0;
       const videoIds = videoAulas?.map(v => v.id) || [];
+      console.log('🟡 [useProgressoReativo] VideoAulas encontradas:', { totalAulas, videoIds });
 
       if (totalAulas === 0) {
+        console.log('🟡 [useProgressoReativo] Nenhuma videoaula encontrada');
         setProgresso({
           totalAulas: 0,
           aulasCompletas: 0,
@@ -67,6 +78,13 @@ export const useProgressoReativo = (produtoId: string) => {
       const videosCompletos = new Set(visualizacoes?.map(v => v.video_aula_id) || []);
       const aulasCompletas = videosCompletos.size;
       const percentual = totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
+      
+      console.log('🟡 [useProgressoReativo] Progresso calculado:', {
+        totalAulas,
+        aulasCompletas,
+        percentual,
+        videosCompletos: Array.from(videosCompletos)
+      });
 
       setProgresso({
         totalAulas,
@@ -88,7 +106,16 @@ export const useProgressoReativo = (produtoId: string) => {
   };
 
   const marcarVideoCompleto = (videoId: string, completo: boolean) => {
+    console.log('🟡 [useProgressoReativo] marcarVideoCompleto chamado:', { videoId, completo });
+    
     setProgresso(prev => {
+      console.log('🟡 [useProgressoReativo] Estado anterior:', {
+        totalAulas: prev.totalAulas,
+        aulasCompletas: prev.aulasCompletas,
+        percentual: prev.percentual,
+        videosCompletos: Array.from(prev.videosCompletos)
+      });
+      
       const novosVideosCompletos = new Set(prev.videosCompletos);
       
       if (completo) {
@@ -100,12 +127,21 @@ export const useProgressoReativo = (produtoId: string) => {
       const novasAulasCompletas = novosVideosCompletos.size;
       const novoPercentual = prev.totalAulas > 0 ? Math.round((novasAulasCompletas / prev.totalAulas) * 100) : 0;
 
-      return {
+      const novoEstado = {
         ...prev,
         aulasCompletas: novasAulasCompletas,
         percentual: novoPercentual,
         videosCompletos: novosVideosCompletos
       };
+      
+      console.log('🟡 [useProgressoReativo] Novo estado:', {
+        totalAulas: novoEstado.totalAulas,
+        aulasCompletas: novoEstado.aulasCompletas,
+        percentual: novoEstado.percentual,
+        videosCompletos: Array.from(novoEstado.videosCompletos)
+      });
+
+      return novoEstado;
     });
   };
 
@@ -114,13 +150,24 @@ export const useProgressoReativo = (produtoId: string) => {
   };
 
   useEffect(() => {
+    console.log('🟡 [useProgressoReativo] useEffect executado:', { produtoId, cartorioId });
     carregarProgresso();
   }, [produtoId, cartorioId]);
 
-  return {
+  const result = {
     ...progresso,
     marcarVideoCompleto,
     isVideoCompleto,
     recarregar: carregarProgresso
   };
+  
+  console.log('🟡 [useProgressoReativo] Retornando:', {
+    totalAulas: result.totalAulas,
+    aulasCompletas: result.aulasCompletas,
+    percentual: result.percentual,
+    isLoading: result.isLoading,
+    error: result.error
+  });
+  
+  return result;
 };
