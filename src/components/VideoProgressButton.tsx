@@ -5,18 +5,22 @@ import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
+import { useVideoProgress } from '@/components/product/VideoProgressContext';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
   videoTitle?: string;
 }
 
-export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
+export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({ 
   videoAulaId,
   videoTitle = 'esta videoaula'
 }) => {
   // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Context para atualizar progresso
+  const { refreshProgress } = useVideoProgress();
   
   // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
@@ -86,6 +90,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       }
 
       setIsCompleted(newCompletedState);
+
+      // Atualizar progresso em tempo real
+      refreshProgress();
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
