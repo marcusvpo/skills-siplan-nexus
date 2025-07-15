@@ -431,6 +431,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_video_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_video_progress_video_aula_id_fkey"
             columns: ["video_aula_id"]
             isOneToOne: false
