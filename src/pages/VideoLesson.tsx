@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
+import { VideoProgressButton } from '@/components/VideoProgressButton';
 import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
 import { logger } from '@/utils/logger';
 
@@ -147,6 +147,14 @@ const VideoLesson: React.FC = () => {
               <h1 className="text-3xl font-bold text-white text-enhanced leading-tight">
                 {videoAulaData.titulo}
               </h1>
+
+              {/* Progress Button */}
+              <div className="max-w-md">
+                <VideoProgressButton 
+                  videoAulaId={videoAulaData.id}
+                  videoTitle={videoAulaData.titulo}
+                />
+              </div>
               
               {/* Video Description */}
               {videoAulaData.descricao && (

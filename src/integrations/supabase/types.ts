@@ -404,6 +404,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_video_progress: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+          video_aula_id: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          video_aula_id?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          video_aula_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_video_progress_video_aula_id_fkey"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_aulas: {
         Row: {
           descricao: string | null
