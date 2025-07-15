@@ -14,7 +14,7 @@ export interface ProgressoReativo {
 export const useProgressoReativo = (produtoId: string) => {
   console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId);
   
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [progresso, setProgresso] = useState<ProgressoReativo>({
     totalAulas: 0,
     aulasCompletas: 0,
@@ -25,13 +25,23 @@ export const useProgressoReativo = (produtoId: string) => {
   });
 
   const cartorioId = user?.cartorio_id;
-  console.log('🟡 [useProgressoReativo] cartorioId:', cartorioId);
+  console.log('🟡 [useProgressoReativo] Auth state:', { cartorioId, authLoading, userType: user?.type });
 
   const carregarProgresso = async () => {
-    console.log('🟡 [useProgressoReativo] carregarProgresso chamado:', { cartorioId, produtoId });
+    console.log('🟡 [useProgressoReativo] carregarProgresso chamado:', { cartorioId, produtoId, authLoading });
     
-    if (!cartorioId || !produtoId) {
-      console.log('🟡 [useProgressoReativo] Parâmetros faltando - retornando');
+    // ✅ SÓ EXECUTA quando cartorioId estiver disponível e auth não estiver carregando
+    if (!cartorioId || !produtoId || authLoading) {
+      console.log('🟡 [useProgressoReativo] Aguardando autenticação completa...', { cartorioId, produtoId, authLoading });
+      
+      // Se auth não está carregando mas cartorioId está null, é erro
+      if (!authLoading && !cartorioId) {
+        setProgresso(prev => ({ 
+          ...prev, 
+          isLoading: false, 
+          error: 'Usuário não autenticado' 
+        }));
+      }
       return;
     }
 
@@ -156,9 +166,9 @@ export const useProgressoReativo = (produtoId: string) => {
   };
 
   useEffect(() => {
-    console.log('🟡 [useProgressoReativo] useEffect executado:', { produtoId, cartorioId });
+    console.log('🟡 [useProgressoReativo] useEffect executado:', { produtoId, cartorioId, authLoading });
     carregarProgresso();
-  }, [produtoId, cartorioId]);
+  }, [produtoId, cartorioId, authLoading]); // ✅ DEPENDÊNCIAS CORRETAS
 
   const result = {
     ...progresso,

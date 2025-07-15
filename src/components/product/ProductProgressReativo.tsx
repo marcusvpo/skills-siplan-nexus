@@ -35,11 +35,14 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
               <h3 className="text-lg font-semibold text-white">{produtoNome}</h3>
             </div>
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-600 rounded w-16"></div>
+              <div className="h-4 bg-gray-600 rounded w-24 text-sm">Carregando...</div>
             </div>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
             <div className="bg-gray-600 h-2 rounded-full animate-pulse" style={{ width: '30%' }}></div>
+          </div>
+          <div className="mt-2 text-xs text-gray-400">
+            Aguardando autenticação completa...
           </div>
         </CardContent>
       </Card>
