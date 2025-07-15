@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { AuthDebugPanel } from '@/components/debug/AuthDebugPanel';
+import { ProgressDebugPanel } from '@/components/debug/ProgressDebugPanel';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -89,12 +90,9 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Debug Panel - Only in Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-16">
-            <AuthDebugPanel />
-          </div>
-        )}
+        {/* Debug Panels */}
+        <AuthDebugPanel />
+        <ProgressDebugPanel />
       </div>
     </div>
   );

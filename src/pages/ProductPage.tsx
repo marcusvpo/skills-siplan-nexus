@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
 import ProductProgress from '@/components/product/ProductProgress';
+import { ProductProgressBar } from '@/components/product/ProductProgressBar';
 import VideoAulasList from '@/components/product/VideoAulasList';
 import { VideoProgressProvider } from '@/components/product/VideoProgressContext';
 import LoadingState from '@/components/system/LoadingState';

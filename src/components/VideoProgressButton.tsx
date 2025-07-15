@@ -145,11 +145,11 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
-      // Atualizar progresso em tempo real
-      refreshProgress();
-      
-      // Invalidar cache global de progressos
-      refreshAll();
+      // Atualizar progresso em tempo real - FORÇA ATUALIZAÇÃO IMEDIATA
+      setTimeout(() => {
+        refreshProgress();
+        refreshAll();
+      }, 100); // Pequeno delay para garantir que o DB foi atualizado
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
