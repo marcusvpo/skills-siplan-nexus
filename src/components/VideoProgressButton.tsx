@@ -7,6 +7,15 @@ import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { useVideoProgress } from '@/components/product/VideoProgressContext';
 
+// Helper hook to safely use video progress context
+const useSafeVideoProgress = () => {
+  try {
+    return useVideoProgress();
+  } catch {
+    return { refreshProgress: () => {} };
+  }
+};
+
 interface VideoProgressButtonProps {
   videoAulaId: string;
   videoTitle?: string;
@@ -19,8 +28,8 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
-  // Context para atualizar progresso
-  const { refreshProgress } = useVideoProgress();
+  // Context para atualizar progresso (opcional)
+  const { refreshProgress } = useSafeVideoProgress();
   
   // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
