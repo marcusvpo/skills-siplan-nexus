@@ -21,7 +21,7 @@ interface ProductsListProps {
 
 const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
   const navigate = useNavigate();
-  const { progressos, isLoading: progressLoading } = useProgressoGeral();
+  const { progressos, isLoading: progressLoading, refetch: refetchProgressos } = useProgressoGeral();
 
   if (products.length === 0) {
     return (

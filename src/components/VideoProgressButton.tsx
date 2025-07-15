@@ -6,6 +6,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 import { useVideoProgress } from '@/components/product/VideoProgressContext';
+import { useProgressContext } from '@/contexts/ProgressContext';
+
+// Helper hook to safely use progress context
+const useSafeProgressContext = () => {
+  try {
+    return useProgressContext();
+  } catch {
+    return { refreshAll: () => {} };
+  }
+};
 
 // Helper hook to safely use video progress context
 const useSafeVideoProgress = () => {
@@ -31,6 +41,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   // Context para atualizar progresso (opcional)
   const { refreshProgress } = useSafeVideoProgress();
   
+  // Context global para invalidar todos os progressos
+  const { refreshAll } = useSafeProgressContext();
+  
   // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,16 +66,15 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       setIsChecking(true);
       try {
         const { data, error } = await supabase
-          .from('user_video_progress')
-          .select('completed')
-          .eq('user_id', userId)
+          .from('visualizacoes_cartorio')
+          .select('completo')
           .eq('video_aula_id', videoAulaId)
           .maybeSingle();
 
         if (error) {
           console.error('Erro ao verificar progresso da videoaula:', error);
         } else {
-          setIsCompleted(data?.completed || false);
+          setIsCompleted(data?.completo || false);
         }
       } catch (error) {
         console.error('Erro inesperado ao verificar progresso:', error);
@@ -83,16 +95,12 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     try {
       const newCompletedState = !isCompleted;
 
-      const { error } = await supabase
-        .from('user_video_progress')
-        .upsert({
-          user_id: userId,
-          video_aula_id: videoAulaId,
-          completed: newCompletedState,
-          completed_at: newCompletedState ? new Date().toISOString() : null
-        }, {
-          onConflict: 'user_id,video_aula_id'
-        });
+      const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio', {
+        p_video_aula_id: videoAulaId,
+        p_completo: newCompletedState,
+        p_concluida: newCompletedState,
+        p_data_conclusao: newCompletedState ? new Date().toISOString() : null
+      });
 
       if (error) {
         throw error;
@@ -102,6 +110,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       // Atualizar progresso em tempo real
       refreshProgress();
+      
+      // Invalidar cache global de progressos
+      refreshAll();
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
