@@ -49,13 +49,13 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // O ID do usuário do cartório, obtido do user do AuthContextFixed
-  const userId = user?.id;
+  // O ID do cartório, obtido do user do AuthContextFixed
+  const cartorioId = user?.cartorio_id;
 
   // Efeito para verificar o progresso inicial da videoaula
   useEffect(() => {
     // Só prossegue se o usuário estiver autenticado e os dados estiverem disponíveis
-    if (!isAuthenticated || authLoading || !userId || !videoAulaId) {
+    if (!isAuthenticated || authLoading || !cartorioId || !videoAulaId) {
       if (!authLoading) {
         setIsChecking(false);
       }
@@ -65,35 +65,51 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     const checkProgress = async () => {
       setIsChecking(true);
       try {
+        console.log('🔍 [VideoProgressButton] Checking progress:', {
+          cartorioId,
+          videoAulaId,
+          isAuthenticated,
+          userType: user?.type
+        });
+
         const { data, error } = await supabase
           .from('visualizacoes_cartorio')
           .select('completo')
           .eq('video_aula_id', videoAulaId)
+          .eq('cartorio_id', cartorioId)
           .maybeSingle();
 
         if (error) {
-          console.error('Erro ao verificar progresso da videoaula:', error);
+          console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
         } else {
+          console.log('✅ [VideoProgressButton] Progresso encontrado:', data);
           setIsCompleted(data?.completo || false);
         }
       } catch (error) {
-        console.error('Erro inesperado ao verificar progresso:', error);
+        console.error('❌ [VideoProgressButton] Erro inesperado:', error);
       } finally {
         setIsChecking(false);
       }
     };
 
     checkProgress();
-  }, [userId, videoAulaId, isAuthenticated, authLoading]);
+  }, [cartorioId, videoAulaId, isAuthenticated, authLoading, user?.type]);
 
   // Função para marcar/desmarcar a videoaula como concluída
   const toggleCompletion = async () => {
-    if (!userId || !videoAulaId || isLoading) return;
+    if (!cartorioId || !videoAulaId || isLoading) return;
 
     setIsLoading(true);
 
     try {
       const newCompletedState = !isCompleted;
+
+      console.log('🔄 [VideoProgressButton] Registrando visualização:', {
+        cartorioId,
+        videoAulaId,
+        newCompletedState,
+        userType: user?.type
+      });
 
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio', {
         p_video_aula_id: videoAulaId,
@@ -103,9 +119,11 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       });
 
       if (error) {
+        console.error('❌ [VideoProgressButton] Erro RPC:', error);
         throw error;
       }
 
+      console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
       // Atualizar progresso em tempo real
@@ -122,7 +140,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       });
 
     } catch (error) {
-      console.error('Erro ao atualizar progresso:', error);
+      console.error('❌ [VideoProgressButton] Erro ao atualizar progresso:', error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o progresso da videoaula.",
@@ -134,7 +152,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   };
 
   // Condição para não renderizar o botão
-  if (!isAuthenticated || authLoading || !userId) {
+  if (!isAuthenticated || authLoading || !cartorioId) {
     if (authLoading) {
       return (
         <Button disabled className="w-full">
@@ -143,7 +161,12 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         </Button>
       );
     }
-    return null;
+    return (
+      <Button disabled className="w-full">
+        <Circle className="mr-2 h-4 w-4" />
+        Faça login para marcar progresso
+      </Button>
+    );
   }
 
   // Estado de carregamento enquanto verifica o progresso inicial
