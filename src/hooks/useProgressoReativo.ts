@@ -143,6 +143,12 @@ export const useProgressoReativo = (produtoId: string) => {
 
       return novoEstado;
     });
+    
+    // Recarregar dados do banco após pequeno delay para garantir sincronização
+    setTimeout(() => {
+      console.log('🟡 [useProgressoReativo] Recarregando dados após marcar como completo');
+      carregarProgresso();
+    }, 500);
   };
 
   const isVideoCompleto = (videoId: string) => {
