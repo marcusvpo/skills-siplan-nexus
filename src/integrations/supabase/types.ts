@@ -129,6 +129,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          user_id: string | null
           username: string
         }
         Insert: {
@@ -137,6 +138,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          user_id?: string | null
           username: string
         }
         Update: {
@@ -145,6 +147,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          user_id?: string | null
           username?: string
         }
         Relationships: [

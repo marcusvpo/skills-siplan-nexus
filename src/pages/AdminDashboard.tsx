@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Settings, LogOut, FileText, Building } from 'lucide-react';
+import { Users, LogOut, FileText, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -148,8 +148,8 @@ const AdminDashboard = () => {
                   value="configuracoes"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configurações
+                  <Users className="h-4 w-4 mr-2" />
+                  Progresso dos Usuários
                 </TabsTrigger>
               </TabsList>
             </CardContent>
