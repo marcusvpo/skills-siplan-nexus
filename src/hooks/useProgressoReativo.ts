@@ -115,10 +115,11 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         return;
       }
 
-      // Buscar visualizações completas
+      // ✅ CORREÇÃO: Buscar visualizações completas com query direta
+      console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId);
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
-        .select('video_aula_id')
+        .select('video_aula_id, completo')
         .eq('cartorio_id', cartorioId)
         .eq('completo', true)
         .in('video_aula_id', videoIds);
