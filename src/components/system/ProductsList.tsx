@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, ArrowRight, Clock } from 'lucide-react';
+import ProgressBar from '@/components/ProgressBar';
+import { useProgressoGeral } from '@/hooks/useProgressoGeral';
 
 interface Product {
   id: string;
@@ -19,6 +21,7 @@ interface ProductsListProps {
 
 const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
   const navigate = useNavigate();
+  const { progressos, isLoading: progressLoading } = useProgressoGeral();
 
   if (products.length === 0) {
     return (
@@ -47,6 +50,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 page-transition">
       {products.map((produto, index) => {
         const totalAulas = produto.video_aulas?.length || 0;
+        const progresso = progressos[produto.id] || { total: 0, completas: 0, percentual: 0 };
         
         return (
           <Card 
@@ -78,8 +82,26 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
                 </div>
               </div>
               
+              {/* Mini Progress Bar */}
+              {totalAulas > 0 && !progressLoading && (
+                <div className="mt-3 pt-3 border-t border-gray-600/50">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-500">Progresso</span>
+                    <span className="text-xs font-medium text-gray-400">{progresso.percentual}%</span>
+                  </div>
+                  <ProgressBar 
+                    percentual={progresso.percentual}
+                    total={progresso.total}
+                    completas={progresso.completas}
+                    size="small"
+                    showText={false}
+                    showStats={false}
+                  />
+                </div>
+              )}
+              
               <Button 
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-300 btn-hover-lift shadow-modern group-hover:shadow-elevated"
+                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-300 btn-hover-lift shadow-modern group-hover:shadow-elevated mt-4"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/system/${systemId}/product/${produto.id}`);
