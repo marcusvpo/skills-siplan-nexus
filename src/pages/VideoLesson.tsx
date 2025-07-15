@@ -153,6 +153,7 @@ const VideoLesson: React.FC = () => {
                 <VideoProgressButton 
                   videoAulaId={videoAulaData.id}
                   videoTitle={videoAulaData.titulo}
+                  produtoId={productId}
                 />
               </div>
               

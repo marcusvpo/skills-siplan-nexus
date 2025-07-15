@@ -5,8 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Play, Clock, ArrowRight, Search, X } from 'lucide-react';
-import { VideoProgressButton } from '@/components/VideoProgressButton';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface VideoAula {
   id: string;
@@ -30,9 +28,6 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
   
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const { marcarVideoCompleto } = useProgressoReativo(productId);
-  
-  console.log('🔵 [VideoAulasList] Hook useProgressoReativo chamado para productId:', productId);
 
   // Filtrar videoaulas com base no termo de pesquisa
   const filteredVideoAulas = useMemo(() => {
@@ -141,19 +136,9 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                     </h3>
                   </div>
 
-                  {/* Botão de Progresso */}
-                  <div className="space-y-2">
-                    <VideoProgressButton
-                      videoAulaId={aula.id}
-                      videoTitle={aula.titulo}
-                      produtoId={productId}
-                      onProgressChange={(videoId, completo) => {
-                        console.log('🔵 [VideoAulasList] onProgressChange chamado:', { videoId, completo });
-                        marcarVideoCompleto(videoId, completo);
-                      }}
-                    />
-                    
-                    <Button 
+                   {/* Botão Assistir */}
+                   <div className="space-y-2">
+                     <Button
                       size="sm" 
                       variant="outline"
                       className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full text-xs"
