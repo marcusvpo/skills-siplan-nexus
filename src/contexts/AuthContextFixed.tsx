@@ -76,7 +76,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('siplan-user');
       }
     } else {
-      console.log('🔍 DEBUG: No saved user found in localStorage');
+      // Verificar se há token demo no header ou configurar usuário demo padrão
+      console.log('🔍 DEBUG: No saved user found in localStorage, checking for demo setup');
+      const demoUser: User = {
+        id: 'demo-user-id',
+        name: 'Cartório de Demonstração',
+        type: 'cartorio',
+        token: 'DEMO-SIPLANSKILLS-CARTORIO',
+        cartorio_id: '550e8400-e29b-41d4-a716-446655440000', // UUID fixo para demo
+        cartorio_name: 'Cartório de Demonstração',
+        username: 'demo',
+        email: 'demo@siplan.com.br'
+      };
+      
+      console.log('🔍 DEBUG: Setting up demo user:', demoUser);
+      setUser(demoUser);
+      localStorage.setItem('siplan-user', JSON.stringify(demoUser));
+      
+      try {
+        setCartorioAuthContext(demoUser.token);
+        logger.info('🔐 [AuthContextFixed] Demo cartorio auth context set');
+      } catch (err) {
+        logger.error('❌ [AuthContextFixed] Error setting demo cartorio auth context:', err);
+      }
     }
   }, []);
 

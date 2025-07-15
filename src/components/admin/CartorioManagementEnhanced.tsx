@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useUpdateCartorio } from '@/hooks/useAdminStats';
 import { EditTokenModal } from './EditTokenModal';
+import { UserProgressDropdown } from './UserProgressDropdown';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CartorioManagementEnhancedProps {
@@ -236,6 +237,10 @@ const CartorioManagementEnhanced: React.FC<CartorioManagementEnhancedProps> = ({
                 </div>
               ) : (
                 <div className="flex space-x-2">
+                  <UserProgressDropdown 
+                    cartorioId={cartorio.id}
+                    cartorioName={cartorio.nome}
+                  />
                   <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                     <Edit2 className="h-4 w-4" />
                   </Button>
