@@ -11,8 +11,8 @@ export interface ProgressoReativo {
   error: string | null;
 }
 
-export const useProgressoReativo = (produtoId?: string) => {
-  console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId);
+export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) => {
+  console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId, 'forceRefresh:', forceRefresh);
   
   const { user, isLoading: authLoading } = useAuth();
   const [progresso, setProgresso] = useState<ProgressoReativo>({
@@ -23,6 +23,19 @@ export const useProgressoReativo = (produtoId?: string) => {
     isLoading: true,
     error: null
   });
+
+  // ✅ FORCE reset quando produtoId mudar
+  useEffect(() => {
+    console.log('🔄 [useProgressoReativo] RESET - produtoId mudou:', produtoId);
+    setProgresso({
+      totalAulas: 0,
+      aulasCompletas: 0,
+      percentual: 0,
+      videosCompletos: new Set(),
+      isLoading: true,
+      error: null
+    });
+  }, [produtoId, forceRefresh]);
 
   const cartorioId = user?.cartorio_id;
   console.log('🟡 [useProgressoReativo] Auth state:', { cartorioId, authLoading, userType: user?.type });
@@ -140,7 +153,7 @@ export const useProgressoReativo = (produtoId?: string) => {
         error: 'Erro ao carregar progresso'
       }));
     }
-  }, [cartorioId, produtoId, authLoading, user]);
+  }, [cartorioId, produtoId, authLoading, user, forceRefresh]);
 
   const marcarVideoCompleto = (videoId: string, completo: boolean) => {
     console.log('🟡 [useProgressoReativo] marcarVideoCompleto chamado:', { videoId, completo });
@@ -201,7 +214,11 @@ export const useProgressoReativo = (produtoId?: string) => {
     ...progresso,
     marcarVideoCompleto,
     isVideoCompleto,
-    recarregar: carregarProgresso
+    recarregar: carregarProgresso,
+    forceRefresh: () => {
+      console.log('🔄 [useProgressoReativo] Force refresh chamado');
+      carregarProgresso();
+    }
   };
   
   console.log('🟡 [useProgressoReativo] Retornando:', {

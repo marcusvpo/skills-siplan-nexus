@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { CheckCircle, Clock, BookOpen, RefreshCw } from 'lucide-react';
 import { useProgressoReativo } from '@/hooks/useProgressoReativo';
+import { Button } from '@/components/ui/button';
 
 interface ProductProgressReativoProps {
   produtoId?: string;
@@ -15,7 +16,8 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
 }) => {
   console.log('🟢 [ProductProgressReativo] Componente renderizado:', { produtoId, produtoNome });
   
-  const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId, refreshKey);
   
   console.log('🟢 [ProductProgressReativo] Hook retornou:', { 
     totalAulas, 
@@ -102,9 +104,27 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
           <span className="text-sm text-gray-400">
             {percentual === 100 ? 'Produto concluído' : `${totalAulas - aulasCompletas} aulas restantes`}
           </span>
-          <span className="text-sm font-medium text-white">
-            {percentual}%
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-white">
+              {percentual}%
+            </span>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => {
+                console.log('🔄 [ProductProgressReativo] Force refresh button clicked');
+                setRefreshKey(prev => {
+                  const newKey = prev + 1;
+                  console.log('🔄 [ProductProgressReativo] RefreshKey incrementado para:', newKey);
+                  return newKey;
+                });
+              }}
+              className="h-6 px-2 text-xs"
+              title="🔄 Force Refresh Progresso"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
