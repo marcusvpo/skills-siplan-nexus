@@ -50,7 +50,17 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 page-transition">
       {products.map((produto, index) => {
         const totalAulas = produto.video_aulas?.length || 0;
-        const progresso = progressos[produto.id] || { total: 0, completas: 0, percentual: 0 };
+        const progresso = progressos[produto.id] || { 
+          total: totalAulas, 
+          completas: 0, 
+          percentual: 0 
+        };
+        
+        console.log('🎯 [ProductsList] Renderizando produto:', {
+          produtoId: produto.id,
+          nome: produto.nome,
+          progresso
+        });
         
         return (
           <Card 

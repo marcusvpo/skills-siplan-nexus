@@ -131,21 +131,21 @@ const AdminDashboard = () => {
               <TabsList className="grid w-full grid-cols-3 glass-effect border-gray-700/50 p-1">
                 <TabsTrigger 
                   value="cartorios" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
                 >
                   <Building className="h-4 w-4 mr-2" />
-                  Cartórios
+                  Gerenciamento de Cartórios
                 </TabsTrigger>
                 <TabsTrigger 
                   value="conteudo"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Conteúdo
+                  Gerenciamento de Conteúdo
                 </TabsTrigger>
                 <TabsTrigger 
                   value="configuracoes"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Configurações

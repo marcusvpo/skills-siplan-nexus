@@ -63,15 +63,20 @@ export const useProgressoProduto = (produtoId: string) => {
         return;
       }
 
-      // 2. Buscar videoaulas concluídas pelo cartório (com cache invalidado)
+      // 2. Buscar videoaulas concluídas pelo cartório - FORÇA REFRESH
+      const timestamp = Date.now();
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
         .eq('cartorio_id', user.cartorio_id)
         .eq('completo', true)
-        .in('video_aula_id', videoIds);
+        .in('video_aula_id', videoIds)
+        .range(0, 1000); // Força uma nova query sempre
 
-      if (visualError) throw visualError;
+      if (visualError) {
+        console.error('❌ [useProgressoProduto] Erro ao buscar visualizações:', visualError);
+        throw visualError;
+      }
 
       const completas = visualizacoes?.length || 0;
       const percentual = total > 0 ? Math.round((completas / total) * 100) : 0;
@@ -83,6 +88,7 @@ export const useProgressoProduto = (produtoId: string) => {
         completas,
         percentual,
         restantes,
+        timestamp,
         videoIds: videoIds.slice(0, 3) // Mostrar apenas os primeiros 3 IDs
       });
 

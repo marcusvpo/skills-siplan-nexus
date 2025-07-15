@@ -42,14 +42,19 @@ export const useProgressoGeral = () => {
 
       if (videoError) throw videoError;
 
-      // Buscar todas as visualizações do cartório
+      // Buscar todas as visualizações do cartório - FORÇA REFRESH
+      const timestamp = Date.now();
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
         .eq('cartorio_id', user.cartorio_id)
-        .eq('completo', true);
+        .eq('completo', true)
+        .range(0, 1000); // Força uma nova query sempre
 
-      if (visualError) throw visualError;
+      if (visualError) {
+        console.error('❌ [useProgressoGeral] Erro ao buscar visualizações:', visualError);
+        throw visualError;
+      }
 
       // Agrupar por produto
       const progressosPorProduto: ProgressoGeral = {};
@@ -84,6 +89,7 @@ export const useProgressoGeral = () => {
         totalVideoAulas: videoAulas?.length || 0,
         totalVisualizacoes: visualizacoes?.length || 0,
         produtosCount: Object.keys(progressosPorProduto).length,
+        timestamp,
         sample: Object.entries(progressosPorProduto).slice(0, 2)
       });
 
