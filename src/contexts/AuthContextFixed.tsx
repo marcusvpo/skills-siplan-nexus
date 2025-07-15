@@ -74,16 +74,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🔍 DEBUG: Error parsing saved user from localStorage:', err);
         logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
         localStorage.removeItem('siplan-user');
+        
+        // Se houver erro, configurar usuário demo
+        const demoUser: User = {
+          id: 'demo-user-id',
+          name: 'Cartório de Demonstração',
+          type: 'cartorio',
+          token: 'DEMO-SIPLANSKILLS-CARTORIO',
+          cartorio_id: '550e8400-e29b-41d4-a716-446655440000',
+          cartorio_name: 'Cartório de Demonstração',
+          username: 'demo',
+          email: 'demo@siplan.com.br'
+        };
+        
+        setUser(demoUser);
+        localStorage.setItem('siplan-user', JSON.stringify(demoUser));
+        setCartorioAuthContext(demoUser.token);
       }
     } else {
-      // Verificar se há token demo no header ou configurar usuário demo padrão
-      console.log('🔍 DEBUG: No saved user found in localStorage, checking for demo setup');
+      // Configurar usuário demo padrão
+      console.log('🔍 DEBUG: No saved user found in localStorage, setting up demo user');
       const demoUser: User = {
         id: 'demo-user-id',
         name: 'Cartório de Demonstração',
         type: 'cartorio',
         token: 'DEMO-SIPLANSKILLS-CARTORIO',
-        cartorio_id: '550e8400-e29b-41d4-a716-446655440000', // UUID fixo para demo
+        cartorio_id: '550e8400-e29b-41d4-a716-446655440000',
         cartorio_name: 'Cartório de Demonstração',
         username: 'demo',
         email: 'demo@siplan.com.br'
