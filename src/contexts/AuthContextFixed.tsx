@@ -126,8 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionUserEmail: stableAuth.session?.user?.email
     });
 
-    // Atualizar usuário admin baseado no stableAuth
-    if (stableAuth.session?.user && stableAuth.isAdmin) {
+    // Atualizar usuário admin baseado no stableAuth - SOMENTE se não há usuário atual
+    if (stableAuth.session?.user && stableAuth.isAdmin && !user) {
       console.log('🔍 DEBUG: Setting admin user from stableAuth');
       logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
       

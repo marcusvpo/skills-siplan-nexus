@@ -5,10 +5,9 @@ import { useAuth } from '@/contexts/AuthContextFixed';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
-import ProductProgress from '@/components/product/ProductProgress';
-import { ProductProgressBar } from '@/components/product/ProductProgressBar';
+import { ProductProgressReativo } from '@/components/product/ProductProgressReativo';
 import VideoAulasList from '@/components/product/VideoAulasList';
-import { VideoProgressProvider } from '@/components/product/VideoProgressContext';
+import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import LoadingState from '@/components/system/LoadingState';
 import ErrorState from '@/components/system/ErrorState';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
@@ -21,12 +20,8 @@ const ProductPage = () => {
 
   const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
   
-  // Estado para forçar atualização do progresso
-  const [progressKey, setProgressKey] = useState(0);
-  
-  const handleProgressUpdate = () => {
-    setProgressKey(prev => prev + 1);
-  };
+  // Hook para progresso reativo
+  const { marcarVideoCompleto } = useProgressoReativo(productId!);
 
   useEffect(() => {
     logger.info('🎯 [ProductPage] Page loaded', { 
@@ -145,37 +140,34 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <VideoProgressProvider onProgressUpdate={handleProgressUpdate}>
-        <div className="min-h-screen page-transition">
-          <div className="container mx-auto px-6 py-8">
-            <Breadcrumbs items={[
-              { label: 'Dashboard', href: '/dashboard' },
-              { label: currentSystem?.nome || 'Sistema', href: `/system/${systemId}` },
-              { label: currentProduct?.nome || 'Produto' }
-            ]} />
+      <div className="min-h-screen page-transition">
+        <div className="container mx-auto px-6 py-8">
+          <Breadcrumbs items={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: currentSystem?.nome || 'Sistema', href: `/system/${systemId}` },
+            { label: currentProduct?.nome || 'Produto' }
+          ]} />
+          
+          <div className="mt-6 mb-8">
+            <ProductHeader product={currentProduct} system={currentSystem} />
+          </div>
+
+          <ProductProgressReativo 
+            produtoId={currentProduct.id} 
+            produtoNome={currentProduct.nome} 
+          />
+
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
             
-            <div className="mt-6 mb-8">
-              <ProductHeader product={currentProduct} system={currentSystem} />
-            </div>
-
-            <ProductProgress 
-              key={progressKey}
-              productId={currentProduct.id} 
-              productName={currentProduct.nome} 
+            <VideoAulasList 
+              videoAulas={videoAulas} 
+              systemId={systemId!} 
+              productId={productId!} 
             />
-
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
-              
-              <VideoAulasList 
-                videoAulas={videoAulas} 
-                systemId={systemId!} 
-                productId={productId!} 
-              />
-            </div>
           </div>
         </div>
-      </VideoProgressProvider>
+      </div>
     </Layout>
   );
 };
