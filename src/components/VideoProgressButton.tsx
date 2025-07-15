@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
 
 interface VideoProgressButtonProps {
@@ -14,77 +15,65 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   videoAulaId,
   videoTitle = 'esta videoaula'
 }) => {
+  // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Obter o ID do usuário atual do cartório
+  // O ID do usuário do cartório, obtido do user do AuthContextFixed
+  const userId = user?.id;
+
+  // Efeito para verificar o progresso inicial da videoaula
   useEffect(() => {
-    const getCurrentUserId = async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_current_cartorio_usuario_id');
-        
-        if (error) {
-          console.error('Erro ao obter ID do usuário:', error);
-          return;
-        }
-
-        if (data) {
-          setCurrentUserId(data);
-        }
-      } catch (error) {
-        console.error('Erro ao obter ID do usuário:', error);
-      }
-    };
-
-    getCurrentUserId();
-  }, []);
-
-  // Verificar se a videoaula já foi concluída
-  useEffect(() => {
-    const checkProgress = async () => {
-      if (!currentUserId || !videoAulaId) {
+    // Só prossegue se o usuário estiver autenticado e os dados estiverem disponíveis
+    if (!isAuthenticated || authLoading || !userId || !videoAulaId) {
+      if (!authLoading) {
         setIsChecking(false);
-        return;
       }
+      return;
+    }
 
+    const checkProgress = async () => {
+      setIsChecking(true);
       try {
         const { data, error } = await supabase
           .from('user_video_progress')
           .select('completed')
-          .eq('user_id', currentUserId)
+          .eq('user_id', userId)
           .eq('video_aula_id', videoAulaId)
           .maybeSingle();
 
         if (error) {
-          console.error('Erro ao verificar progresso:', error);
+          console.error('Erro ao verificar progresso da videoaula:', error);
         } else {
           setIsCompleted(data?.completed || false);
         }
       } catch (error) {
-        console.error('Erro ao verificar progresso:', error);
+        console.error('Erro inesperado ao verificar progresso:', error);
       } finally {
         setIsChecking(false);
       }
     };
 
     checkProgress();
-  }, [currentUserId, videoAulaId]);
+  }, [userId, videoAulaId, isAuthenticated, authLoading]);
 
-  // Marcar/desmarcar como concluída
+  // Função para marcar/desmarcar a videoaula como concluída
   const toggleCompletion = async () => {
-    if (!currentUserId || !videoAulaId || isLoading) return;
+    if (!userId || !videoAulaId || isLoading) return;
 
     setIsLoading(true);
-    
+
     try {
       const newCompletedState = !isCompleted;
-      
+
       const { error } = await supabase
         .from('user_video_progress')
         .upsert({
-          user_id: currentUserId,
+          user_id: userId,
           video_aula_id: videoAulaId,
           completed: newCompletedState,
           completed_at: newCompletedState ? new Date().toISOString() : null
@@ -97,7 +86,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       }
 
       setIsCompleted(newCompletedState);
-      
+
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
         description: newCompletedState 
@@ -117,44 +106,53 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     }
   };
 
-  // Não renderizar se não há usuário autenticado
-  if (!currentUserId) {
+  // Condição para não renderizar o botão
+  if (!isAuthenticated || authLoading || !userId) {
+    if (authLoading) {
+      return (
+        <Button disabled className="w-full">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Autenticando...
+        </Button>
+      );
+    }
     return null;
   }
 
-  // Loading state enquanto verifica o progresso
+  // Estado de carregamento enquanto verifica o progresso inicial
   if (isChecking) {
     return (
-      <Button variant="outline" disabled className="w-full">
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      <Button disabled className="w-full">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Verificando progresso...
       </Button>
     );
   }
 
+  // Renderização final do botão "Marcar como Concluída"
   return (
     <Button
       onClick={toggleCompletion}
       disabled={isLoading}
-      className={`w-full transition-all duration-200 ${
+      className={`w-full ${
         isCompleted 
           ? 'bg-green-600 hover:bg-green-700 text-white' 
-          : 'bg-gray-600 hover:bg-gray-700 text-white'
+          : 'bg-red-600 hover:bg-red-700 text-white'
       }`}
     >
       {isLoading ? (
         <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Atualizando...
         </>
       ) : isCompleted ? (
         <>
-          <CheckCircle className="h-4 w-4 mr-2" />
+          <CheckCircle className="mr-2 h-4 w-4" />
           Concluída
         </>
       ) : (
         <>
-          <Circle className="h-4 w-4 mr-2" />
+          <Circle className="mr-2 h-4 w-4" />
           Marcar como Concluída
         </>
       )}
