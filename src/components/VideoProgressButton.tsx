@@ -20,6 +20,13 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   produtoId,
   onProgressChange
 }) => {
+  console.log('🔵 [VideoProgressButton] Componente renderizado:', { 
+    videoAulaId, 
+    videoTitle,
+    produtoId,
+    onProgressChange: !!onProgressChange
+  });
+  
   // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
@@ -30,6 +37,15 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
   // O ID do cartório, obtido do user do AuthContextFixed
   const cartorioId = user?.cartorio_id;
+  
+  console.log('🔵 [VideoProgressButton] Estado inicial:', {
+    cartorioId,
+    isAuthenticated,
+    authLoading,
+    isCompleted,
+    isLoading,
+    isChecking
+  });
 
   // Efeito para verificar o progresso inicial da videoaula
   useEffect(() => {
@@ -76,12 +92,15 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
   // Função para marcar/desmarcar a videoaula como concluída
   const toggleCompletion = async () => {
+    console.log('🔵 [VideoProgressButton] toggleCompletion chamado:', { cartorioId, videoAulaId, isLoading });
+    
     if (!cartorioId || !videoAulaId || isLoading) return;
 
     setIsLoading(true);
 
     try {
       const newCompletedState = !isCompleted;
+      console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
 
       console.log('🔄 [VideoProgressButton] Registrando visualização:', {
         cartorioId,
@@ -126,7 +145,10 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       // Notificar mudança de progresso se callback fornecido
       if (onProgressChange) {
+        console.log('🔵 [VideoProgressButton] Chamando onProgressChange:', { videoAulaId, newCompletedState });
         onProgressChange(videoAulaId, newCompletedState);
+      } else {
+        console.log('🔵 [VideoProgressButton] onProgressChange não fornecido');
       }
 
       toast({
