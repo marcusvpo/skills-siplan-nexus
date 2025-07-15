@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 
@@ -11,7 +11,7 @@ export interface ProgressoReativo {
   error: string | null;
 }
 
-export const useProgressoReativo = (produtoId: string) => {
+export const useProgressoReativo = (produtoId?: string) => {
   console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId);
   
   const { user, isLoading: authLoading } = useAuth();
@@ -27,27 +27,54 @@ export const useProgressoReativo = (produtoId: string) => {
   const cartorioId = user?.cartorio_id;
   console.log('🟡 [useProgressoReativo] Auth state:', { cartorioId, authLoading, userType: user?.type });
 
-  const carregarProgresso = async () => {
+  const carregarProgresso = useCallback(async () => {
     console.log('🟡 [useProgressoReativo] carregarProgresso chamado:', { cartorioId, produtoId, authLoading });
     
-    // ✅ SÓ EXECUTA quando cartorioId estiver disponível e auth não estiver carregando
-    if (!cartorioId || !produtoId || authLoading) {
-      console.log('🟡 [useProgressoReativo] Aguardando autenticação completa...', { cartorioId, produtoId, authLoading });
-      
-      // Se auth não está carregando mas cartorioId está null, é erro
-      if (!authLoading && !cartorioId) {
-        setProgresso(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: 'Usuário não autenticado' 
-        }));
-      }
+    // ✅ CONDIÇÕES MAIS RIGOROSAS
+    if (authLoading) {
+      console.log('🟡 [useProgressoReativo] Aguardando autenticação...');
+      return;
+    }
+
+    if (!user || !cartorioId) {
+      console.log('❌ [useProgressoReativo] Usuário não autenticado');
+      setProgresso(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: 'Usuário não autenticado' 
+      }));
+      return;
+    }
+
+    if (!produtoId) {
+      console.log('⏳ [useProgressoReativo] Aguardando produtoId...');
+      // NÃO define loading como false aqui - continua aguardando
       return;
     }
 
     try {
       console.log('🟡 [useProgressoReativo] Iniciando carregamento...');
       setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Verificar se o produto existe
+      const { data: produto, error: produtoError } = await supabase
+        .from('produtos')
+        .select('id, nome')
+        .eq('id', produtoId)
+        .single();
+
+      if (produtoError || !produto) {
+        console.log('❌ [useProgressoReativo] Produto não encontrado:', produtoId);
+        setProgresso({
+          totalAulas: 0,
+          aulasCompletas: 0,
+          percentual: 0,
+          videosCompletos: new Set(),
+          isLoading: false,
+          error: null
+        });
+        return;
+      }
 
       // Buscar todas as videoaulas do produto
       const { data: videoAulas, error: videoError } = await supabase
@@ -113,7 +140,7 @@ export const useProgressoReativo = (produtoId: string) => {
         error: 'Erro ao carregar progresso'
       }));
     }
-  };
+  }, [cartorioId, produtoId, authLoading, user]);
 
   const marcarVideoCompleto = (videoId: string, completo: boolean) => {
     console.log('🟡 [useProgressoReativo] marcarVideoCompleto chamado:', { videoId, completo });
@@ -168,7 +195,7 @@ export const useProgressoReativo = (produtoId: string) => {
   useEffect(() => {
     console.log('🟡 [useProgressoReativo] useEffect executado:', { produtoId, cartorioId, authLoading });
     carregarProgresso();
-  }, [produtoId, cartorioId, authLoading]); // ✅ DEPENDÊNCIAS CORRETAS
+  }, [carregarProgresso]); // ✅ DEPENDÊNCIAS CORRETAS
 
   const result = {
     ...progresso,

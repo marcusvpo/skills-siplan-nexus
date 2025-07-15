@@ -5,7 +5,7 @@ import { CheckCircle, Clock, BookOpen } from 'lucide-react';
 import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface ProductProgressReativoProps {
-  produtoId: string;
+  produtoId?: string;
   produtoNome: string;
 }
 
@@ -25,7 +25,8 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
     error 
   });
 
-  if (isLoading) {
+  // ✅ LOADING STATE - aguardando produtoId ou autenticação
+  if (isLoading || !produtoId) {
     return (
       <Card className="glass-effect border-gray-600/50 mb-6">
         <CardContent className="p-6">
@@ -42,7 +43,7 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
             <div className="bg-gray-600 h-2 rounded-full animate-pulse" style={{ width: '30%' }}></div>
           </div>
           <div className="mt-2 text-xs text-gray-400">
-            Aguardando autenticação completa...
+            {!produtoId ? 'Aguardando produto...' : 'Aguardando autenticação completa...'}
           </div>
         </CardContent>
       </Card>
