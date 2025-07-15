@@ -154,6 +154,11 @@ const VideoLesson: React.FC = () => {
                   videoAulaId={videoAulaData.id}
                   videoTitle={videoAulaData.titulo}
                   produtoId={productId}
+                  onProgressChange={(videoId, completo) => {
+                    console.log('🎥 [VideoLesson] Progresso atualizado:', { videoId, completo });
+                    // O progresso será atualizado automaticamente pelo useProgressoReativo
+                    // quando o usuário navegar de volta para a lista de produtos
+                  }}
                 />
               </div>
               

@@ -67,54 +67,24 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           userType: user?.type
         });
 
-        // Para usuários de cartório, usar o RPC que considera o contexto de autenticação
-        if (user?.type === 'cartorio') {
-          const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio', {
-            p_video_aula_id: videoAulaId,
-            p_completo: false, // Apenas para verificar se já existe
-            p_concluida: false,
-            p_data_conclusao: null
-          });
+        // ✅ CORREÇÃO: Usar query direta para verificar progresso
+        console.log('🔍 [VideoProgressButton] Verificando progresso com query direta:', {
+          cartorioId,
+          videoAulaId
+        });
 
-          if (error) {
-            console.error('❌ [VideoProgressButton] Erro ao verificar progresso via RPC:', error);
-            // Fallback para query direta
-            const { data: fallbackData, error: fallbackError } = await supabase
-              .from('visualizacoes_cartorio')
-              .select('completo')
-              .eq('video_aula_id', videoAulaId)
-              .eq('cartorio_id', cartorioId)
-              .maybeSingle();
+        const { data, error } = await supabase
+          .from('visualizacoes_cartorio')
+          .select('completo')
+          .eq('video_aula_id', videoAulaId)
+          .eq('cartorio_id', cartorioId)
+          .maybeSingle();
 
-            if (!fallbackError && fallbackData) {
-              setIsCompleted(fallbackData.completo || false);
-            }
-          } else {
-            // Verificar se já existe registro
-            const { data: existingData } = await supabase
-              .from('visualizacoes_cartorio')
-              .select('completo')
-              .eq('video_aula_id', videoAulaId)
-              .eq('cartorio_id', cartorioId)
-              .maybeSingle();
-
-            setIsCompleted(existingData?.completo || false);
-          }
+        if (error) {
+          console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
         } else {
-          // Para outros tipos de usuário, usar query direta
-          const { data, error } = await supabase
-            .from('visualizacoes_cartorio')
-            .select('completo')
-            .eq('video_aula_id', videoAulaId)
-            .eq('cartorio_id', cartorioId)
-            .maybeSingle();
-
-          if (error) {
-            console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
-          } else {
-            console.log('✅ [VideoProgressButton] Progresso encontrado:', data);
-            setIsCompleted(data?.completo || false);
-          }
+          console.log('✅ [VideoProgressButton] Progresso encontrado:', data);
+          setIsCompleted(data?.completo || false);
         }
       } catch (error) {
         console.error('❌ [VideoProgressButton] Erro inesperado:', error);
@@ -158,13 +128,56 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      // Usar o RPC que funciona com o contexto de autenticação do cartório
-      const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio', {
-        p_video_aula_id: videoAulaId,
-        p_completo: newCompletedState,
-        p_concluida: newCompletedState,
-        p_data_conclusao: newCompletedState ? new Date().toISOString() : null
+      // ✅ CORREÇÃO: Usar insert direto com cartorio_id explícito
+      console.log('🔄 [VideoProgressButton] Inserindo/atualizando visualização diretamente:', {
+        cartorio_id: cartorioId,
+        video_aula_id: videoAulaId,
+        completo: newCompletedState,
+        concluida: newCompletedState
       });
+
+      // Verificar se já existe registro
+      const { data: existingRecord } = await supabase
+        .from('visualizacoes_cartorio')
+        .select('id')
+        .eq('cartorio_id', cartorioId)
+        .eq('video_aula_id', videoAulaId)
+        .maybeSingle();
+
+      let data, error;
+      
+      if (existingRecord) {
+        // Atualizar registro existente
+        const { data: updateData, error: updateError } = await supabase
+          .from('visualizacoes_cartorio')
+          .update({
+            completo: newCompletedState,
+            concluida: newCompletedState,
+            data_conclusao: newCompletedState ? new Date().toISOString() : null
+          })
+          .eq('id', existingRecord.id)
+          .select()
+          .single();
+        
+        data = updateData;
+        error = updateError;
+      } else {
+        // Inserir novo registro
+        const { data: insertData, error: insertError } = await supabase
+          .from('visualizacoes_cartorio')
+          .insert({
+            cartorio_id: cartorioId,
+            video_aula_id: videoAulaId,
+            completo: newCompletedState,
+            concluida: newCompletedState,
+            data_conclusao: newCompletedState ? new Date().toISOString() : null
+          })
+          .select()
+          .single();
+        
+        data = insertData;
+        error = insertError;
+      }
 
       if (error) {
         console.error('❌ [VideoProgressButton] Erro RPC:', error);
@@ -195,12 +208,12 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
-      // Notificar mudança de progresso se callback fornecido
+      // ✅ SEMPRE notificar mudança de progresso
       if (onProgressChange) {
         console.log('🔵 [VideoProgressButton] Chamando onProgressChange:', { videoAulaId, newCompletedState });
         onProgressChange(videoAulaId, newCompletedState);
       } else {
-        console.log('🔵 [VideoProgressButton] onProgressChange não fornecido');
+        console.log('🔵 [VideoProgressButton] onProgressChange não fornecido - progresso local atualizado');
       }
 
       toast({
