@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Play, Clock, ArrowRight, Search, X } from 'lucide-react';
+import { VideoProgressButton } from '@/components/VideoProgressButton';
+import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface VideoAula {
   id: string;
@@ -22,6 +24,7 @@ interface VideoAulasListProps {
 const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const { marcarVideoCompleto } = useProgressoReativo(productId);
 
   // Filtrar videoaulas com base no termo de pesquisa
   const filteredVideoAulas = useMemo(() => {
@@ -130,18 +133,30 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                     </h3>
                   </div>
 
-                  {/* Botão Assistir */}
-                  <Button 
-                    size="sm" 
-                    className="bg-red-600 hover:bg-red-700 w-full text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
-                    }}
-                  >
-                    Assistir
-                    <ArrowRight className="h-3 w-3 ml-1" />
-                  </Button>
+                  {/* Botão de Progresso */}
+                  <div className="space-y-2">
+                    <VideoProgressButton
+                      videoAulaId={aula.id}
+                      videoTitle={aula.titulo}
+                      produtoId={productId}
+                      onProgressChange={(videoId, completo) => {
+                        marcarVideoCompleto(videoId, completo);
+                      }}
+                    />
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
+                      }}
+                    >
+                      Assistir
+                      <ArrowRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -4,8 +4,6 @@ import { ArrowRight, Users, Video, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { AuthDebugPanel } from '@/components/debug/AuthDebugPanel';
-import { ProgressDebugPanel } from '@/components/debug/ProgressDebugPanel';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -90,9 +88,6 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Debug Panels */}
-        <AuthDebugPanel />
-        <ProgressDebugPanel />
       </div>
     </div>
   );

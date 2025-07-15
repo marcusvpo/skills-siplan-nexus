@@ -5,44 +5,23 @@ import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { toast } from '@/hooks/use-toast';
-import { useVideoProgress } from '@/components/product/VideoProgressContext';
-import { useProgressContext } from '@/contexts/ProgressContext';
-
-// Helper hook to safely use progress context
-const useSafeProgressContext = () => {
-  try {
-    return useProgressContext();
-  } catch {
-    return { refreshAll: () => {} };
-  }
-};
-
-// Helper hook to safely use video progress context
-const useSafeVideoProgress = () => {
-  try {
-    return useVideoProgress();
-  } catch {
-    return { refreshProgress: () => {} };
-  }
-};
+import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
   videoTitle?: string;
+  produtoId?: string;
+  onProgressChange?: (videoId: string, completo: boolean) => void;
 }
 
 export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({ 
   videoAulaId,
-  videoTitle = 'esta videoaula'
+  videoTitle = 'esta videoaula',
+  produtoId,
+  onProgressChange
 }) => {
   // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  
-  // Context para atualizar progresso (opcional)
-  const { refreshProgress } = useSafeVideoProgress();
-  
-  // Context global para invalidar todos os progressos
-  const { refreshAll } = useSafeProgressContext();
   
   // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
@@ -145,11 +124,10 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
-      // Atualizar progresso em tempo real - FORÇA ATUALIZAÇÃO IMEDIATA
-      setTimeout(() => {
-        refreshProgress();
-        refreshAll();
-      }, 100); // Pequeno delay para garantir que o DB foi atualizado
+      // Notificar mudança de progresso se callback fornecido
+      if (onProgressChange) {
+        onProgressChange(videoAulaId, newCompletedState);
+      }
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",

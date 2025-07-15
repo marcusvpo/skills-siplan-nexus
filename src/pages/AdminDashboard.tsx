@@ -13,6 +13,7 @@ import { logger } from '@/utils/logger';
 import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored';
 import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
 import { DashboardStats } from '@/components/admin/DashboardStats';
+import { UserProgressView } from '@/components/admin/UserProgressView';
 
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
@@ -163,27 +164,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
-            <Card className="gradient-card shadow-elevated border-gray-600/50 card-enter">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center text-enhanced">
-                  <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
-                    <Settings className="h-5 w-5 text-white" />
-                  </div>
-                  Configurações do Sistema
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-400 text-lg leading-relaxed">
-                  Configurações avançadas em desenvolvimento...
-                </p>
-                <div className="mt-6 p-4 glass-effect rounded-lg border border-gray-600/50">
-                  <p className="text-sm text-gray-500">
-                    Funcionalidades futuras incluirão configurações de sistema, 
-                    personalização de temas e gerenciamento de notificações.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <UserProgressView />
           </TabsContent>
         </Tabs>
       </div>
