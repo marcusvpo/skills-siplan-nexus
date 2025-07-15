@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
+import { useProgressContext } from '@/contexts/ProgressContext';
+
+// Helper hook to safely use progress context
+const useSafeProgressContext = () => {
+  try {
+    return useProgressContext();
+  } catch {
+    return { refreshKey: 0 };
+  }
+};
 
 export interface ProgressoProduto {
   total: number;
@@ -13,6 +23,7 @@ export interface ProgressoProduto {
 
 export const useProgressoProduto = (produtoId: string) => {
   const { user } = useAuth();
+  const { refreshKey } = useSafeProgressContext();
   const [progresso, setProgresso] = useState<ProgressoProduto>({
     total: 0,
     completas: 0,
@@ -52,7 +63,7 @@ export const useProgressoProduto = (produtoId: string) => {
         return;
       }
 
-      // 2. Buscar videoaulas concluídas pelo cartório
+      // 2. Buscar videoaulas concluídas pelo cartório (com cache invalidado)
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
@@ -65,6 +76,15 @@ export const useProgressoProduto = (produtoId: string) => {
       const completas = visualizacoes?.length || 0;
       const percentual = total > 0 ? Math.round((completas / total) * 100) : 0;
       const restantes = total - completas;
+
+      console.log('🎯 [useProgressoProduto] Progresso calculado:', {
+        produtoId,
+        total,
+        completas,
+        percentual,
+        restantes,
+        videoIds: videoIds.slice(0, 3) // Mostrar apenas os primeiros 3 IDs
+      });
 
       setProgresso({
         total,
@@ -87,7 +107,7 @@ export const useProgressoProduto = (produtoId: string) => {
 
   useEffect(() => {
     calcularProgresso();
-  }, [produtoId, user?.cartorio_id]);
+  }, [produtoId, user?.cartorio_id, refreshKey]);
 
   return {
     ...progresso,

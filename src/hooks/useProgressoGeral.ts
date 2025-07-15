@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
+import { useProgressContext } from '@/contexts/ProgressContext';
+
+// Helper hook to safely use progress context
+const useSafeProgressContext = () => {
+  try {
+    return useProgressContext();
+  } catch {
+    return { refreshKey: 0 };
+  }
+};
 
 export interface ProgressoGeral {
   [productId: string]: {
@@ -12,6 +22,7 @@ export interface ProgressoGeral {
 
 export const useProgressoGeral = () => {
   const { user } = useAuth();
+  const { refreshKey } = useSafeProgressContext();
   const [progressos, setProgressos] = useState<ProgressoGeral>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +79,14 @@ export const useProgressoGeral = () => {
           : 0;
       });
 
+      console.log('🎯 [useProgressoGeral] Progresso geral calculado:', {
+        cartorioId: user.cartorio_id,
+        totalVideoAulas: videoAulas?.length || 0,
+        totalVisualizacoes: visualizacoes?.length || 0,
+        produtosCount: Object.keys(progressosPorProduto).length,
+        sample: Object.entries(progressosPorProduto).slice(0, 2)
+      });
+
       setProgressos(progressosPorProduto);
     } catch (error) {
       console.error('Erro ao calcular progressos gerais:', error);
@@ -79,7 +98,7 @@ export const useProgressoGeral = () => {
 
   useEffect(() => {
     calcularProgressos();
-  }, [user?.cartorio_id]);
+  }, [user?.cartorio_id, refreshKey]);
 
   return {
     progressos,
