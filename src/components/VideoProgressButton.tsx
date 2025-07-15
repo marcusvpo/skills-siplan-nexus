@@ -108,8 +108,21 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         cartorioId,
         videoAulaId,
         newCompletedState,
-        userType: user?.type
+        userType: user?.type,
+        isAuthenticated,
+        hasUser: !!user
       });
+
+      // Verificar se o usuário está autenticado
+      if (!isAuthenticated || !cartorioId) {
+        console.error('❌ [VideoProgressButton] Usuário não autenticado ou cartório não identificado');
+        toast({
+          title: "Erro de autenticação",
+          description: "Faça login para marcar o progresso das videoaulas.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio', {
         p_video_aula_id: videoAulaId,
@@ -120,6 +133,12 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       if (error) {
         console.error('❌ [VideoProgressButton] Erro RPC:', error);
+        console.error('❌ [VideoProgressButton] Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
 
