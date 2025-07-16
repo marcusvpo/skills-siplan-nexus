@@ -119,7 +119,11 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       // Verificar se o usuário está autenticado
       if (!isAuthenticated || !cartorioId) {
-        console.error('❌ [VideoProgressButton] Usuário não autenticado ou cartório não identificado');
+        console.error('❌ [VideoProgressButton] Usuário não autenticado ou cartório não identificado', {
+          isAuthenticated,
+          cartorioId,
+          userType: user?.type
+        });
         toast({
           title: "Erro de autenticação",
           description: "Faça login para marcar o progresso das videoaulas.",
@@ -137,9 +141,21 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       });
 
       // Primeiro, setar o contexto do cartório para RLS
-      await supabase.rpc('set_cartorio_context', {
+      const { error: contextError } = await supabase.rpc('set_cartorio_context', {
         p_cartorio_id: cartorioId
       });
+
+      if (contextError) {
+        console.error('❌ [VideoProgressButton] Erro ao setar contexto:', contextError);
+        toast({
+          title: "Erro",
+          description: "Erro ao configurar contexto do cartório",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ [VideoProgressButton] Contexto do cartório configurado com sucesso');
 
       // Usar a nova função robusta para registrar visualização
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {

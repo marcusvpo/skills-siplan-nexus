@@ -138,6 +138,70 @@ export const AuthDebugPanel: React.FC = () => {
     }
   };
 
+  const handleTestContext = async () => {
+    if (!user?.cartorio_id) {
+      toast({
+        title: "Usuário não autenticado",
+        description: "Faça login primeiro",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('🔧 [AuthDebugPanel] Testando contexto do cartório...');
+      
+      // Setar o contexto
+      const { error: setError } = await supabase.rpc('set_cartorio_context', {
+        p_cartorio_id: user.cartorio_id
+      });
+
+      if (setError) {
+        console.error('❌ [AuthDebugPanel] Erro ao setar contexto:', setError);
+        throw setError;
+      }
+
+      console.log('✅ [AuthDebugPanel] Contexto setado com sucesso');
+
+      // Verificar se o contexto foi setado
+      const { data: currentCartorioId, error: getError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
+
+      if (getError) {
+        console.error('❌ [AuthDebugPanel] Erro ao obter contexto:', getError);
+        throw getError;
+      }
+
+      console.log('✅ [AuthDebugPanel] Contexto obtido após setar:', currentCartorioId);
+
+      // Testar função de registrar visualização
+      const { data: testResult, error: testError } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
+        p_video_aula_id: 'test-video-id',
+        p_completo: true,
+        p_concluida: true,
+        p_data_conclusao: new Date().toISOString()
+      });
+
+      if (testError) {
+        console.error('❌ [AuthDebugPanel] Erro ao testar visualização:', testError);
+        throw testError;
+      }
+
+      console.log('✅ [AuthDebugPanel] Teste de visualização concluído:', testResult);
+
+      toast({
+        title: "Teste de contexto concluído",
+        description: "Contexto do cartório está funcionando",
+      });
+    } catch (error) {
+      console.error('❌ [AuthDebugPanel] Erro no teste de contexto:', error);
+      toast({
+        title: "Erro no contexto",
+        description: "Falha ao testar contexto do cartório",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -210,6 +274,16 @@ export const AuthDebugPanel: React.FC = () => {
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Testar Função de Progresso
+          </Button>
+
+          <Button 
+            onClick={handleTestContext}
+            variant="outline"
+            className="w-full"
+            disabled={!isAuthenticated}
+          >
+            <User className="h-4 w-4 mr-2" />
+            Testar Contexto do Cartório
           </Button>
 
           {isAuthenticated && (

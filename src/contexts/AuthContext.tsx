@@ -52,6 +52,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(userData);
           const authClient = createAuthenticatedClient(userData.token);
           setAuthenticatedClient(authClient);
+          
+          // Configurar contexto do cartório para usuário restaurado
+          if (userData.cartorio_id) {
+            supabase.rpc('set_cartorio_context', {
+              p_cartorio_id: userData.cartorio_id
+            }).then(({ error }) => {
+              if (error) {
+                console.error('❌ [AuthContext] Erro ao restaurar contexto do cartório:', error);
+              } else {
+                console.log('✅ [AuthContext] Contexto do cartório restaurado:', userData.cartorio_id);
+              }
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing saved user:', err);
@@ -100,10 +113,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Configurar contexto do cartório para RLS
       if (userData?.cartorio_id) {
         try {
-          await supabase.rpc('set_cartorio_context', {
+          const { error: contextError } = await supabase.rpc('set_cartorio_context', {
             p_cartorio_id: userData.cartorio_id
           });
-          console.log('🔧 [AuthContext] Contexto do cartório configurado:', userData.cartorio_id);
+          
+          if (contextError) {
+            console.error('❌ [AuthContext] Erro RPC ao setar contexto:', contextError);
+          } else {
+            console.log('✅ [AuthContext] Contexto do cartório configurado com sucesso:', userData.cartorio_id);
+          }
         } catch (error) {
           console.error('❌ [AuthContext] Erro ao configurar contexto do cartório:', error);
         }
