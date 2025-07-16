@@ -108,129 +108,63 @@ export const UserProgressViewRefactored: React.FC = () => {
 
       if (cartorioError) throw cartorioError;
 
-      // Buscar usuários do cartório
-      const { data: usuariosData, error: usuariosError } = await supabase
-        .from('cartorio_usuarios')
-        .select('id, username, email, is_active')
-        .eq('cartorio_id', cartorioId)
-        .eq('is_active', true)
-        .order('username');
+      // Usar a nova função SQL para buscar progresso dos usuários
+      const { data: progressData, error: progressError } = await supabase
+        .rpc('get_user_progress_by_cartorio', { p_cartorio_id: cartorioId });
 
-      if (usuariosError) throw usuariosError;
-
-      // Buscar permissões do cartório para filtrar apenas produtos permitidos
-      const { data: permissoes, error: permissoesError } = await supabase
-        .from('cartorio_acesso_conteudo')
-        .select(`
-          sistema_id, produto_id, nivel_acesso,
-          sistemas (id, nome),
-          produtos (id, nome, sistema_id)
-        `)
-        .eq('cartorio_id', cartorioId)
-        .eq('ativo', true);
-
-      if (permissoesError) throw permissoesError;
-
-      // Determinar produtos permitidos
-      const produtosPermitidos = new Set<string>();
-      const sistemasPermitidos = new Set<string>();
-
-      permissoes?.forEach(permissao => {
-        if (permissao.produto_id) {
-          produtosPermitidos.add(permissao.produto_id);
-        } else if (permissao.sistema_id) {
-          sistemasPermitidos.add(permissao.sistema_id);
-        }
-      });
-
-      // Se não há permissões específicas, considerar todos os produtos
-      let produtos = [];
-      if (produtosPermitidos.size === 0 && sistemasPermitidos.size === 0) {
-        // Buscar todos os produtos
-        const { data: todosProdutos, error: produtosError } = await supabase
-          .from('produtos')
-          .select(`
-            id, nome, sistema_id,
-            sistemas (nome),
-            video_aulas (id)
-          `)
-          .order('nome');
-
-        if (produtosError) throw produtosError;
-        produtos = todosProdutos || [];
-      } else {
-        // Buscar apenas produtos permitidos
-        const { data: produtosFiltrados, error: produtosFiltradosError } = await supabase
-          .from('produtos')
-          .select(`
-            id, nome, sistema_id,
-            sistemas (nome),
-            video_aulas (id)
-          `)
-          .or(`id.in.(${Array.from(produtosPermitidos).join(',')}),sistema_id.in.(${Array.from(sistemasPermitidos).join(',')})`)
-          .order('nome');
-
-        if (produtosFiltradosError) throw produtosFiltradosError;
-        produtos = produtosFiltrados || [];
+      if (progressError) {
+        console.error('Erro ao buscar progresso:', progressError);
+        throw progressError;
       }
 
-      // Processar progresso para cada usuário
-      const usuariosComProgresso: UsuarioProgresso[] = [];
+      // Agrupar dados por usuário
+      const usuariosMap = new Map<string, UsuarioProgresso>();
 
-      for (const usuario of usuariosData) {
-        const produtosProgresso = [];
-        let totalAulasGeral = 0;
-        let aulasConcluidas = 0;
-
-        for (const produto of produtos) {
-          const totalAulas = produto.video_aulas?.length || 0;
-          totalAulasGeral += totalAulas;
-
-          if (totalAulas > 0) {
-            // Buscar visualizações completas do usuário para este produto
-            const videoIds = produto.video_aulas.map(v => v.id);
-            const { data: visualizacoes, error: visualError } = await supabase
-              .from('visualizacoes_cartorio')
-              .select('video_aula_id')
-              .eq('cartorio_id', cartorioId)
-              .eq('completo', true)
-              .in('video_aula_id', videoIds);
-
-            if (visualError) {
-              console.error('Erro ao buscar visualizações:', visualError);
-              continue;
+      for (const row of progressData || []) {
+        const userId = row.user_id;
+        
+        if (!usuariosMap.has(userId)) {
+          usuariosMap.set(userId, {
+            id: userId,
+            username: row.username,
+            email: row.email,
+            is_active: row.is_active,
+            produtos: [],
+            progresso_geral: {
+              total_aulas: 0,
+              aulas_concluidas: 0,
+              percentual: 0
             }
-
-            const aulasConcluidasProduto = visualizacoes?.length || 0;
-            aulasConcluidas += aulasConcluidasProduto;
-            const percentual = Math.round((aulasConcluidasProduto / totalAulas) * 100);
-
-            produtosProgresso.push({
-              id: produto.id,
-              nome: produto.nome,
-              sistema_nome: produto.sistemas?.nome || 'Sistema não identificado',
-              total_aulas: totalAulas,
-              aulas_concluidas: aulasConcluidasProduto,
-              percentual
-            });
-          }
+          });
         }
 
-        const progressoGeral = {
-          total_aulas: totalAulasGeral,
-          aulas_concluidas: aulasConcluidas,
-          percentual: totalAulasGeral > 0 ? Math.round((aulasConcluidas / totalAulasGeral) * 100) : 0
-        };
-
-        usuariosComProgresso.push({
-          id: usuario.id,
-          username: usuario.username,
-          email: usuario.email,
-          is_active: usuario.is_active,
-          produtos: produtosProgresso,
-          progresso_geral: progressoGeral
+        const usuario = usuariosMap.get(userId)!;
+        
+        // Adicionar produto ao usuário
+        usuario.produtos.push({
+          id: row.produto_id,
+          nome: row.produto_nome,
+          sistema_nome: row.sistema_nome,
+          total_aulas: Number(row.total_aulas),
+          aulas_concluidas: Number(row.aulas_concluidas),
+          percentual: Number(row.percentual)
         });
+
+        // Atualizar progresso geral
+        usuario.progresso_geral.total_aulas += Number(row.total_aulas);
+        usuario.progresso_geral.aulas_concluidas += Number(row.aulas_concluidas);
       }
+
+      // Calcular percentual geral para cada usuário
+      const usuariosComProgresso = Array.from(usuariosMap.values()).map(usuario => ({
+        ...usuario,
+        progresso_geral: {
+          ...usuario.progresso_geral,
+          percentual: usuario.progresso_geral.total_aulas > 0 
+            ? Math.round((usuario.progresso_geral.aulas_concluidas / usuario.progresso_geral.total_aulas) * 100)
+            : 0
+        }
+      }));
 
       setCartorioDetalhado({
         id: cartorioData.id,
