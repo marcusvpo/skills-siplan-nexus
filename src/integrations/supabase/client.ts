@@ -38,7 +38,7 @@ const getSupabaseInstance = () => {
 // Export da instância única
 export const supabase = getSupabaseInstance();
 
-// Função para validar e obter sessão válida
+// Função para validar JWT e obter sessão válida
 export const getValidSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
@@ -51,6 +51,41 @@ export const getValidSession = async () => {
     if (!session) {
       console.warn('⚠️ [getValidSession] Nenhuma sessão encontrada');
       return null;
+    }
+    
+    // DEBUG: Analisar o JWT payload
+    if (session.access_token) {
+      try {
+        const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
+        console.log('🔍 [getValidSession] JWT Payload:', {
+          role: jwtPayload.role,
+          sub: jwtPayload.sub,
+          email: jwtPayload.email,
+          exp: jwtPayload.exp,
+          iat: jwtPayload.iat
+        });
+        
+        // Verificar se o token é authenticated
+        if (jwtPayload.role === 'anon') {
+          console.error('❌ [getValidSession] Token anônimo detectado - usuário não autenticado');
+          return null;
+        }
+        
+        if (jwtPayload.role !== 'authenticated') {
+          console.error('❌ [getValidSession] Token com role inválida:', jwtPayload.role);
+          return null;
+        }
+        
+        if (!jwtPayload.sub) {
+          console.error('❌ [getValidSession] Token sem user_id (sub)');
+          return null;
+        }
+        
+        console.log('✅ [getValidSession] Token authenticated válido para user:', jwtPayload.sub);
+      } catch (parseError) {
+        console.error('❌ [getValidSession] Erro ao analisar JWT:', parseError);
+        return null;
+      }
     }
     
     // Verificar se a sessão não expirou
@@ -68,6 +103,26 @@ export const getValidSession = async () => {
         return null;
       }
       
+      // Verificar novamente o JWT após refresh
+      if (refreshedSession.access_token) {
+        try {
+          const jwtPayload = JSON.parse(atob(refreshedSession.access_token.split('.')[1]));
+          console.log('🔍 [getValidSession] JWT Payload após refresh:', {
+            role: jwtPayload.role,
+            sub: jwtPayload.sub,
+            email: jwtPayload.email
+          });
+          
+          if (jwtPayload.role !== 'authenticated') {
+            console.error('❌ [getValidSession] Token refreshed ainda não é authenticated');
+            return null;
+          }
+        } catch (parseError) {
+          console.error('❌ [getValidSession] Erro ao analisar JWT refreshed:', parseError);
+          return null;
+        }
+      }
+      
       console.log('✅ [getValidSession] Sessão renovada com sucesso');
       return refreshedSession;
     }
@@ -80,10 +135,29 @@ export const getValidSession = async () => {
   }
 };
 
-// Função para verificar se o usuário está autenticado com sessão válida
+// Função para verificar se o usuário está autenticado com token válido
 export const isUserAuthenticated = async () => {
   const session = await getValidSession();
   return !!session;
+};
+
+// Função para obter headers de autenticação válidos
+export const getAuthHeaders = async () => {
+  const session = await getValidSession();
+  
+  if (!session?.access_token) {
+    console.error('❌ [getAuthHeaders] Não foi possível obter token válido');
+    return {};
+  }
+  
+  const headers = {
+    'Authorization': `Bearer ${session.access_token}`,
+    'apikey': SUPABASE_PUBLISHABLE_KEY,
+    'Content-Type': 'application/json'
+  };
+  
+  console.log('✅ [getAuthHeaders] Headers de autenticação preparados');
+  return headers;
 };
 
 // Sistema de gerenciamento de contexto de autenticação para cartórios

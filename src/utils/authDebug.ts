@@ -9,6 +9,16 @@ export const debugAuthState = (context: string, state: any) => {
     console.log('Is Admin:', state.isAdmin);
     if (state.session) {
       console.log('Token expires:', new Date(state.session.expires_at * 1000));
+      
+      // Analisar JWT payload
+      try {
+        const jwtPayload = JSON.parse(atob(state.session.access_token.split('.')[1]));
+        console.log('JWT Role:', jwtPayload.role);
+        console.log('JWT Sub:', jwtPayload.sub);
+        console.log('JWT Email:', jwtPayload.email);
+      } catch (error) {
+        console.error('Error parsing JWT:', error);
+      }
     }
     console.groupEnd();
   }
