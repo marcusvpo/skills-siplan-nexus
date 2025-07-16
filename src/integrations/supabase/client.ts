@@ -10,17 +10,20 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Singleton pattern: Uma única instância do cliente Supabase para toda a aplicação
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
-// Função para obter a instância única do cliente Supabase
+// Função para obter a instância única do cliente Supabase com configuração otimizada
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
-    console.log('🔧 [Supabase] Creating single client instance');
+    console.log('🔧 [Supabase] Creating optimized client instance with robust session handling');
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // Configuração específica para garantir hidratação imediata
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'supabase.auth.token',
+        storageKey: 'sb-bnulocsnxiffavvabfdj-auth-token', // Chave específica do projeto
+        flowType: 'pkce',
+        debug: true, // Habilitar debug para diagnosticar problemas de hidratação
       },
       global: {
         headers: {
@@ -36,15 +39,61 @@ const getSupabaseInstance = () => {
 
 export const supabase = getSupabaseInstance();
 
-// Export for backward compatibility
-export const createAuthenticatedClient = (token?: string) => {
-  return supabase;
+// Função CRÍTICA para garantir hidratação robusta na inicialização
+export const ensureSessionHydration = async (): Promise<boolean> => {
+  try {
+    console.log('🔍 [ensureSessionHydration] Iniciando hidratação robusta da sessão...');
+    
+    // Primeira tentativa: getSession() imediato
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('❌ [ensureSessionHydration] Erro ao obter sessão:', error);
+      return false;
+    }
+    
+    if (session?.access_token) {
+      console.log('✅ [ensureSessionHydration] Sessão hidratada com sucesso');
+      console.log('🔍 [ensureSessionHydration] Token present:', session.access_token.substring(0, 20) + '...');
+      return true;
+    }
+    
+    // Segunda tentativa: verificar localStorage diretamente
+    if (typeof window !== 'undefined') {
+      const storageKey = 'sb-bnulocsnxiffavvabfdj-auth-token';
+      const storedSession = window.localStorage.getItem(storageKey);
+      
+      if (storedSession) {
+        console.log('🔍 [ensureSessionHydration] Token encontrado no localStorage, tentando refresh...');
+        
+        // Tentar refresh da sessão
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('❌ [ensureSessionHydration] Erro no refresh:', refreshError);
+          return false;
+        }
+        
+        if (refreshData.session) {
+          console.log('✅ [ensureSessionHydration] Sessão restaurada via refresh');
+          return true;
+        }
+      }
+    }
+    
+    console.warn('⚠️ [ensureSessionHydration] Nenhuma sessão válida encontrada');
+    return false;
+    
+  } catch (error) {
+    console.error('❌ [ensureSessionHydration] Erro inesperado:', error);
+    return false;
+  }
 };
 
-// Função crítica para validar JWT e garantir token authenticated
+// Função para validar JWT com diagnóstico aprimorado
 export const getValidSession = async () => {
   try {
-    console.log('🔍 [getValidSession] Iniciando validação de sessão...');
+    console.log('🔍 [getValidSession] Iniciando validação com diagnóstico aprimorado...');
     
     const { data: { session }, error } = await supabase.auth.getSession();
     
@@ -55,6 +104,14 @@ export const getValidSession = async () => {
     
     if (!session) {
       console.warn('⚠️ [getValidSession] Nenhuma sessão encontrada');
+      
+      // Diagnóstico adicional
+      if (typeof window !== 'undefined') {
+        const storageKey = 'sb-bnulocsnxiffavvabfdj-auth-token';
+        const hasStoredData = !!window.localStorage.getItem(storageKey);
+        console.log('🔍 [getValidSession] LocalStorage tem dados:', hasStoredData);
+      }
+      
       return null;
     }
     
@@ -62,19 +119,20 @@ export const getValidSession = async () => {
     if (session.access_token) {
       try {
         const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
+        
         console.log('🔍 [getValidSession] JWT Payload Analysis:', {
           role: jwtPayload.role,
           sub: jwtPayload.sub,
           email: jwtPayload.email,
           exp: jwtPayload.exp,
           iat: jwtPayload.iat,
-          aud: jwtPayload.aud
+          aud: jwtPayload.aud,
+          tokenValid: jwtPayload.exp > Math.floor(Date.now() / 1000)
         });
         
         // VERIFICAÇÃO 1: Token deve ser authenticated
         if (jwtPayload.role !== 'authenticated') {
           console.error('❌ [getValidSession] Token não é authenticated:', jwtPayload.role);
-          console.error('❌ [getValidSession] Token anônimo detectado - forçando logout');
           await supabase.auth.signOut();
           return null;
         }
@@ -103,8 +161,6 @@ export const getValidSession = async () => {
         }
         
         console.log('✅ [getValidSession] Token authenticated válido confirmado');
-        console.log('✅ [getValidSession] User ID:', jwtPayload.sub);
-        console.log('✅ [getValidSession] Email:', jwtPayload.email);
         
       } catch (parseError) {
         console.error('❌ [getValidSession] Erro ao analisar JWT:', parseError);
@@ -120,13 +176,13 @@ export const getValidSession = async () => {
   }
 };
 
-// Função para verificar se o usuário está autenticado com token válido
+// Função para verificar se o usuário está autenticado
 export const isUserAuthenticated = async () => {
   const session = await getValidSession();
   return !!session;
 };
 
-// Função para obter headers de autenticação válidos
+// Função para obter headers de autenticação válidos com diagnóstico
 export const getAuthHeaders = async () => {
   const session = await getValidSession();
   
@@ -174,12 +230,21 @@ export const clearCartorioAuthContext = () => {
   cartorioAuthManager.clearContext();
 };
 
-// Função para executar RPC com contexto de cartório - SEM INVALIDAR SESSÃO
+// Função para executar RPC com validação robusta de sessão
 export const executeRPCWithCartorioContext = async (rpcName: string, params: any) => {
-  console.log(`🔄 [executeRPC] Executando ${rpcName} com sessão atual...`);
+  console.log(`🔄 [executeRPC] Executando ${rpcName} com validação robusta...`);
   
   try {
-    // USAR SESSÃO ATUAL SEM VALIDAÇÕES QUE POSSAM INVALIDÁ-LA
+    // Garantir que temos uma sessão válida antes de executar
+    const session = await getValidSession();
+    
+    if (!session) {
+      console.error(`❌ [executeRPC] Sessão inválida para ${rpcName}`);
+      throw new Error('Sessão inválida. Faça login novamente.');
+    }
+    
+    console.log(`🔍 [executeRPC] Executando ${rpcName} com sessão válida`);
+    
     const { data, error } = await supabase.rpc(rpcName as any, params);
     
     if (error) {
