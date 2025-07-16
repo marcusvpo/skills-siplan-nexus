@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Bug, Eye } from 'lucide-react';
 import { useProgressoGeral } from '@/hooks/useProgressoGeral';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContext';
 import { useProgressContext } from '@/contexts/ProgressContext';
 
 export const ProgressDebugPanel: React.FC = () => {
