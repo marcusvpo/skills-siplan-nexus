@@ -83,12 +83,8 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     } catch (error: any) {
       console.error('❌ [useProgressoReativo] Erro ao calcular progresso:', error);
       
-      // Simplificar tratamento de erro - não assumir que é sempre sessão expirada
-      if (error.message?.includes('JWT') || error.message?.includes('auth') || error.message?.includes('token')) {
-        setError('Erro de autenticação. Tente fazer login novamente.');
-      } else {
-        setError('Erro ao carregar progresso. Tente novamente.');
-      }
+      // Não assumir problemas de autenticação - confiar no contexto
+      setError('Erro ao carregar progresso. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

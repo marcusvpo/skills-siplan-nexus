@@ -174,32 +174,12 @@ export const clearCartorioAuthContext = () => {
   cartorioAuthManager.clearContext();
 };
 
-// Função para executar RPC com contexto de cartório robusto
+// Função para executar RPC com contexto de cartório - SEM INVALIDAR SESSÃO
 export const executeRPCWithCartorioContext = async (rpcName: string, params: any) => {
-  console.log(`🔄 [executeRPC] Executando ${rpcName} com validação completa...`);
+  console.log(`🔄 [executeRPC] Executando ${rpcName} com sessão atual...`);
   
-  // ETAPA 1: Validar sessão antes de qualquer coisa
-  const validSession = await getValidSession();
-  if (!validSession) {
-    console.error(`❌ [executeRPC] Sessão inválida para ${rpcName}`);
-    throw new Error('Sessão expirada. Faça login novamente.');
-  }
-  
-  // ETAPA 2: Verificar se o token é realmente authenticated
   try {
-    const jwtPayload = JSON.parse(atob(validSession.access_token.split('.')[1]));
-    if (jwtPayload.role !== 'authenticated') {
-      console.error(`❌ [executeRPC] Token anônimo detectado em ${rpcName}:`, jwtPayload.role);
-      throw new Error('Token de autenticação inválido. Faça login novamente.');
-    }
-    console.log(`✅ [executeRPC] Token authenticated confirmado para ${rpcName}`);
-  } catch (error) {
-    console.error(`❌ [executeRPC] Erro ao validar JWT para ${rpcName}:`, error);
-    throw new Error('Erro de autenticação. Faça login novamente.');
-  }
-  
-  // ETAPA 3: Executar RPC - Usar apenas RPCs válidas do tipo Database
-  try {
+    // USAR SESSÃO ATUAL SEM VALIDAÇÕES QUE POSSAM INVALIDÁ-LA
     const { data, error } = await supabase.rpc(rpcName as any, params);
     
     if (error) {
