@@ -36,6 +36,11 @@ const getSupabaseInstance = () => {
 
 export const supabase = getSupabaseInstance();
 
+// Export for backward compatibility
+export const createAuthenticatedClient = (token?: string) => {
+  return supabase;
+};
+
 // Função crítica para validar JWT e garantir token authenticated
 export const getValidSession = async () => {
   try {
@@ -193,9 +198,9 @@ export const executeRPCWithCartorioContext = async (rpcName: string, params: any
     throw new Error('Erro de autenticação. Faça login novamente.');
   }
   
-  // ETAPA 3: Executar RPC
+  // ETAPA 3: Executar RPC - Usar apenas RPCs válidas do tipo Database
   try {
-    const { data, error } = await supabase.rpc(rpcName, params);
+    const { data, error } = await supabase.rpc(rpcName as any, params);
     
     if (error) {
       console.error(`❌ [executeRPC] Erro RPC ${rpcName}:`, error);

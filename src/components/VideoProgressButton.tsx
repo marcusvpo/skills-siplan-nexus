@@ -13,6 +13,16 @@ interface VideoProgressButtonProps {
   onProgressChange?: (videoId: string, completo: boolean) => void;
 }
 
+interface VisualizacaoResult {
+  completo?: boolean;
+}
+
+interface RPCResult {
+  success?: boolean;
+  error?: string;
+  message?: string;
+}
+
 export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({ 
   videoAulaId,
   videoTitle = 'esta videoaula',
@@ -47,7 +57,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         const result = await executeRPCWithCartorioContext('get_visualizacao_cartorio', {
           p_cartorio_id: cartorioId,
           p_video_aula_id: videoAulaId
-        });
+        }) as VisualizacaoResult;
 
         console.log('✅ [VideoProgressButton] Progresso encontrado:', result);
         setIsCompleted(result?.completo || false);
@@ -81,7 +91,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         p_completo: newCompletedState,
         p_concluida: newCompletedState,
         p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
-      });
+      }) as RPCResult;
 
       // Verificar se a RPC foi bem-sucedida
       if (result && typeof result === 'object' && 'success' in result) {
