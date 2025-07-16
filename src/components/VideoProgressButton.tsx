@@ -63,10 +63,17 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         const result = await executeRPCWithCartorioContext('get_visualizacao_cartorio', {
           p_cartorio_id: cartorioId,
           p_video_aula_id: videoAulaId
-        }) as VisualizacaoResult;
+        }) as any;
 
-        console.log('✅ [VideoProgressButton] Progresso encontrado:', result);
-        setIsCompleted(result?.completo || false);
+        console.log('✅ [VideoProgressButton] Resultado da visualização:', result);
+        
+        // Lidar com o novo formato de resposta
+        if (result?.success) {
+          setIsCompleted(result.completo || false);
+        } else {
+          console.error('❌ [VideoProgressButton] Erro na resposta:', result?.error);
+          setIsCompleted(false);
+        }
       } catch (error) {
         console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
         setIsCompleted(false);
