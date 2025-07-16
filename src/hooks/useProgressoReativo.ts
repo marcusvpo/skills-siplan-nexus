@@ -19,7 +19,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
 
   const cartorioId = user?.cartorio_id;
 
-  console.log('🟢 [useProgressoReativo] Hook iniciado:', { 
+  console.log('🟢 [useProgressoReativo] Hook state:', { 
     produtoId, 
     cartorioId, 
     isAuthenticated, 
@@ -28,10 +28,27 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
   });
 
   const calcularProgresso = useCallback(async () => {
-    // Aguardar autenticação completa
-    if (!isAuthenticated || authLoading || !cartorioId || !produtoId) {
-      console.log('⏳ [useProgressoReativo] Aguardando autenticação completa...');
+    // AGUARDAR autenticação estar completamente resolvida
+    if (authLoading) {
+      console.log('⏳ [useProgressoReativo] Aguardando autenticação...');
       setIsLoading(true);
+      return;
+    }
+
+    // SÓ prosseguir se autenticado E com dados necessários
+    if (!isAuthenticated || !cartorioId || !produtoId) {
+      console.log('⚠️ [useProgressoReativo] Não autenticado ou dados faltando:', {
+        isAuthenticated,
+        cartorioId: !!cartorioId,
+        produtoId: !!produtoId
+      });
+      
+      // Se não autenticado, zerar dados e marcar como não carregando
+      setTotalAulas(0);
+      setAulasCompletas(0);
+      setPercentual(0);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
@@ -41,7 +58,6 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     try {
       console.log('🔄 [useProgressoReativo] Calculando progresso para produto:', produtoId);
 
-      // Usar função robusta que garante autenticação
       const resultado = await executeRPCWithCartorioContext('get_product_progress', {
         p_produto_id: produtoId,
         p_cartorio_id: cartorioId
@@ -93,10 +109,17 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     return false;
   }, []);
 
-  // Effect principal para calcular progresso
+  // Effect principal: SÓ executar quando autenticação estiver resolvida
   useEffect(() => {
+    // Se ainda carregando auth, não fazer nada
+    if (authLoading) {
+      console.log('⏳ [useProgressoReativo] Auth ainda carregando, aguardando...');
+      return;
+    }
+
+    // Agora que auth está resolvida, calcular progresso
     calcularProgresso();
-  }, [calcularProgresso, refreshKey]);
+  }, [calcularProgresso, refreshKey, authLoading]);
 
   return {
     totalAulas,

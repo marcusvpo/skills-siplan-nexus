@@ -1,37 +1,23 @@
 
 import { useEffect } from 'react';
-import { getValidSession } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useTabFocus = () => {
-  const navigate = useNavigate();
+  const { forceRefresh, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        console.log('👁️ [useTabFocus] Tab focus detectado, validando sessão...');
+      // Só verificar se a aba ficou visível E se há um usuário autenticado
+      if (!document.hidden && isAuthenticated) {
+        console.log('👁️ [useTabFocus] Tab focus detectado com usuário autenticado, validando sessão...');
         
         try {
-          const validSession = await getValidSession();
-          
-          if (!validSession) {
-            console.log('❌ [useTabFocus] Sessão inválida ou expirada');
-            navigate('/login');
-            return;
-          }
-          
-          // Verificar se é realmente authenticated
-          const jwtPayload = JSON.parse(atob(validSession.access_token.split('.')[1]));
-          if (jwtPayload.role !== 'authenticated') {
-            console.log('❌ [useTabFocus] Token não é authenticated:', jwtPayload.role);
-            navigate('/login');
-            return;
-          }
-          
-          console.log('✅ [useTabFocus] Sessão válida confirmada');
+          // Usar o forceRefresh do contexto de auth que já tem toda a lógica de validação
+          await forceRefresh();
+          console.log('✅ [useTabFocus] Sessão revalidada com sucesso');
         } catch (error) {
-          console.error('❌ [useTabFocus] Erro ao validar sessão:', error);
-          navigate('/login');
+          console.error('❌ [useTabFocus] Erro ao revalidar sessão:', error);
+          // O forceRefresh já deve lidar com redirecionamento se necessário
         }
       }
     };
@@ -41,5 +27,5 @@ export const useTabFocus = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [navigate]);
+  }, [forceRefresh, isAuthenticated]);
 };
