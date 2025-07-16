@@ -100,6 +100,37 @@ export const useStableAuth = () => {
     return expiresAt > (now + 300);
   }, []);
 
+  // Função para validar JWT payload
+  const validateJWT = useCallback((session: Session | null): boolean => {
+    if (!session?.access_token) return false;
+    
+    try {
+      const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
+      
+      // Verificar se o token é authenticated
+      if (jwtPayload.role !== 'authenticated') {
+        console.error('❌ [useStableAuth] Token não é authenticated:', jwtPayload.role);
+        return false;
+      }
+      
+      if (!jwtPayload.sub) {
+        console.error('❌ [useStableAuth] Token sem user_id (sub)');
+        return false;
+      }
+      
+      console.log('✅ [useStableAuth] JWT válido:', {
+        role: jwtPayload.role,
+        sub: jwtPayload.sub,
+        email: jwtPayload.email
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('❌ [useStableAuth] Erro ao validar JWT:', error);
+      return false;
+    }
+  }, []);
+
   // Função para tentar refresh da sessão
   const refreshSession = useCallback(async (): Promise<Session | null> => {
     try {
@@ -112,6 +143,12 @@ export const useStableAuth = () => {
       }
       
       if (data.session) {
+        // Validar JWT após refresh
+        if (!validateJWT(data.session)) {
+          console.error('❌ [useStableAuth] JWT inválido após refresh');
+          return null;
+        }
+        
         console.log('✅ [useStableAuth] Sessão renovada com sucesso');
         return data.session;
       }
@@ -121,7 +158,7 @@ export const useStableAuth = () => {
       console.error('❌ [useStableAuth] Erro inesperado no refresh:', error);
       return null;
     }
-  }, []);
+  }, [validateJWT]);
 
   // Função para retry da autenticação
   const retryAuth = useCallback(async (attempt: number = 1): Promise<void> => {
@@ -146,6 +183,13 @@ export const useStableAuth = () => {
       }
       
       const session = data?.session;
+      
+      // Validar JWT se sessão existe
+      if (session && !validateJWT(session)) {
+        console.error('❌ [useStableAuth] Sessão com JWT inválido');
+        throw new Error('JWT inválido');
+      }
+      
       const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
       
       setAuthState({
@@ -175,7 +219,7 @@ export const useStableAuth = () => {
         }));
       }
     }
-  }, [checkAdminStatus, saveSession]);
+  }, [checkAdminStatus, saveSession, validateJWT]);
 
   // Função para atualizar estado de auth
   const updateAuthState = useCallback(async (session: Session | null) => {
@@ -194,6 +238,13 @@ export const useStableAuth = () => {
         session = null;
         localStorage.removeItem(STORAGE_KEY);
       }
+    }
+    
+    // Validar JWT se sessão existe
+    if (session && !validateJWT(session)) {
+      console.error('❌ [updateAuthState] JWT inválido, limpando sessão');
+      session = null;
+      localStorage.removeItem(STORAGE_KEY);
     }
     
     const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
@@ -223,7 +274,7 @@ export const useStableAuth = () => {
     });
 
     saveSession(session);
-  }, [saveSession, checkAdminStatus, isSessionValid, refreshSession]);
+  }, [saveSession, checkAdminStatus, isSessionValid, refreshSession, validateJWT]);
 
   // Inicialização única
   useEffect(() => {
@@ -236,7 +287,7 @@ export const useStableAuth = () => {
       try {
         // 1. Tentar recuperar sessão do localStorage primeiro
         const storedSession = await getStoredSession();
-        if (storedSession && isSessionValid(storedSession)) {
+        if (storedSession && isSessionValid(storedSession) && validateJWT(storedSession)) {
           console.log('📦 Using stored session');
           await updateAuthState(storedSession);
           return;
@@ -253,7 +304,7 @@ export const useStableAuth = () => {
     };
 
     initAuth();
-  }, [getStoredSession, updateAuthState, isSessionValid, retryAuth]);
+  }, [getStoredSession, updateAuthState, isSessionValid, validateJWT, retryAuth]);
 
   // Configurar listener de mudanças de auth
   useEffect(() => {
@@ -294,8 +345,8 @@ export const useStableAuth = () => {
       sessionCheckTimeoutRef.current = setTimeout(async () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (session && !isSessionValid(session)) {
-            console.log('⏰ Session expired during periodic check, signing out');
+          if (session && (!isSessionValid(session) || !validateJWT(session))) {
+            console.log('⏰ Session expired or invalid during periodic check, signing out');
             await supabase.auth.signOut();
           }
         } catch (error) {
@@ -316,7 +367,7 @@ export const useStableAuth = () => {
         clearTimeout(sessionCheckTimeoutRef.current);
       }
     };
-  }, [updateAuthState, isSessionValid]);
+  }, [updateAuthState, isSessionValid, validateJWT]);
 
   const logout = useCallback(async () => {
     try {

@@ -27,7 +27,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     onProgressChange: !!onProgressChange
   });
   
-  const { user, isAuthenticated, isLoading: authLoading, validateSession } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -59,6 +59,14 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           cartorioId,
           videoAulaId
         });
+
+        // VERIFICAÇÃO CRÍTICA: Validar sessão antes da consulta
+        const validSession = await getValidSession();
+        if (!validSession) {
+          console.error('❌ [VideoProgressButton] Sessão inválida ao verificar progresso');
+          setIsChecking(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('visualizacoes_cartorio')
@@ -92,13 +100,21 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     setIsLoading(true);
 
     try {
-      const newCompletedState = !isCompleted;
-      console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
+      // VALIDAÇÃO CRÍTICA 1: Verificar se usuário está autenticado
+      if (!isAuthenticated || !cartorioId) {
+        console.error('❌ [VideoProgressButton] Usuário não autenticado');
+        toast({
+          title: "Erro de autenticação",
+          description: "Faça login para marcar o progresso das videoaulas.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // VALIDAÇÃO CRÍTICA DE SESSÃO ANTES DA REQUISIÇÃO
+      // VALIDAÇÃO CRÍTICA 2: Obter e validar sessão atual
       console.log('🔒 [VideoProgressButton] Validando sessão antes da requisição...');
-      
       const validSession = await getValidSession();
+      
       if (!validSession) {
         console.error('❌ [VideoProgressButton] Sessão inválida ou expirada');
         toast({
@@ -112,17 +128,30 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      console.log('✅ [VideoProgressButton] Sessão válida confirmada, prosseguindo...');
-
-      if (!isAuthenticated || !cartorioId) {
-        console.error('❌ [VideoProgressButton] Usuário não autenticado');
-        toast({
-          title: "Erro de autenticação",
-          description: "Faça login para marcar o progresso das videoaulas.",
-          variant: "destructive",
-        });
+      // VALIDAÇÃO CRÍTICA 3: Verificar se o token é authenticated
+      try {
+        const jwtPayload = JSON.parse(atob(validSession.access_token.split('.')[1]));
+        
+        if (jwtPayload.role !== 'authenticated') {
+          console.error('❌ [VideoProgressButton] Token não é authenticated:', jwtPayload.role);
+          toast({
+            title: "Erro de autenticação",
+            description: "Token de autenticação inválido. Faça login novamente.",
+            variant: "destructive",
+          });
+          window.location.href = '/login';
+          return;
+        }
+        
+        console.log('✅ [VideoProgressButton] Token authenticated válido confirmado');
+      } catch (jwtError) {
+        console.error('❌ [VideoProgressButton] Erro ao validar JWT:', jwtError);
+        window.location.href = '/login';
         return;
       }
+
+      const newCompletedState = !isCompleted;
+      console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
 
       // Setar contexto do cartório
       const { error: contextError } = await supabase.rpc('set_cartorio_context', {
