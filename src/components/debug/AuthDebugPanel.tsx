@@ -15,13 +15,13 @@ export const AuthDebugPanel: React.FC = () => {
   const handleTestCartorioLogin = async () => {
     setIsTestingLogin(true);
     try {
-      // Simular login de cartório de demonstração
+      // Simular login de cartório com dados reais dos logs
       const demoUser = {
         id: 'demo-user-id',
-        name: 'Cartório de Demonstração',
-        cartorio_id: 'demo-cartorio-id',
-        cartorio_name: 'Cartório de Demonstração',
-        username: 'demo',
+        name: 'Cartório Teste Final',
+        cartorio_id: '6bee8971-43ab-4e11-9f4e-558242227cbb',
+        cartorio_name: 'Cartório Teste Final',
+        username: 'user.test',
         email: 'demo@siplan.com.br'
       };
 
@@ -163,7 +163,16 @@ export const AuthDebugPanel: React.FC = () => {
 
       console.log('✅ [AuthDebugPanel] Contexto setado com sucesso');
 
-      // Verificar se o contexto foi setado
+      // Verificar se o contexto foi setado usando a função de teste
+      const { data: contextTest, error: contextTestError } = await supabase.rpc('test_cartorio_context');
+      
+      if (contextTestError) {
+        console.error('❌ [AuthDebugPanel] Erro ao testar contexto:', contextTestError);
+      } else {
+        console.log('✅ [AuthDebugPanel] Teste de contexto:', contextTest);
+      }
+
+      // Verificar se o contexto foi setado corretamente
       const { data: currentCartorioId, error: getError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
 
       if (getError) {
