@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getValidSession } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { VideoProgressButtonWithTimer } from '@/components/VideoProgressButtonWithTimer';
@@ -27,7 +27,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     onProgressChange: !!onProgressChange
   });
   
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, validateSession } = useAuth();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -83,7 +83,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     checkProgress();
   }, [cartorioId, videoAulaId, isAuthenticated, authLoading, user?.type]);
 
-  // Função para atualizar progresso
+  // Função para atualizar progresso com validação robusta de sessão
   const toggleCompletion = async () => {
     console.log('🔵 [VideoProgressButton] toggleCompletion chamado');
     
@@ -94,6 +94,25 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     try {
       const newCompletedState = !isCompleted;
       console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
+
+      // VALIDAÇÃO CRÍTICA DE SESSÃO ANTES DA REQUISIÇÃO
+      console.log('🔒 [VideoProgressButton] Validando sessão antes da requisição...');
+      
+      const validSession = await getValidSession();
+      if (!validSession) {
+        console.error('❌ [VideoProgressButton] Sessão inválida ou expirada');
+        toast({
+          title: "Sessão expirada",
+          description: "Sua sessão expirou. Por favor, faça login novamente.",
+          variant: "destructive",
+        });
+        
+        // Redirecionar para login
+        window.location.href = '/login';
+        return;
+      }
+
+      console.log('✅ [VideoProgressButton] Sessão válida confirmada, prosseguindo...');
 
       if (!isAuthenticated || !cartorioId) {
         console.error('❌ [VideoProgressButton] Usuário não autenticado');

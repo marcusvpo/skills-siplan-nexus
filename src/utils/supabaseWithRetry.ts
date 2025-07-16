@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getValidSession } from '@/integrations/supabase/client';
 import { SignInWithPasswordCredentials } from '@supabase/supabase-js';
 
 export class SupabaseWithRetry {
@@ -38,14 +38,15 @@ export class SupabaseWithRetry {
       try {
         console.log(`🔄 [SupabaseWithRetry] Tentativa ${attempt} de obter sessão`);
         
-        const { data, error } = await supabase.auth.getSession();
+        const validSession = await getValidSession();
         
-        if (error) {
-          throw error;
+        if (validSession) {
+          console.log('✅ [SupabaseWithRetry] Sessão válida obtida');
+          return { data: { session: validSession }, error: null };
+        } else {
+          console.log('⚠️ [SupabaseWithRetry] Nenhuma sessão válida encontrada');
+          return { data: { session: null }, error: null };
         }
-        
-        console.log('✅ [SupabaseWithRetry] Sessão obtida com sucesso');
-        return { data, error: null };
       } catch (error: any) {
         lastError = error;
         console.error(`❌ [SupabaseWithRetry] Tentativa ${attempt} falhou:`, error);
@@ -60,6 +61,6 @@ export class SupabaseWithRetry {
     }
     
     console.error('❌ [SupabaseWithRetry] Todas as tentativas falharam');
-    return { data: null, error: lastError };
+    return { data: { session: null }, error: lastError };
   }
 }

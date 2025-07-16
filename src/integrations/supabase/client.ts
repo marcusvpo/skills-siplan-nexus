@@ -38,6 +38,54 @@ const getSupabaseInstance = () => {
 // Export da instância única
 export const supabase = getSupabaseInstance();
 
+// Função para validar e obter sessão válida
+export const getValidSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('❌ [getValidSession] Erro ao obter sessão:', error);
+      return null;
+    }
+    
+    if (!session) {
+      console.warn('⚠️ [getValidSession] Nenhuma sessão encontrada');
+      return null;
+    }
+    
+    // Verificar se a sessão não expirou
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = session.expires_at || 0;
+    
+    if (expiresAt <= now) {
+      console.warn('⚠️ [getValidSession] Sessão expirada, tentando refresh');
+      
+      // Tentar refresh da sessão
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshedSession) {
+        console.error('❌ [getValidSession] Erro no refresh da sessão:', refreshError);
+        return null;
+      }
+      
+      console.log('✅ [getValidSession] Sessão renovada com sucesso');
+      return refreshedSession;
+    }
+    
+    console.log('✅ [getValidSession] Sessão válida encontrada');
+    return session;
+  } catch (error) {
+    console.error('❌ [getValidSession] Erro inesperado:', error);
+    return null;
+  }
+};
+
+// Função para verificar se o usuário está autenticado com sessão válida
+export const isUserAuthenticated = async () => {
+  const session = await getValidSession();
+  return !!session;
+};
+
 // Sistema de gerenciamento de contexto de autenticação para cartórios
 class AuthContextManager {
   private currentToken: string | null = null;

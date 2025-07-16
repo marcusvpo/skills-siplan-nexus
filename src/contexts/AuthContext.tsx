@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
+import { createAuthenticatedClient, supabase, getValidSession, isUserAuthenticated } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 
@@ -24,6 +24,7 @@ interface AuthContextType {
   authenticatedClient: any;
   isLoading: boolean;
   isAdmin: boolean;
+  validateSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +42,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isInitialized: stableAuth.isInitialized,
     isAdmin: stableAuth.isAdmin
   });
+
+  // Função para validar sessão antes de operações críticas
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      console.log('🔍 [AuthContext] Validating session...');
+      
+      const validSession = await getValidSession();
+      if (!validSession) {
+        console.error('❌ [AuthContext] Sessão inválida ou expirada');
+        return false;
+      }
+      
+      console.log('✅ [AuthContext] Sessão válida confirmada');
+      return true;
+    } catch (error) {
+      console.error('❌ [AuthContext] Erro ao validar sessão:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Verificar usuário de cartório salvo no localStorage
@@ -90,6 +110,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
+  // Listener para verificar sessão quando o foco da janela retorna
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && user?.type === 'admin') {
+        console.log('👁️ [AuthContext] Tab focus returned, validating session...');
+        
+        const isValid = await validateSession();
+        if (!isValid) {
+          console.log('❌ [AuthContext] Sessão inválida detectada, fazendo logout');
+          logout();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.type]);
+
   const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     const newUser: User = {
       id: userData?.id || '1',
@@ -138,6 +176,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setAuthenticatedClient(null);
     localStorage.removeItem('siplan-user');
+    
+    // Limpar cache relacionado
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('video_timer_')) {
+        localStorage.removeItem(key);
+      }
+    });
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
@@ -152,7 +197,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated, 
       authenticatedClient,
       isLoading,
-      isAdmin: stableAuth.isAdmin
+      isAdmin: stableAuth.isAdmin,
+      validateSession
     }}>
       {children}
     </AuthContext.Provider>
