@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { executeRPCWithCartorioContext } from '@/integrations/supabase/client';
+import { executeRPCWithCartorioContext, supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProgressResult {
@@ -16,6 +16,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
   const [percentual, setPercentual] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastCalculatedAt, setLastCalculatedAt] = useState<number>(0);
 
   const cartorioId = user?.cartorio_id;
 
@@ -90,15 +91,20 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     }
   }, [cartorioId, produtoId, isAuthenticated, authLoading]);
 
+  // Função para invalidar cache e forçar recálculo IMEDIATO
+  const invalidarCacheProgresso = useCallback(() => {
+    console.log('🔄 [useProgressoReativo] Invalidando cache e forçando recálculo IMEDIATO');
+    setLastCalculatedAt(Date.now());
+    calcularProgresso();
+  }, [calcularProgresso]);
+
   // Função para marcar vídeo como completo e recalcular
   const marcarVideoCompleto = useCallback(async (videoId: string, completo: boolean) => {
     console.log('🔄 [useProgressoReativo] Marcando vídeo e recalculando:', { videoId, completo });
     
-    // Aguardar um pouco para a visualização ser registrada
-    setTimeout(() => {
-      calcularProgresso();
-    }, 500);
-  }, [calcularProgresso]);
+    // Invalidar cache IMEDIATAMENTE após marcar
+    invalidarCacheProgresso();
+  }, [invalidarCacheProgresso]);
 
   // Function to check if a specific video is completed
   const isVideoCompleto = useCallback((videoId: string): boolean => {
@@ -117,7 +123,42 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
 
     // Agora que auth está resolvida, calcular progresso
     calcularProgresso();
-  }, [calcularProgresso, refreshKey, authLoading]);
+  }, [calcularProgresso, refreshKey, authLoading, lastCalculatedAt]);
+
+  // Listener de tempo real para mudanças em visualizacoes_cartorio
+  useEffect(() => {
+    if (!isAuthenticated || !cartorioId || !produtoId) {
+      return;
+    }
+
+    console.log('🔄 [useProgressoReativo] Configurando listener de tempo real para produto:', produtoId);
+
+    const subscription = supabase
+      .channel(`progresso-produto-${produtoId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'visualizacoes_cartorio',
+          filter: `cartorio_id=eq.${cartorioId}`
+        },
+        (payload) => {
+          console.log('🔔 [useProgressoReativo] Mudança detectada em tempo real:', payload);
+          
+          // Invalidar cache e recalcular após mudança
+          setTimeout(() => {
+            invalidarCacheProgresso();
+          }, 200);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔄 [useProgressoReativo] Removendo listener de tempo real');
+      subscription.unsubscribe();
+    };
+  }, [isAuthenticated, cartorioId, produtoId, invalidarCacheProgresso]);
 
   return {
     totalAulas,
@@ -127,6 +168,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     error,
     marcarVideoCompleto,
     isVideoCompleto,
-    refetch: calcularProgresso
+    refetch: calcularProgresso,
+    invalidarCache: invalidarCacheProgresso
   };
 };

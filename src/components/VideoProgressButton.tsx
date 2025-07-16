@@ -113,9 +113,20 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       console.log('✅ [VideoProgressButton] Visualização registrada com sucesso:', result);
       setIsCompleted(newCompletedState);
 
+      // CRÍTICO: Invalidar cache de progresso após mudança
       if (onProgressChange) {
         onProgressChange(videoAulaId, newCompletedState);
       }
+
+      // Disparar evento customizado para invalidar cache globalmente
+      window.dispatchEvent(new CustomEvent('progressoAtualizado', {
+        detail: {
+          videoAulaId,
+          produtoId,
+          completo: newCompletedState,
+          timestamp: Date.now()
+        }
+      }));
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
