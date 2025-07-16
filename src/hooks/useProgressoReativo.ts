@@ -58,6 +58,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     try {
       console.log('🔄 [useProgressoReativo] Calculando progresso para produto:', produtoId);
 
+      // Remover verificações redundantes de sessão - confiar no contexto de auth
       const resultado = await executeRPCWithCartorioContext('get_product_progress', {
         p_produto_id: produtoId,
         p_cartorio_id: cartorioId
@@ -82,10 +83,11 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     } catch (error: any) {
       console.error('❌ [useProgressoReativo] Erro ao calcular progresso:', error);
       
-      if (error.message?.includes('Sessão expirada') || error.message?.includes('Token')) {
-        setError('Sessão expirada. Faça login novamente.');
+      // Simplificar tratamento de erro - não assumir que é sempre sessão expirada
+      if (error.message?.includes('JWT') || error.message?.includes('auth') || error.message?.includes('token')) {
+        setError('Erro de autenticação. Tente fazer login novamente.');
       } else {
-        setError('Erro ao carregar progresso');
+        setError('Erro ao carregar progresso. Tente novamente.');
       }
     } finally {
       setIsLoading(false);
