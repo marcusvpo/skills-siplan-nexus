@@ -175,7 +175,7 @@ export const AuthDebugPanel: React.FC = () => {
 
       // Testar função de registrar visualização
       const { data: testResult, error: testError } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
-        p_video_aula_id: 'test-video-id',
+        p_video_aula_id: 'ac602288-2fea-49cb-b877-2c4e60325f4b', // ID de video conhecido dos logs
         p_completo: true,
         p_concluida: true,
         p_data_conclusao: new Date().toISOString()

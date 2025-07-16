@@ -17,6 +17,7 @@ import VideoAulaEditorWYSIWYG from '@/pages/VideoAulaEditorWYSIWYG';
 import NovaVideoaula from '@/pages/NovaVideoaula';
 import NovaVideoaulaBunny from '@/pages/NovaVideoaulaBunny';
 import EditarVideoaula from '@/pages/EditarVideoaula';
+import Debug from '@/pages/Debug';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ function App() {
               <Route path="/system/:systemId" element={<SystemPage />} />
               <Route path="/system/:systemId/product/:productId" element={<ProductPage />} />
               <Route path="/system/:systemId/product/:productId/lesson/:videoId" element={<VideoLesson />} />
+              <Route path="/debug" element={<Debug />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
