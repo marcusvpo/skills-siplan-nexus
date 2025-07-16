@@ -34,6 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const stableAuth = useStableAuth();
 
+  console.log('🔍 DEBUG: AuthProvider render - auth state:', {
+    hasSession: !!stableAuth.session,
+    hasUser: !!stableAuth.user,
+    loading: stableAuth.loading,
+    isInitialized: stableAuth.isInitialized,
+    isAdmin: stableAuth.isAdmin
+  });
+
   useEffect(() => {
     // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
@@ -103,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.isLoading;
+  const isLoading = stableAuth.loading;
 
   return (
     <AuthContext.Provider value={{ 
