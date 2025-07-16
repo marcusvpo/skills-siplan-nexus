@@ -5,7 +5,7 @@ import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo';
+import { VideoProgressButtonWithTimer } from '@/components/VideoProgressButtonWithTimer';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
@@ -27,15 +27,11 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     onProgressChange: !!onProgressChange
   });
   
-  // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  
-  // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // O ID do cartório, obtido do user do AuthContextFixed
   const cartorioId = user?.cartorio_id;
   
   console.log('🔵 [VideoProgressButton] Estado inicial:', {
@@ -47,9 +43,8 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     isChecking
   });
 
-  // Efeito para verificar o progresso inicial da videoaula
+  // Verificar progresso inicial
   useEffect(() => {
-    // Só prossegue se o usuário estiver autenticado e os dados estiverem disponíveis
     if (!isAuthenticated || authLoading || !cartorioId || !videoAulaId) {
       if (!authLoading) {
         setIsChecking(false);
@@ -60,15 +55,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     const checkProgress = async () => {
       setIsChecking(true);
       try {
-        console.log('🔍 [VideoProgressButton] Checking progress:', {
-          cartorioId,
-          videoAulaId,
-          isAuthenticated,
-          userType: user?.type
-        });
-
-        // ✅ CORREÇÃO: Usar query direta para verificar progresso
-        console.log('🔍 [VideoProgressButton] Verificando progresso com query direta:', {
+        console.log('🔍 [VideoProgressButton] Verificando progresso:', {
           cartorioId,
           videoAulaId
         });
@@ -96,9 +83,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     checkProgress();
   }, [cartorioId, videoAulaId, isAuthenticated, authLoading, user?.type]);
 
-  // Função para marcar/desmarcar a videoaula como concluída
+  // Função para atualizar progresso
   const toggleCompletion = async () => {
-    console.log('🔵 [VideoProgressButton] toggleCompletion chamado:', { cartorioId, videoAulaId, isLoading });
+    console.log('🔵 [VideoProgressButton] toggleCompletion chamado');
     
     if (!cartorioId || !videoAulaId || isLoading) return;
 
@@ -108,22 +95,8 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       const newCompletedState = !isCompleted;
       console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
 
-      console.log('🔄 [VideoProgressButton] Registrando visualização:', {
-        cartorioId,
-        videoAulaId,
-        newCompletedState,
-        userType: user?.type,
-        isAuthenticated,
-        hasUser: !!user
-      });
-
-      // Verificar se o usuário está autenticado
       if (!isAuthenticated || !cartorioId) {
-        console.error('❌ [VideoProgressButton] Usuário não autenticado ou cartório não identificado', {
-          isAuthenticated,
-          cartorioId,
-          userType: user?.type
-        });
+        console.error('❌ [VideoProgressButton] Usuário não autenticado');
         toast({
           title: "Erro de autenticação",
           description: "Faça login para marcar o progresso das videoaulas.",
@@ -132,15 +105,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      // ✅ CORREÇÃO: Usar função robusta com RLS configurado
-      console.log('🔄 [VideoProgressButton] Configurando contexto do cartório e registrando visualização:', {
-        cartorio_id: cartorioId,
-        video_aula_id: videoAulaId,
-        completo: newCompletedState,
-        concluida: newCompletedState
-      });
-
-      // Primeiro, setar o contexto do cartório para RLS
+      // Setar contexto do cartório
       const { error: contextError } = await supabase.rpc('set_cartorio_context', {
         p_cartorio_id: cartorioId
       });
@@ -155,26 +120,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      console.log('✅ [VideoProgressButton] Contexto do cartório configurado com sucesso');
-
-      // Testar se o contexto foi setado corretamente
-      const { data: testCartorioId, error: testError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
-      console.log('🔍 [VideoProgressButton] Contexto após setar:', testCartorioId);
-      
-      if (testError) {
-        console.error('❌ [VideoProgressButton] Erro ao testar contexto:', testError);
-      }
-
-      // Usar a função de teste para verificar múltiplas fontes de contexto
-      const { data: contextTest, error: contextTestError } = await supabase.rpc('test_cartorio_context');
-      
-      if (contextTestError) {
-        console.error('❌ [VideoProgressButton] Erro ao testar contexto completo:', contextTestError);
-      } else {
-        console.log('✅ [VideoProgressButton] Teste de contexto completo:', contextTest);
-      }
-
-      // Usar a nova função robusta para registrar visualização
+      // Usar função robusta para registrar visualização
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
         p_completo: newCompletedState,
@@ -184,28 +130,17 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       if (error) {
         console.error('❌ [VideoProgressButton] Erro RPC:', error);
-        console.error('❌ [VideoProgressButton] Detalhes do erro:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // Se o RPC falhar, mostrar toast informativo
         toast({
           title: "Erro",
           description: "Não foi possível atualizar o progresso. Verifique sua conexão e tente novamente.",
           variant: "destructive",
         });
-        
         return;
       }
 
-      // Verificar se a função retornou sucesso
-      const result = data as { success: boolean; error?: string; debug?: string };
+      const result = data as { success: boolean; error?: string };
       if (result && !result.success) {
         console.error('❌ [VideoProgressButton] Erro retornado pela função:', result);
-        console.error('❌ [VideoProgressButton] Debug da função:', result.debug || 'Sem debug');
         toast({
           title: "Erro",
           description: result.error || "Erro desconhecido ao atualizar progresso",
@@ -217,12 +152,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
-      // ✅ SEMPRE notificar mudança de progresso
       if (onProgressChange) {
-        console.log('🔵 [VideoProgressButton] Chamando onProgressChange:', { videoAulaId, newCompletedState });
+        console.log('🔵 [VideoProgressButton] Chamando onProgressChange');
         onProgressChange(videoAulaId, newCompletedState);
-      } else {
-        console.log('🔵 [VideoProgressButton] onProgressChange não fornecido - progresso local atualizado');
       }
 
       toast({
@@ -244,7 +176,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     }
   };
 
-  // Condição para não renderizar o botão
+  // Estados de não-renderização
   if (!isAuthenticated || authLoading || !cartorioId) {
     if (authLoading) {
       return (
@@ -262,7 +194,6 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     );
   }
 
-  // Estado de carregamento enquanto verifica o progresso inicial
   if (isChecking) {
     return (
       <Button disabled className="w-full">
@@ -272,33 +203,14 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     );
   }
 
-  // Renderização final do botão "Marcar como Concluída"
+  // Usar o botão com timer
   return (
-    <Button
-      onClick={toggleCompletion}
-      disabled={isLoading}
-      className={`w-full ${
-        isCompleted 
-          ? 'bg-green-600 hover:bg-green-700 text-white' 
-          : 'bg-red-600 hover:bg-red-700 text-white'
-      }`}
-    >
-      {isLoading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Atualizando...
-        </>
-      ) : isCompleted ? (
-        <>
-          <CheckCircle className="mr-2 h-4 w-4" />
-          Concluída
-        </>
-      ) : (
-        <>
-          <Circle className="mr-2 h-4 w-4" />
-          Marcar como Concluída
-        </>
-      )}
-    </Button>
+    <VideoProgressButtonWithTimer
+      videoAulaId={videoAulaId}
+      videoTitle={videoTitle}
+      isCompleted={isCompleted}
+      isLoading={isLoading}
+      onToggleCompletion={toggleCompletion}
+    />
   );
 };

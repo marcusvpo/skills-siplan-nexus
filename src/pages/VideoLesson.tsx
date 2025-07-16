@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
@@ -7,6 +8,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
 import { VideoProgressButton } from '@/components/VideoProgressButton';
 import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
+import { useTabFocus } from '@/hooks/useTabFocus';
 import { logger } from '@/utils/logger';
 
 const VideoLesson: React.FC = () => {
@@ -16,6 +18,9 @@ const VideoLesson: React.FC = () => {
     videoId: string; 
   }>();
   const navigate = useNavigate();
+  
+  // Usar hook para detectar tab focus
+  useTabFocus();
   
   const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoId || '');
 
@@ -148,7 +153,7 @@ const VideoLesson: React.FC = () => {
                 {videoAulaData.titulo}
               </h1>
 
-              {/* Progress Button */}
+              {/* Progress Button com Timer */}
               <div className="max-w-md">
                 <VideoProgressButton 
                   videoAulaId={videoAulaData.id}
@@ -156,8 +161,6 @@ const VideoLesson: React.FC = () => {
                   produtoId={productId}
                   onProgressChange={(videoId, completo) => {
                     console.log('🎥 [VideoLesson] Progresso atualizado:', { videoId, completo });
-                    // O progresso será atualizado automaticamente pelo useProgressoReativo
-                    // quando o usuário navegar de volta para a lista de produtos
                   }}
                 />
               </div>

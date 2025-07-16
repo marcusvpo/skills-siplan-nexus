@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { SupabaseWithRetry } from '@/utils/supabaseWithRetry';
 import { logger } from '@/utils/logger';
 
 interface AuthState {
@@ -11,9 +12,11 @@ interface AuthState {
   isInitialized: boolean;
   isAdmin: boolean;
   error: string | null;
+  retryCount: number;
 }
 
 const STORAGE_KEY = 'supabase.auth.token';
+const MAX_RETRIES = 3;
 
 export const useStableAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -22,7 +25,8 @@ export const useStableAuth = () => {
     loading: true,
     isInitialized: false,
     isAdmin: false,
-    error: null
+    error: null,
+    retryCount: 0
   });
 
   const initializationRef = useRef(false);
@@ -96,25 +100,99 @@ export const useStableAuth = () => {
     return expiresAt > (now + 300);
   }, []);
 
+  // Função para tentar refresh da sessão
+  const refreshSession = useCallback(async (): Promise<Session | null> => {
+    try {
+      console.log('🔄 [useStableAuth] Tentando refresh da sessão...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('❌ [useStableAuth] Erro no refresh:', error);
+        return null;
+      }
+      
+      if (data.session) {
+        console.log('✅ [useStableAuth] Sessão renovada com sucesso');
+        return data.session;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ [useStableAuth] Erro inesperado no refresh:', error);
+      return null;
+    }
+  }, []);
+
+  // Função para retry da autenticação
+  const retryAuth = useCallback(async (attempt: number = 1): Promise<void> => {
+    if (attempt > MAX_RETRIES) {
+      console.error('❌ [useStableAuth] Máximo de tentativas excedido');
+      setAuthState(prev => ({ 
+        ...prev, 
+        error: 'Falha na autenticação após múltiplas tentativas',
+        loading: false,
+        retryCount: attempt - 1
+      }));
+      return;
+    }
+
+    try {
+      console.log(`🔄 [useStableAuth] Tentativa ${attempt} de autenticação`);
+      
+      const { data, error } = await SupabaseWithRetry.getSessionWithRetry(1);
+      
+      if (error) {
+        throw error;
+      }
+      
+      const session = data?.session;
+      const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
+      
+      setAuthState({
+        session,
+        user: session?.user || null,
+        loading: false,
+        isInitialized: true,
+        isAdmin,
+        error: null,
+        retryCount: attempt
+      });
+      
+      saveSession(session);
+      
+    } catch (error) {
+      console.error(`❌ [useStableAuth] Tentativa ${attempt} falhou:`, error);
+      
+      if (attempt < MAX_RETRIES) {
+        const delay = 1000 * Math.pow(2, attempt - 1); // Backoff exponencial
+        setTimeout(() => retryAuth(attempt + 1), delay);
+      } else {
+        setAuthState(prev => ({ 
+          ...prev, 
+          error: 'Falha na autenticação',
+          loading: false,
+          retryCount: attempt
+        }));
+      }
+    }
+  }, [checkAdminStatus, saveSession]);
+
   // Função para atualizar estado de auth
   const updateAuthState = useCallback(async (session: Session | null) => {
     console.log('🔄 Updating auth state:', session ? 'with session' : 'without session');
     
     // Validar sessão antes de usar
     if (session && !isSessionValid(session)) {
-      console.log('⚠️ Session expired, clearing auth state');
-      session = null;
-      localStorage.removeItem(STORAGE_KEY);
+      console.log('⚠️ Session expired, tentando refresh...');
       
-      // Tentar refresh da sessão
-      try {
-        const { data, error } = await supabase.auth.refreshSession();
-        if (!error && data.session) {
-          session = data.session;
-          console.log('✅ Session refreshed successfully');
-        }
-      } catch (err) {
-        console.error('❌ Error refreshing session:', err);
+      const refreshedSession = await refreshSession();
+      if (refreshedSession) {
+        session = refreshedSession;
+        console.log('✅ Session refreshed successfully');
+      } else {
+        console.log('❌ Refresh failed, clearing session');
+        session = null;
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
     
@@ -127,7 +205,8 @@ export const useStableAuth = () => {
         loading: false,
         isInitialized: true,
         isAdmin,
-        error: null
+        error: null,
+        retryCount: 0
       };
       
       // Só atualiza se realmente mudou
@@ -144,7 +223,7 @@ export const useStableAuth = () => {
     });
 
     saveSession(session);
-  }, [saveSession, checkAdminStatus, isSessionValid]);
+  }, [saveSession, checkAdminStatus, isSessionValid, refreshSession]);
 
   // Inicialização única
   useEffect(() => {
@@ -157,24 +236,15 @@ export const useStableAuth = () => {
       try {
         // 1. Tentar recuperar sessão do localStorage primeiro
         const storedSession = await getStoredSession();
-        if (storedSession) {
+        if (storedSession && isSessionValid(storedSession)) {
           console.log('📦 Using stored session');
           await updateAuthState(storedSession);
           return;
         }
 
-        // 2. Se não há sessão armazenada, buscar do Supabase
-        console.log('🔍 Getting session from Supabase...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Error getting session:', error);
-          await updateAuthState(null);
-          return;
-        }
-
-        console.log('✅ Session retrieved:', session ? 'found' : 'not found');
-        await updateAuthState(session);
+        // 2. Se não há sessão armazenada válida, tentar com retry
+        console.log('🔍 Getting session from Supabase with retry...');
+        await retryAuth(1);
 
       } catch (error) {
         console.error('❌ Auth initialization error:', error);
@@ -183,9 +253,9 @@ export const useStableAuth = () => {
     };
 
     initAuth();
-  }, [getStoredSession, updateAuthState]);
+  }, [getStoredSession, updateAuthState, isSessionValid, retryAuth]);
 
-  // Configurar listener de mudanças de auth (apenas uma vez)
+  // Configurar listener de mudanças de auth
   useEffect(() => {
     if (!initializationRef.current || listenerRef.current) return;
 
@@ -222,10 +292,14 @@ export const useStableAuth = () => {
     // Verificar periodicamente se a sessão ainda é válida
     const checkSessionPeriodically = () => {
       sessionCheckTimeoutRef.current = setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && !isSessionValid(session)) {
-          console.log('⏰ Session expired during periodic check, signing out');
-          await supabase.auth.signOut();
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session && !isSessionValid(session)) {
+            console.log('⏰ Session expired during periodic check, signing out');
+            await supabase.auth.signOut();
+          }
+        } catch (error) {
+          console.error('❌ Error during periodic session check:', error);
         }
         checkSessionPeriodically();
       }, 60000); // Verificar a cada minuto
@@ -253,8 +327,24 @@ export const useStableAuth = () => {
     }
   }, []);
 
+  const clearCacheAndRetry = useCallback(() => {
+    console.log('🧹 [useStableAuth] Clearing cache and retrying auth');
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    
+    // Limpar cache
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('supabase.') || key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Retry auth
+    retryAuth(1);
+  }, [retryAuth]);
+
   return {
     ...authState,
-    logout
+    logout,
+    clearCacheAndRetry
   };
 };

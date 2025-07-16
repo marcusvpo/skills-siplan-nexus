@@ -3,22 +3,29 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { SupabaseWithRetry } from '@/utils/supabaseWithRetry';
+import { CacheManager } from '@/utils/cacheManager';
 import { supabase } from '@/integrations/supabase/client';
+import { useTabFocus } from '@/hooks/useTabFocus';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showClearCache, setShowClearCache] = useState(false);
   const navigate = useNavigate();
+  
+  // Usar hook para detectar tab focus
+  useTabFocus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isLoading) return; // Prevenir múltiplas submissões
+    if (isLoading) return;
     
     setIsLoading(true);
     console.log('🔍 DEBUG: Admin login form submitted');
@@ -26,7 +33,8 @@ const AdminLogin = () => {
     try {
       console.log('🔍 DEBUG: Attempting admin login with email:', email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Usar retry logic para login
+      const { data, error } = await SupabaseWithRetry.signInWithPassword({
         email,
         password,
       });
@@ -40,6 +48,10 @@ const AdminLogin = () => {
 
       if (error) {
         console.log('🔍 DEBUG: Supabase auth error:', error);
+        
+        // Mostrar opção de limpar cache após erro
+        setShowClearCache(true);
+        
         toast({
           title: "Credenciais inválidas",
           description: error.message || "Email ou senha incorretos.",
@@ -87,17 +99,32 @@ const AdminLogin = () => {
         console.log('🔍 DEBUG: Navigating to /admin');
         navigate('/admin');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('🔍 DEBUG: Login catch error:', error);
+      
+      // Mostrar opção de limpar cache em caso de erro
+      setShowClearCache(true);
+      
+      let errorMessage = "Não foi possível conectar ao servidor. Tente novamente.";
+      
+      if (error.message.includes('timeout')) {
+        errorMessage = "Timeout de conexão. Verifique sua internet e tente novamente.";
+      }
+      
       toast({
         title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       console.log('🔍 DEBUG: Setting isLoading to false');
       setIsLoading(false);
     }
+  };
+
+  const handleClearCache = () => {
+    console.log('🧹 [AdminLogin] Clearing cache');
+    CacheManager.clearCacheAndReload();
   };
 
   console.log('🔍 DEBUG: AdminLogin render - isLoading:', isLoading);
@@ -129,6 +156,7 @@ const AdminLogin = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                 required
+                disabled={isLoading}
               />
             </div>
             
@@ -141,6 +169,7 @@ const AdminLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                   required
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -148,6 +177,7 @@ const AdminLogin = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -161,7 +191,7 @@ const AdminLogin = () => {
             >
               {isLoading ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <RefreshCw className="animate-spin h-4 w-4 mr-2" />
                   Entrando...
                 </div>
               ) : (
@@ -169,6 +199,20 @@ const AdminLogin = () => {
               )}
             </Button>
           </form>
+          
+          {/* Botão para limpar cache - aparece após erro */}
+          {showClearCache && (
+            <div className="pt-4 border-t border-gray-700/50">
+              <Button
+                onClick={handleClearCache}
+                variant="outline"
+                className="w-full border-yellow-600 text-yellow-400 hover:bg-yellow-700/20 btn-hover-lift"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Limpar Cache e Tentar Novamente
+              </Button>
+            </div>
+          )}
           
           <div className="space-y-4 pt-4 border-t border-gray-700/50">
             <Link 
