@@ -1,8 +1,9 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase, setCartorioAuthContext, clearCartorioAuthContext, ensureSessionHydration } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
+import { customCartorioStorage } from '@/utils/customSupabaseStorage';
 
 interface User {
   id: string;
@@ -25,6 +26,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   forceRefresh: () => Promise<void>;
+  recoverSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +45,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin: stableAuth.isAdmin,
     cartorioUser: !!user
   });
+
+  // ⭐ FUNÇÃO DE RECUPERAÇÃO DE SESSÃO ROBUSTA
+  const recoverSession = useCallback(async () => {
+    console.log('🔄 [AuthProvider] Iniciando recuperação robusta de sessão...');
+    
+    try {
+      // 1. Verificar storage customizado primeiro
+      const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
+      if (customToken) {
+        console.log('✅ [AuthProvider] Token encontrado no storage customizado');
+      }
+
+      // 2. Forçar refresh da sessão
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('❌ [AuthProvider] Erro no refresh:', error);
+        // Tentar getSession como fallback
+        const { data: { session: fallbackSession } } = await supabase.auth.getSession();
+        if (fallbackSession) {
+          console.log('✅ [AuthProvider] Sessão recuperada via fallback');
+          return fallbackSession;
+        }
+      } else if (session) {
+        console.log('✅ [AuthProvider] Sessão recuperada via refresh');
+        return session;
+      }
+
+      // 3. Último recurso: verificar localStorage diretamente
+      const directToken = localStorage.getItem('sb-cartorio-auth-token');
+      if (directToken) {
+        console.log('🔍 [AuthProvider] Token encontrado diretamente no localStorage');
+        try {
+          const parsedToken = JSON.parse(directToken);
+          if (parsedToken.access_token) {
+            console.log('✅ [AuthProvider] Token válido encontrado');
+            // Definir sessão manualmente
+            await supabase.auth.setSession({
+              access_token: parsedToken.access_token,
+              refresh_token: parsedToken.refresh_token
+            });
+          }
+        } catch (parseError) {
+          console.error('❌ [AuthProvider] Erro ao parsear token:', parseError);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ [AuthProvider] Erro na recuperação de sessão:', error);
+    }
+  }, []);
+
+  // ⭐ EFFECT PARA RECUPERAÇÃO AUTOMÁTICA
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!stableAuth.session && !stableAuth.loading) {
+        console.log('⚠️ [AuthProvider] Sessão não encontrada, tentando recuperar...');
+        recoverSession();
+      }
+    }, 2000); // Aguarda 2 segundos antes de tentar recuperar
+
+    return () => clearTimeout(timer);
+  }, [stableAuth.session, stableAuth.loading, recoverSession]);
 
   // Restaurar usuário de cartório do localStorage
   useEffect(() => {
@@ -183,7 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authenticatedClient,
       isLoading,
       isAdmin: stableAuth.isAdmin,
-      forceRefresh
+      forceRefresh,
+      recoverSession
     }}>
       {children}
     </AuthContext.Provider>
