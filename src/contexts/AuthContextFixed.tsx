@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -36,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   console.log('🔍 DEBUG: AuthProvider render - stableAuth state:', {
     hasUser: !!stableAuth.user,
     hasSession: !!stableAuth.session,
-    isLoading: stableAuth.isLoading,
+    loading: stableAuth.loading,
     isAdmin: stableAuth.isAdmin,
     error: stableAuth.error
   });
@@ -220,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.isLoading;
+  const isLoading = stableAuth.loading;
 
   // Sempre usar a instância única do Supabase
   const authenticatedClient = supabase;
