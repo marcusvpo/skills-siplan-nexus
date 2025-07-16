@@ -602,6 +602,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_cartorio_id_from_jwt: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_cartorio_usuario_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -622,6 +626,19 @@ export type Database = {
           p_data_conclusao?: string
         }
         Returns: Json
+      }
+      registrar_visualizacao_cartorio_robust: {
+        Args: {
+          p_video_aula_id: string
+          p_completo?: boolean
+          p_concluida?: boolean
+          p_data_conclusao?: string
+        }
+        Returns: Json
+      }
+      set_cartorio_context: {
+        Args: { p_cartorio_id: string }
+        Returns: undefined
       }
       set_test_cartorio_id: {
         Args: { cartorio_id_param: string }

@@ -128,56 +128,26 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      // ✅ CORREÇÃO: Usar insert direto com cartorio_id explícito
-      console.log('🔄 [VideoProgressButton] Inserindo/atualizando visualização diretamente:', {
+      // ✅ CORREÇÃO: Usar função robusta com RLS configurado
+      console.log('🔄 [VideoProgressButton] Configurando contexto do cartório e registrando visualização:', {
         cartorio_id: cartorioId,
         video_aula_id: videoAulaId,
         completo: newCompletedState,
         concluida: newCompletedState
       });
 
-      // Verificar se já existe registro
-      const { data: existingRecord } = await supabase
-        .from('visualizacoes_cartorio')
-        .select('id')
-        .eq('cartorio_id', cartorioId)
-        .eq('video_aula_id', videoAulaId)
-        .maybeSingle();
+      // Primeiro, setar o contexto do cartório para RLS
+      await supabase.rpc('set_cartorio_context', {
+        p_cartorio_id: cartorioId
+      });
 
-      let data, error;
-      
-      if (existingRecord) {
-        // Atualizar registro existente
-        const { data: updateData, error: updateError } = await supabase
-          .from('visualizacoes_cartorio')
-          .update({
-            completo: newCompletedState,
-            concluida: newCompletedState,
-            data_conclusao: newCompletedState ? new Date().toISOString() : null
-          })
-          .eq('id', existingRecord.id)
-          .select()
-          .single();
-        
-        data = updateData;
-        error = updateError;
-      } else {
-        // Inserir novo registro
-        const { data: insertData, error: insertError } = await supabase
-          .from('visualizacoes_cartorio')
-          .insert({
-            cartorio_id: cartorioId,
-            video_aula_id: videoAulaId,
-            completo: newCompletedState,
-            concluida: newCompletedState,
-            data_conclusao: newCompletedState ? new Date().toISOString() : null
-          })
-          .select()
-          .single();
-        
-        data = insertData;
-        error = insertError;
-      }
+      // Usar a nova função robusta para registrar visualização
+      const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
+        p_video_aula_id: videoAulaId,
+        p_completo: newCompletedState,
+        p_concluida: newCompletedState,
+        p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
+      });
 
       if (error) {
         console.error('❌ [VideoProgressButton] Erro RPC:', error);
@@ -188,20 +158,25 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           code: error.code
         });
         
-        // Se o RPC falhar, não jogar erro, mas mostrar toast informativo
+        // Se o RPC falhar, mostrar toast informativo
         toast({
-          title: "Aviso",
-          description: "Progresso salvo localmente. Pode ser sincronizado posteriormente.",
-          variant: "default",
+          title: "Erro",
+          description: "Não foi possível atualizar o progresso. Verifique sua conexão e tente novamente.",
+          variant: "destructive",
         });
         
-        // Atualizar estado local mesmo se o RPC falhar
-        setIsCompleted(newCompletedState);
-        
-        if (onProgressChange) {
-          onProgressChange(videoAulaId, newCompletedState);
-        }
-        
+        return;
+      }
+
+      // Verificar se a função retornou sucesso
+      const result = data as { success: boolean; error?: string };
+      if (result && !result.success) {
+        console.error('❌ [VideoProgressButton] Erro retornado pela função:', result);
+        toast({
+          title: "Erro",
+          description: result.error || "Erro desconhecido ao atualizar progresso",
+          variant: "destructive",
+        });
         return;
       }
 

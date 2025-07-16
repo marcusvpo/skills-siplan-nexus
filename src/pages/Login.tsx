@@ -53,7 +53,7 @@ const Login = () => {
       });
 
       if (data.success && data.token && data.cartorio && data.usuario) {
-        login(data.token, 'cartorio', {
+        await login(data.token, 'cartorio', {
           id: data.usuario.id,
           name: data.usuario.username,
           cartorio_id: data.cartorio.id,

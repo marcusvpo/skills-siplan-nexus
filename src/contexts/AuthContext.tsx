@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => void;
+  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
-  const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+  const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     const newUser: User = {
       id: userData?.id || '1',
       name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
@@ -96,6 +96,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (type === 'cartorio') {
       const authClient = createAuthenticatedClient(token);
       setAuthenticatedClient(authClient);
+      
+      // Configurar contexto do cartório para RLS
+      if (userData?.cartorio_id) {
+        try {
+          await supabase.rpc('set_cartorio_context', {
+            p_cartorio_id: userData.cartorio_id
+          });
+          console.log('🔧 [AuthContext] Contexto do cartório configurado:', userData.cartorio_id);
+        } catch (error) {
+          console.error('❌ [AuthContext] Erro ao configurar contexto do cartório:', error);
+        }
+      }
     }
   };
 
