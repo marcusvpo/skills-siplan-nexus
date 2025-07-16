@@ -1,234 +1,97 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { executeRPCWithCartorioContext } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export interface ProgressoReativo {
-  totalAulas: number;
-  aulasCompletas: number;
-  percentual: number;
-  videosCompletos: Set<string>;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) => {
-  console.log('🟡 [useProgressoReativo] Hook iniciado com produtoId:', produtoId, 'forceRefresh:', forceRefresh);
-  
-  const { user, isLoading: authLoading } = useAuth();
-  const [progresso, setProgresso] = useState<ProgressoReativo>({
-    totalAulas: 0,
-    aulasCompletas: 0,
-    percentual: 0,
-    videosCompletos: new Set(),
-    isLoading: true,
-    error: null
-  });
-
-  // ✅ FORCE reset quando produtoId mudar
-  useEffect(() => {
-    console.log('🔄 [useProgressoReativo] RESET - produtoId mudou:', produtoId);
-    setProgresso({
-      totalAulas: 0,
-      aulasCompletas: 0,
-      percentual: 0,
-      videosCompletos: new Set(),
-      isLoading: true,
-      error: null
-    });
-  }, [produtoId, forceRefresh]);
+export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) => {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [totalAulas, setTotalAulas] = useState(0);
+  const [aulasCompletas, setAulasCompletas] = useState(0);
+  const [percentual, setPercentual] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const cartorioId = user?.cartorio_id;
-  console.log('🟡 [useProgressoReativo] Auth state:', { cartorioId, authLoading, userType: user?.type });
 
-  const carregarProgresso = useCallback(async () => {
-    console.log('🟡 [useProgressoReativo] carregarProgresso chamado:', { cartorioId, produtoId, authLoading });
-    
-    // ✅ CONDIÇÕES MAIS RIGOROSAS
-    if (authLoading) {
-      console.log('🟡 [useProgressoReativo] Aguardando autenticação...');
+  console.log('🟢 [useProgressoReativo] Hook iniciado:', { 
+    produtoId, 
+    cartorioId, 
+    isAuthenticated, 
+    authLoading,
+    refreshKey 
+  });
+
+  const calcularProgresso = useCallback(async () => {
+    // Aguardar autenticação completa
+    if (!isAuthenticated || authLoading || !cartorioId || !produtoId) {
+      console.log('⏳ [useProgressoReativo] Aguardando autenticação completa...');
+      setIsLoading(true);
       return;
     }
 
-    if (!user || !cartorioId) {
-      console.log('❌ [useProgressoReativo] Usuário não autenticado');
-      setProgresso(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: 'Usuário não autenticado' 
-      }));
-      return;
-    }
-
-    if (!produtoId) {
-      console.log('⏳ [useProgressoReativo] Aguardando produtoId...');
-      // NÃO define loading como false aqui - continua aguardando
-      return;
-    }
+    setIsLoading(true);
+    setError(null);
 
     try {
-      console.log('🟡 [useProgressoReativo] Iniciando carregamento...');
-      setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
+      console.log('🔄 [useProgressoReativo] Calculando progresso para produto:', produtoId);
 
-      // Verificar se o produto existe
-      const { data: produto, error: produtoError } = await supabase
-        .from('produtos')
-        .select('id, nome')
-        .eq('id', produtoId)
-        .single();
-
-      if (produtoError || !produto) {
-        console.log('❌ [useProgressoReativo] Produto não encontrado:', produtoId);
-        setProgresso({
-          totalAulas: 0,
-          aulasCompletas: 0,
-          percentual: 0,
-          videosCompletos: new Set(),
-          isLoading: false,
-          error: null
-        });
-        return;
-      }
-
-      // Buscar todas as videoaulas do produto
-      const { data: videoAulas, error: videoError } = await supabase
-        .from('video_aulas')
-        .select('id')
-        .eq('produto_id', produtoId)
-        .order('ordem');
-
-      if (videoError) throw videoError;
-
-      const totalAulas = videoAulas?.length || 0;
-      const videoIds = videoAulas?.map(v => v.id) || [];
-      console.log('🟡 [useProgressoReativo] VideoAulas encontradas:', { totalAulas, videoIds });
-
-      if (totalAulas === 0) {
-        console.log('🟡 [useProgressoReativo] Nenhuma videoaula encontrada');
-        setProgresso({
-          totalAulas: 0,
-          aulasCompletas: 0,
-          percentual: 0,
-          videosCompletos: new Set(),
-          isLoading: false,
-          error: null
-        });
-        return;
-      }
-
-      // ✅ CORREÇÃO: Buscar visualizações completas com query direta
-      console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId);
-      const { data: visualizacoes, error: visualError } = await supabase
-        .from('visualizacoes_cartorio')
-        .select('video_aula_id, completo')
-        .eq('cartorio_id', cartorioId)
-        .eq('completo', true)
-        .in('video_aula_id', videoIds);
-
-      if (visualError) throw visualError;
-
-      const videosCompletos = new Set(visualizacoes?.map(v => v.video_aula_id) || []);
-      const aulasCompletas = videosCompletos.size;
-      const percentual = totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
-      
-      console.log('🟡 [useProgressoReativo] Progresso calculado:', {
-        totalAulas,
-        aulasCompletas,
-        percentual,
-        videosCompletos: Array.from(videosCompletos)
+      // Usar função robusta que garante autenticação
+      const resultado = await executeRPCWithCartorioContext('get_product_progress', {
+        p_produto_id: produtoId,
+        p_cartorio_id: cartorioId
       });
 
-      setProgresso({
-        totalAulas,
-        aulasCompletas,
-        percentual,
-        videosCompletos,
-        isLoading: false,
-        error: null
+      console.log('✅ [useProgressoReativo] Progresso calculado:', resultado);
+
+      const total = resultado?.total_aulas || 0;
+      const completas = resultado?.aulas_concluidas || 0;
+      const percent = resultado?.percentual || 0;
+
+      setTotalAulas(total);
+      setAulasCompletas(completas);
+      setPercentual(percent);
+
+      console.log('🎯 [useProgressoReativo] Estado atualizado:', { 
+        total, 
+        completas, 
+        percent 
       });
 
-    } catch (error) {
-      console.error('Erro ao carregar progresso:', error);
-      setProgresso(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Erro ao carregar progresso'
-      }));
-    }
-  }, [cartorioId, produtoId, authLoading, user, forceRefresh]);
-
-  const marcarVideoCompleto = (videoId: string, completo: boolean) => {
-    console.log('🟡 [useProgressoReativo] marcarVideoCompleto chamado:', { videoId, completo });
-    
-    setProgresso(prev => {
-      console.log('🟡 [useProgressoReativo] Estado anterior:', {
-        totalAulas: prev.totalAulas,
-        aulasCompletas: prev.aulasCompletas,
-        percentual: prev.percentual,
-        videosCompletos: Array.from(prev.videosCompletos)
-      });
+    } catch (error: any) {
+      console.error('❌ [useProgressoReativo] Erro ao calcular progresso:', error);
       
-      const novosVideosCompletos = new Set(prev.videosCompletos);
-      
-      if (completo) {
-        novosVideosCompletos.add(videoId);
+      if (error.message?.includes('Sessão expirada') || error.message?.includes('Token')) {
+        setError('Sessão expirada. Faça login novamente.');
       } else {
-        novosVideosCompletos.delete(videoId);
+        setError('Erro ao carregar progresso');
       }
-
-      const novasAulasCompletas = novosVideosCompletos.size;
-      const novoPercentual = prev.totalAulas > 0 ? Math.round((novasAulasCompletas / prev.totalAulas) * 100) : 0;
-
-      const novoEstado = {
-        ...prev,
-        aulasCompletas: novasAulasCompletas,
-        percentual: novoPercentual,
-        videosCompletos: novosVideosCompletos
-      };
-      
-      console.log('🟡 [useProgressoReativo] Novo estado:', {
-        totalAulas: novoEstado.totalAulas,
-        aulasCompletas: novoEstado.aulasCompletas,
-        percentual: novoEstado.percentual,
-        videosCompletos: Array.from(novoEstado.videosCompletos)
-      });
-
-      return novoEstado;
-    });
-    
-    // Recarregar dados do banco após pequeno delay para garantir sincronização
-    setTimeout(() => {
-      console.log('🟡 [useProgressoReativo] Recarregando dados após marcar como completo');
-      carregarProgresso();
-    }, 500);
-  };
-
-  const isVideoCompleto = (videoId: string) => {
-    return progresso.videosCompletos.has(videoId);
-  };
-
-  useEffect(() => {
-    console.log('🟡 [useProgressoReativo] useEffect executado:', { produtoId, cartorioId, authLoading });
-    carregarProgresso();
-  }, [carregarProgresso]); // ✅ DEPENDÊNCIAS CORRETAS
-
-  const result = {
-    ...progresso,
-    marcarVideoCompleto,
-    isVideoCompleto,
-    recarregar: carregarProgresso,
-    forceRefresh: () => {
-      console.log('🔄 [useProgressoReativo] Force refresh chamado');
-      carregarProgresso();
+    } finally {
+      setIsLoading(false);
     }
+  }, [cartorioId, produtoId, isAuthenticated, authLoading]);
+
+  // Função para marcar vídeo como completo e recalcular
+  const marcarVideoCompleto = useCallback(async (videoId: string, completo: boolean) => {
+    console.log('🔄 [useProgressoReativo] Marcando vídeo e recalculando:', { videoId, completo });
+    
+    // Aguardar um pouco para a visualização ser registrada
+    setTimeout(() => {
+      calcularProgresso();
+    }, 500);
+  }, [calcularProgresso]);
+
+  // Effect principal para calcular progresso
+  useEffect(() => {
+    calcularProgresso();
+  }, [calcularProgresso, refreshKey]);
+
+  return {
+    totalAulas,
+    aulasCompletas,
+    percentual,
+    isLoading,
+    error,
+    marcarVideoCompleto,
+    refetch: calcularProgresso
   };
-  
-  console.log('🟡 [useProgressoReativo] Retornando:', {
-    totalAulas: result.totalAulas,
-    aulasCompletas: result.aulasCompletas,
-    percentual: result.percentual,
-    isLoading: result.isLoading,
-    error: result.error
-  });
-  
-  return result;
 };

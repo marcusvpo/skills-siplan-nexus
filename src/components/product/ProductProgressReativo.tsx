@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Clock, BookOpen, RefreshCw } from 'lucide-react';
 import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductProgressReativoProps {
   produtoId?: string;
@@ -14,21 +16,24 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
   produtoId, 
   produtoNome 
 }) => {
-  console.log('🟢 [ProductProgressReativo] Componente renderizado:', { produtoId, produtoNome });
+  console.log('🟢 [ProductProgressReativo] Renderizado:', { produtoId, produtoNome });
   
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId, refreshKey);
   
-  console.log('🟢 [ProductProgressReativo] Hook retornou:', { 
+  console.log('🟢 [ProductProgressReativo] Estado atual:', { 
     totalAulas, 
     aulasCompletas, 
     percentual, 
     isLoading, 
-    error 
+    error,
+    isAuthenticated,
+    authLoading
   });
 
-  // ✅ LOADING STATE - aguardando produtoId ou autenticação
-  if (isLoading || !produtoId) {
+  // ✅ LOADING STATE - aguardando autenticação completa
+  if (!isAuthenticated || authLoading || isLoading || !produtoId) {
     return (
       <Card className="glass-effect border-gray-600/50 mb-6">
         <CardContent className="p-6">
@@ -38,14 +43,16 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
               <h3 className="text-lg font-semibold text-white">{produtoNome}</h3>
             </div>
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-600 rounded w-24 text-sm">Carregando...</div>
+              <div className="h-4 bg-gray-600 rounded w-24 text-sm">
+                {authLoading ? 'Autenticando...' : 'Carregando...'}
+              </div>
             </div>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
             <div className="bg-gray-600 h-2 rounded-full animate-pulse" style={{ width: '30%' }}></div>
           </div>
           <div className="mt-2 text-xs text-gray-400">
-            {!produtoId ? 'Aguardando produto...' : 'Aguardando autenticação completa...'}
+            {!isAuthenticated ? 'Aguardando autenticação...' : 'Sincronizando progresso...'}
           </div>
         </CardContent>
       </Card>
@@ -64,6 +71,15 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
             <span className="text-red-400 text-sm">Erro</span>
           </div>
           <p className="text-red-400 text-sm">{error}</p>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setRefreshKey(prev => prev + 1)}
+            className="mt-2"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Tentar Novamente
+          </Button>
         </CardContent>
       </Card>
     );
@@ -112,15 +128,11 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
               size="sm" 
               variant="outline" 
               onClick={() => {
-                console.log('🔄 [ProductProgressReativo] Force refresh button clicked');
-                setRefreshKey(prev => {
-                  const newKey = prev + 1;
-                  console.log('🔄 [ProductProgressReativo] RefreshKey incrementado para:', newKey);
-                  return newKey;
-                });
+                console.log('🔄 [ProductProgressReativo] Refresh manual acionado');
+                setRefreshKey(prev => prev + 1);
               }}
               className="h-6 px-2 text-xs"
-              title="🔄 Force Refresh Progresso"
+              title="Atualizar progresso"
             >
               <RefreshCw className="h-3 w-3" />
             </Button>

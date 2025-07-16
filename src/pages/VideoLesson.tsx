@@ -19,7 +19,7 @@ const VideoLesson: React.FC = () => {
   }>();
   const navigate = useNavigate();
   
-  // Usar hook para detectar tab focus
+  // Usar hook para detectar tab focus e validar sessão
   useTabFocus();
   
   const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoId || '');
@@ -153,7 +153,7 @@ const VideoLesson: React.FC = () => {
                 {videoAulaData.titulo}
               </h1>
 
-              {/* Progress Button com Timer */}
+              {/* Progress Button - SEM TIMER, disponível imediatamente */}
               <div className="max-w-md">
                 <VideoProgressButton 
                   videoAulaId={videoAulaData.id}

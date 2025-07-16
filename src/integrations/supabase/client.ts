@@ -16,8 +16,8 @@ const getSupabaseInstance = () => {
     console.log('🔧 [Supabase] Creating single client instance');
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
-        persistSession: true, // Mantém a sessão persistente
-        autoRefreshToken: true, // Auto-refresh de tokens
+        persistSession: true,
+        autoRefreshToken: true,
         detectSessionInUrl: true,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         storageKey: 'supabase.auth.token',
@@ -29,18 +29,18 @@ const getSupabaseInstance = () => {
       },
     });
     
-    // Debug apenas em desenvolvimento
     debugSupabaseClient();
   }
   return supabaseInstance;
 };
 
-// Export da instância única
 export const supabase = getSupabaseInstance();
 
-// Função para validar JWT e obter sessão válida
+// Função crítica para validar JWT e garantir token authenticated
 export const getValidSession = async () => {
   try {
+    console.log('🔍 [getValidSession] Iniciando validação de sessão...');
+    
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -53,81 +53,61 @@ export const getValidSession = async () => {
       return null;
     }
     
-    // DEBUG: Analisar o JWT payload
+    // VALIDAÇÃO CRÍTICA: Analisar o JWT payload
     if (session.access_token) {
       try {
         const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
-        console.log('🔍 [getValidSession] JWT Payload:', {
+        console.log('🔍 [getValidSession] JWT Payload Analysis:', {
           role: jwtPayload.role,
           sub: jwtPayload.sub,
           email: jwtPayload.email,
           exp: jwtPayload.exp,
-          iat: jwtPayload.iat
+          iat: jwtPayload.iat,
+          aud: jwtPayload.aud
         });
         
-        // Verificar se o token é authenticated
-        if (jwtPayload.role === 'anon') {
-          console.error('❌ [getValidSession] Token anônimo detectado - usuário não autenticado');
-          return null;
-        }
-        
+        // VERIFICAÇÃO 1: Token deve ser authenticated
         if (jwtPayload.role !== 'authenticated') {
-          console.error('❌ [getValidSession] Token com role inválida:', jwtPayload.role);
+          console.error('❌ [getValidSession] Token não é authenticated:', jwtPayload.role);
+          console.error('❌ [getValidSession] Token anônimo detectado - forçando logout');
+          await supabase.auth.signOut();
           return null;
         }
         
+        // VERIFICAÇÃO 2: Token deve ter user_id (sub)
         if (!jwtPayload.sub) {
           console.error('❌ [getValidSession] Token sem user_id (sub)');
+          await supabase.auth.signOut();
           return null;
         }
         
-        console.log('✅ [getValidSession] Token authenticated válido para user:', jwtPayload.sub);
-      } catch (parseError) {
-        console.error('❌ [getValidSession] Erro ao analisar JWT:', parseError);
-        return null;
-      }
-    }
-    
-    // Verificar se a sessão não expirou
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at || 0;
-    
-    if (expiresAt <= now) {
-      console.warn('⚠️ [getValidSession] Sessão expirada, tentando refresh');
-      
-      // Tentar refresh da sessão
-      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError || !refreshedSession) {
-        console.error('❌ [getValidSession] Erro no refresh da sessão:', refreshError);
-        return null;
-      }
-      
-      // Verificar novamente o JWT após refresh
-      if (refreshedSession.access_token) {
-        try {
-          const jwtPayload = JSON.parse(atob(refreshedSession.access_token.split('.')[1]));
-          console.log('🔍 [getValidSession] JWT Payload após refresh:', {
-            role: jwtPayload.role,
-            sub: jwtPayload.sub,
-            email: jwtPayload.email
-          });
+        // VERIFICAÇÃO 3: Token não pode estar expirado
+        const now = Math.floor(Date.now() / 1000);
+        if (jwtPayload.exp <= now) {
+          console.warn('⚠️ [getValidSession] Token expirado, tentando refresh...');
+          const refreshResult = await supabase.auth.refreshSession();
           
-          if (jwtPayload.role !== 'authenticated') {
-            console.error('❌ [getValidSession] Token refreshed ainda não é authenticated');
+          if (refreshResult.error || !refreshResult.data.session) {
+            console.error('❌ [getValidSession] Erro no refresh:', refreshResult.error);
+            await supabase.auth.signOut();
             return null;
           }
-        } catch (parseError) {
-          console.error('❌ [getValidSession] Erro ao analisar JWT refreshed:', parseError);
-          return null;
+          
+          console.log('✅ [getValidSession] Token renovado com sucesso');
+          return refreshResult.data.session;
         }
+        
+        console.log('✅ [getValidSession] Token authenticated válido confirmado');
+        console.log('✅ [getValidSession] User ID:', jwtPayload.sub);
+        console.log('✅ [getValidSession] Email:', jwtPayload.email);
+        
+      } catch (parseError) {
+        console.error('❌ [getValidSession] Erro ao analisar JWT:', parseError);
+        await supabase.auth.signOut();
+        return null;
       }
-      
-      console.log('✅ [getValidSession] Sessão renovada com sucesso');
-      return refreshedSession;
     }
     
-    console.log('✅ [getValidSession] Sessão válida encontrada');
     return session;
   } catch (error) {
     console.error('❌ [getValidSession] Erro inesperado:', error);
@@ -146,7 +126,7 @@ export const getAuthHeaders = async () => {
   const session = await getValidSession();
   
   if (!session?.access_token) {
-    console.error('❌ [getAuthHeaders] Não foi possível obter token válido');
+    console.error('❌ [getAuthHeaders] Token authenticated não disponível');
     return {};
   }
   
@@ -156,91 +136,76 @@ export const getAuthHeaders = async () => {
     'Content-Type': 'application/json'
   };
   
-  console.log('✅ [getAuthHeaders] Headers de autenticação preparados');
+  console.log('✅ [getAuthHeaders] Headers com token authenticated preparados');
   return headers;
 };
 
-// Sistema de gerenciamento de contexto de autenticação para cartórios
-class AuthContextManager {
+// Sistema simplificado de gerenciamento de contexto para cartórios
+class CartorioAuthManager {
   private currentToken: string | null = null;
-  private currentHeaders: Record<string, string> = {};
 
-  setCartorioContext(token: string) {
-    console.log('🔐 [AuthContext] Setting cartorio context with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
-    
+  setContext(token: string) {
+    console.log('🔐 [CartorioAuth] Configurando contexto para token:', token.substring(0, 20) + '...');
     this.currentToken = token;
-    this.currentHeaders = {};
-    
-    // Para tokens de cartório, configurar headers customizados
-    if (token.startsWith('CART-')) {
-      this.currentHeaders = {
-        'Authorization': `Bearer ${token}`,
-        'X-Custom-Auth': token,
-      };
-    } else {
-      this.currentHeaders = {
-        'Authorization': `Bearer ${token}`,
-      };
-    }
   }
 
   clearContext() {
-    console.log('🔐 [AuthContext] Clearing cartorio context');
+    console.log('🔐 [CartorioAuth] Limpando contexto');
     this.currentToken = null;
-    this.currentHeaders = {};
   }
 
-  getHeaders(): Record<string, string> {
-    return { ...this.currentHeaders };
-  }
-
-  hasContext(): boolean {
+  hasValidContext(): boolean {
     return this.currentToken !== null;
-  }
-
-  getCurrentToken(): string | null {
-    return this.currentToken;
   }
 }
 
-// Instância única do gerenciador de contexto
-const authContextManager = new AuthContextManager();
+const cartorioAuthManager = new CartorioAuthManager();
 
-// Função para configurar o contexto de autenticação de cartório
 export const setCartorioAuthContext = (token: string) => {
-  authContextManager.setCartorioContext(token);
+  cartorioAuthManager.setContext(token);
 };
 
-// Função para limpar o contexto de autenticação de cartório
 export const clearCartorioAuthContext = () => {
-  authContextManager.clearContext();
+  cartorioAuthManager.clearContext();
 };
 
-// Função para obter cliente com contexto de autenticação apropriado
-export const getAuthenticatedClient = () => {
-  // Sempre retorna a instância única do cliente Supabase
-  // O contexto de cartório é gerenciado via headers nas Edge Functions
-  return getSupabaseInstance();
-};
-
-// Helper function compatível com o código existente
-export const createAuthenticatedClient = (token: string) => {
-  console.log('🔐 [createAuthenticatedClient] Setting up context for token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+// Função para executar RPC com contexto de cartório robusto
+export const executeRPCWithCartorioContext = async (rpcName: string, params: any) => {
+  console.log(`🔄 [executeRPC] Executando ${rpcName} com validação completa...`);
   
-  // Em vez de criar nova instância, configuramos o contexto
-  setCartorioAuthContext(token);
+  // ETAPA 1: Validar sessão antes de qualquer coisa
+  const validSession = await getValidSession();
+  if (!validSession) {
+    console.error(`❌ [executeRPC] Sessão inválida para ${rpcName}`);
+    throw new Error('Sessão expirada. Faça login novamente.');
+  }
   
-  // Retorna a instância única configurada
-  return getAuthenticatedClient();
-};
-
-// Funções de compatibilidade (mantidas para não quebrar código existente)
-export const setCustomAuthToken = (token: string) => {
-  console.log('Setting custom auth token via compatibility function:', token);
-  setCartorioAuthContext(token);
-};
-
-export const clearCustomAuthToken = () => {
-  console.log('Clearing custom auth token via compatibility function');
-  clearCartorioAuthContext();
+  // ETAPA 2: Verificar se o token é realmente authenticated
+  try {
+    const jwtPayload = JSON.parse(atob(validSession.access_token.split('.')[1]));
+    if (jwtPayload.role !== 'authenticated') {
+      console.error(`❌ [executeRPC] Token anônimo detectado em ${rpcName}:`, jwtPayload.role);
+      throw new Error('Token de autenticação inválido. Faça login novamente.');
+    }
+    console.log(`✅ [executeRPC] Token authenticated confirmado para ${rpcName}`);
+  } catch (error) {
+    console.error(`❌ [executeRPC] Erro ao validar JWT para ${rpcName}:`, error);
+    throw new Error('Erro de autenticação. Faça login novamente.');
+  }
+  
+  // ETAPA 3: Executar RPC
+  try {
+    const { data, error } = await supabase.rpc(rpcName, params);
+    
+    if (error) {
+      console.error(`❌ [executeRPC] Erro RPC ${rpcName}:`, error);
+      throw error;
+    }
+    
+    console.log(`✅ [executeRPC] ${rpcName} executado com sucesso`);
+    return data;
+  } catch (rpcError) {
+    console.error(`❌ [executeRPC] Falha na execução de ${rpcName}:`, rpcError);
+    throw rpcError;
+  }
 };

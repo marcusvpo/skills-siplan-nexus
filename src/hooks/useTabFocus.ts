@@ -9,21 +9,28 @@ export const useTabFocus = () => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        // Usuário voltou para a aba - verificar sessão
+        console.log('👁️ [useTabFocus] Tab focus detectado, validando sessão...');
+        
         try {
-          console.log('👁️ [useTabFocus] Usuário voltou para a aba, verificando sessão...');
-          
           const validSession = await getValidSession();
           
           if (!validSession) {
-            console.log('❌ [useTabFocus] Sessão inválida ou expirada, redirecionando para login');
+            console.log('❌ [useTabFocus] Sessão inválida ou expirada');
+            navigate('/login');
+            return;
+          }
+          
+          // Verificar se é realmente authenticated
+          const jwtPayload = JSON.parse(atob(validSession.access_token.split('.')[1]));
+          if (jwtPayload.role !== 'authenticated') {
+            console.log('❌ [useTabFocus] Token não é authenticated:', jwtPayload.role);
             navigate('/login');
             return;
           }
           
           console.log('✅ [useTabFocus] Sessão válida confirmada');
         } catch (error) {
-          console.error('❌ [useTabFocus] Erro inesperado ao verificar sessão:', error);
+          console.error('❌ [useTabFocus] Erro ao validar sessão:', error);
           navigate('/login');
         }
       }
