@@ -1,198 +1,204 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 
-interface StableAuthState {
-  user: User | null;
+interface AuthState {
   session: Session | null;
-  isLoading: boolean;
+  user: User | null;
+  loading: boolean;
+  isInitialized: boolean;
   isAdmin: boolean;
   error: string | null;
 }
 
+const STORAGE_KEY = 'supabase.auth.token';
+
 export const useStableAuth = () => {
-  const [authState, setAuthState] = useState<StableAuthState>({
-    user: null,
+  const [authState, setAuthState] = useState<AuthState>({
     session: null,
-    isLoading: true,
+    user: null,
+    loading: true,
+    isInitialized: false,
     isAdmin: false,
     error: null
   });
 
+  const initializationRef = useRef(false);
+  const listenerRef = useRef<any>(null);
+
+  // Função para recuperar sessão do localStorage
+  const getStoredSession = useCallback(async () => {
+    try {
+      const storedSession = localStorage.getItem(STORAGE_KEY);
+      if (storedSession) {
+        const parsedSession = JSON.parse(storedSession);
+        console.log('🔍 DEBUG: Found stored session:', parsedSession);
+        return parsedSession;
+      }
+    } catch (error) {
+      console.error('❌ Error parsing stored session:', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    return null;
+  }, []);
+
+  // Função para salvar sessão no localStorage
+  const saveSession = useCallback((session: Session | null) => {
+    try {
+      if (session) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        console.log('💾 Session saved to localStorage');
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        console.log('🗑️ Session removed from localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Error saving session:', error);
+    }
+  }, []);
+
+  // Função para verificar status de admin
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
-    console.log('🔍 DEBUG: checkAdminStatus called for email:', user?.email);
-    console.log('🔍 DEBUG: User object:', user);
-    
     if (!user?.email) {
-      console.log('🔍 DEBUG: No user email found, returning false');
       return false;
     }
 
-    console.log('🔍 DEBUG: Supabase client in checkAdminStatus:', supabase);
-    console.log('🔍 DEBUG: Attempting Supabase query for admin status...');
-    
     try {
-      // Implementar timeout para diagnosticar se a query está travando
-      const queryPromise = supabase
+      const { data: adminData, error } = await supabase
         .from('admins')
         .select('id')
         .eq('email', user.email)
         .single();
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Admin query timeout after 10 seconds')), 10000)
-      );
-
-      console.log('🔍 DEBUG: Racing query against timeout...');
-      
-      const result = await Promise.race([queryPromise, timeoutPromise]);
-      
-      console.log('🔍 DEBUG: Query completed, extracting data...');
-      const { data: adminData, error } = result as any;
-
-      console.log('🔍 DEBUG: Supabase query result for admin:', { adminData, error });
-
       if (error && error.code !== 'PGRST116') {
-        console.log('🔍 DEBUG: Admin query error (not PGRST116):', error);
         logger.error('❌ [useStableAuth] Error checking admin status:', { error });
         return false;
       }
 
-      const isAdminResult = !!adminData;
-      console.log('🔍 DEBUG: Admin status determined as:', isAdminResult);
-      
-      return isAdminResult;
+      return !!adminData;
     } catch (err) {
-      console.log('🔍 DEBUG: Error in checkAdminStatus catch block:', err);
-      
-      if (err instanceof Error && err.message.includes('timeout')) {
-        console.log('🔍 DEBUG: Query timed out - this indicates a hanging request');
-        logger.error('❌ [useStableAuth] Admin query timed out:', { error: err });
-      } else {
-        logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
-      }
+      logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
       return false;
     }
   }, []);
 
+  // Função para atualizar estado de auth
+  const updateAuthState = useCallback(async (session: Session | null) => {
+    console.log('🔄 Updating auth state:', session ? 'with session' : 'without session');
+    
+    const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
+    
+    setAuthState(prevState => {
+      const newState = {
+        session,
+        user: session?.user || null,
+        loading: false,
+        isInitialized: true,
+        isAdmin,
+        error: null
+      };
+      
+      // Só atualiza se realmente mudou
+      if (
+        prevState.session?.access_token !== newState.session?.access_token ||
+        prevState.loading !== newState.loading ||
+        prevState.isInitialized !== newState.isInitialized ||
+        prevState.isAdmin !== newState.isAdmin
+      ) {
+        return newState;
+      }
+      
+      return prevState;
+    });
+
+    saveSession(session);
+  }, [saveSession, checkAdminStatus]);
+
+  // Inicialização única
   useEffect(() => {
-    let mounted = true;
-    console.log('🔍 DEBUG: useStableAuth useEffect initializing...');
+    if (initializationRef.current) return;
+    
+    initializationRef.current = true;
+    console.log('🚀 Initializing auth...');
 
-    const handleAuthStateChange = async (event: string, session: Session | null) => {
-      if (!mounted) {
-        console.log('🔍 DEBUG: Component unmounted, skipping auth state change');
-        return;
-      }
-
-      console.log('🔍 DEBUG: handleAuthStateChange called with event:', event);
-      console.log('🔍 DEBUG: Session in handleAuthStateChange:', { 
-        hasSession: !!session,
-        email: session?.user?.email,
-        userId: session?.user?.id 
-      });
-
-      logger.info('🔐 [useStableAuth] Auth state changed:', { 
-        event, 
-        hasSession: !!session,
-        email: session?.user?.email 
-      });
-
-      try {
-        console.log('🔍 DEBUG: Starting admin status check...');
-        const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
-        console.log('🔍 DEBUG: Admin status check completed, result:', isAdmin);
-
-        if (mounted) {
-          console.log('🔍 DEBUG: Setting auth state with isAdmin:', isAdmin);
-          setAuthState({
-            user: session?.user || null,
-            session,
-            isLoading: false,
-            isAdmin,
-            error: null
-          });
-          console.log('🔍 DEBUG: Auth state set successfully');
-        }
-      } catch (err) {
-        console.log('🔍 DEBUG: Error in handleAuthStateChange:', err);
-        if (mounted) {
-          setAuthState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: err instanceof Error ? err.message : 'Erro de autenticação'
-          }));
-        }
-      }
-    };
-
-    // Configurar listener - usando a instância única
-    console.log('🔍 DEBUG: Setting up auth state listener on shared instance');
-    logger.info('🔐 [useStableAuth] Setting up auth state listener on shared instance');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-
-    // Verificar sessão inicial
     const initAuth = async () => {
-      console.log('🔍 DEBUG: initAuth starting...');
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('🔍 DEBUG: getSession result:', { hasSession: !!session, error });
-        
-        if (error) {
-          console.log('🔍 DEBUG: Error in getSession:', error);
-          logger.error('❌ [useStableAuth] Error getting session:', { error });
-          if (mounted) {
-            setAuthState(prev => ({
-              ...prev,
-              isLoading: false,
-              error: error.message
-            }));
-          }
+        // 1. Tentar recuperar sessão do localStorage primeiro
+        const storedSession = await getStoredSession();
+        if (storedSession) {
+          console.log('📦 Using stored session');
+          await updateAuthState(storedSession);
           return;
         }
 
-        console.log('🔍 DEBUG: Calling handleAuthStateChange from initAuth...');
-        await handleAuthStateChange('initial', session);
-        console.log('🔍 DEBUG: initAuth completed');
-      } catch (err) {
-        console.log('🔍 DEBUG: Error in initAuth:', err);
-        logger.error('❌ [useStableAuth] Error in initAuth:', { error: err });
-        if (mounted) {
-          setAuthState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: err instanceof Error ? err.message : 'Erro de inicialização'
-          }));
+        // 2. Se não há sessão armazenada, buscar do Supabase
+        console.log('🔍 Getting session from Supabase...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          await updateAuthState(null);
+          return;
         }
+
+        console.log('✅ Session retrieved:', session ? 'found' : 'not found');
+        await updateAuthState(session);
+
+      } catch (error) {
+        console.error('❌ Auth initialization error:', error);
+        await updateAuthState(null);
       }
     };
 
     initAuth();
+  }, [getStoredSession, updateAuthState]);
+
+  // Configurar listener de mudanças de auth (apenas uma vez)
+  useEffect(() => {
+    if (!initializationRef.current || listenerRef.current) return;
+
+    console.log('👂 Setting up auth state listener...');
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.log(`🔔 Auth event: ${event}`, session ? 'with session' : 'without session');
+        
+        switch (event) {
+          case 'SIGNED_IN':
+          case 'TOKEN_REFRESHED':
+            await updateAuthState(session);
+            break;
+          case 'SIGNED_OUT':
+            await updateAuthState(null);
+            break;
+          default:
+            // Para outros eventos, manter estado atual se não há mudança significativa
+            if (session) {
+              await updateAuthState(session);
+            }
+        }
+      }
+    );
+
+    listenerRef.current = subscription;
 
     return () => {
-      mounted = false;
+      console.log('🧹 Cleaning up auth listener');
       subscription.unsubscribe();
-      console.log('🔍 DEBUG: useStableAuth cleanup completed');
+      listenerRef.current = null;
     };
-  }, [checkAdminStatus]);
+  }, [updateAuthState]);
 
   const logout = useCallback(async () => {
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem(STORAGE_KEY);
     } catch (err) {
       logger.error('❌ [useStableAuth] Error during logout:', { error: err });
     }
   }, []);
-
-  console.log('🔍 DEBUG: useStableAuth returning state:', {
-    hasUser: !!authState.user,
-    hasSession: !!authState.session,
-    isLoading: authState.isLoading,
-    isAdmin: authState.isAdmin,
-    error: authState.error
-  });
 
   return {
     ...authState,
