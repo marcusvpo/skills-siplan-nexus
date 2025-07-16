@@ -38,13 +38,20 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
   const cartorioId = user?.cartorio_id;
   
-  // Verificar progresso inicial apenas após autenticação completa
+  // Verificar progresso inicial APENAS após autenticação completa
   useEffect(() => {
-    if (!isAuthenticated || authLoading || !cartorioId || !videoAulaId) {
-      if (!authLoading) {
-        console.log('⚠️ [VideoProgressButton] Aguardando autenticação completa...');
-        setIsChecking(false);
-      }
+    // Se auth ainda carregando, aguardar
+    if (authLoading) {
+      console.log('⏳ [VideoProgressButton] Aguardando autenticação...');
+      setIsChecking(true);
+      return;
+    }
+
+    // Se não autenticado, finalizar verificação
+    if (!isAuthenticated || !cartorioId || !videoAulaId) {
+      console.log('⚠️ [VideoProgressButton] Não autenticado ou dados faltando');
+      setIsChecking(false);
+      setIsCompleted(false);
       return;
     }
 
@@ -53,7 +60,6 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       try {
         console.log('🔍 [VideoProgressButton] Verificando progresso para cartório autenticado:', cartorioId);
 
-        // Usar executeRPCWithCartorioContext para garantir autenticação
         const result = await executeRPCWithCartorioContext('get_visualizacao_cartorio', {
           p_cartorio_id: cartorioId,
           p_video_aula_id: videoAulaId
@@ -63,7 +69,6 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         setIsCompleted(result?.completo || false);
       } catch (error) {
         console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
-        // Não mostrar erro para o usuário se for apenas falta de dados
         setIsCompleted(false);
       } finally {
         setIsChecking(false);
@@ -73,7 +78,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     checkProgress();
   }, [cartorioId, videoAulaId, isAuthenticated, authLoading]);
 
-  // Função para marcar/desmarcar conclusão
+  // Função para marcar/desmarcar conclusão - SEM TIMER, imediatamente disponível
   const toggleCompletion = async () => {
     console.log('🔵 [VideoProgressButton] Toggle completion iniciado');
     
@@ -85,7 +90,6 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       const newCompletedState = !isCompleted;
       console.log('🔵 [VideoProgressButton] Novo estado:', newCompletedState);
 
-      // Usar função robusta com validação completa de autenticação
       const result = await executeRPCWithCartorioContext('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
         p_completo: newCompletedState,
@@ -123,7 +127,6 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     } catch (error: any) {
       console.error('❌ [VideoProgressButton] Erro ao atualizar progresso:', error);
       
-      // Tratar diferentes tipos de erro
       if (error.message?.includes('Sessão expirada') || error.message?.includes('Token')) {
         toast({
           title: "Sessão expirada",
@@ -146,16 +149,17 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     }
   };
 
-  // Estados de não-renderização
-  if (!isAuthenticated || authLoading || !cartorioId) {
-    if (authLoading) {
-      return (
-        <Button disabled className="w-full">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Autenticando...
-        </Button>
-      );
-    }
+  // Estados condicionais baseados em autenticação
+  if (authLoading) {
+    return (
+      <Button disabled className="w-full">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Autenticando...
+      </Button>
+    );
+  }
+
+  if (!isAuthenticated || !cartorioId) {
     return (
       <Button disabled className="w-full">
         <Circle className="mr-2 h-4 w-4" />
@@ -173,7 +177,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     );
   }
 
-  // Botão principal - SEM TIMER, disponível imediatamente
+  // Botão principal - IMEDIATAMENTE CLICÁVEL (sem timer de 2 minutos)
   return (
     <Button
       onClick={toggleCompletion}
