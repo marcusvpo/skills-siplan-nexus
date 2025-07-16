@@ -3,6 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { executeRPCWithCartorioContext } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface ProgressResult {
+  total_aulas: number;
+  aulas_concluidas: number;
+  percentual: number;
+}
+
 export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [totalAulas, setTotalAulas] = useState(0);
@@ -39,7 +45,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
       const resultado = await executeRPCWithCartorioContext('get_product_progress', {
         p_produto_id: produtoId,
         p_cartorio_id: cartorioId
-      });
+      }) as ProgressResult;
 
       console.log('✅ [useProgressoReativo] Progresso calculado:', resultado);
 
@@ -80,6 +86,13 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     }, 500);
   }, [calcularProgresso]);
 
+  // Function to check if a specific video is completed
+  const isVideoCompleto = useCallback((videoId: string): boolean => {
+    // This would need to be implemented with additional data
+    // For now, return false as placeholder
+    return false;
+  }, []);
+
   // Effect principal para calcular progresso
   useEffect(() => {
     calcularProgresso();
@@ -92,6 +105,7 @@ export const useProgressoReativo = (produtoId?: string, refreshKey: number = 0) 
     isLoading,
     error,
     marcarVideoCompleto,
+    isVideoCompleto,
     refetch: calcularProgresso
   };
 };

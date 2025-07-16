@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createAuthenticatedClient, supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
+import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 
@@ -54,8 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('🔄 [AuthProvider] Restaurando usuário de cartório:', userData.cartorio_id);
           
           setUser(userData);
-          const authClient = createAuthenticatedClient(userData.token);
-          setAuthenticatedClient(authClient);
+          setAuthenticatedClient(supabase);
           
           // Configurar contexto do cartório
           setCartorioAuthContext(userData.token);
@@ -117,8 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Configurar cliente para usuários de cartório
     if (type === 'cartorio') {
-      const authClient = createAuthenticatedClient(token);
-      setAuthenticatedClient(authClient);
+      setAuthenticatedClient(supabase);
       
       // Configurar contexto do cartório
       setCartorioAuthContext(token);
