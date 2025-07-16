@@ -27,6 +27,7 @@ export const useStableAuth = () => {
 
   const initializationRef = useRef(false);
   const listenerRef = useRef<any>(null);
+  const sessionCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Função para recuperar sessão do localStorage
   const getStoredSession = useCallback(async () => {
@@ -84,9 +85,38 @@ export const useStableAuth = () => {
     }
   }, []);
 
+  // Função para validar se a sessão ainda é válida
+  const isSessionValid = useCallback((session: Session | null): boolean => {
+    if (!session) return false;
+    
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = session.expires_at || 0;
+    
+    // Considerar sessão inválida se expira em menos de 5 minutos
+    return expiresAt > (now + 300);
+  }, []);
+
   // Função para atualizar estado de auth
   const updateAuthState = useCallback(async (session: Session | null) => {
     console.log('🔄 Updating auth state:', session ? 'with session' : 'without session');
+    
+    // Validar sessão antes de usar
+    if (session && !isSessionValid(session)) {
+      console.log('⚠️ Session expired, clearing auth state');
+      session = null;
+      localStorage.removeItem(STORAGE_KEY);
+      
+      // Tentar refresh da sessão
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (!error && data.session) {
+          session = data.session;
+          console.log('✅ Session refreshed successfully');
+        }
+      } catch (err) {
+        console.error('❌ Error refreshing session:', err);
+      }
+    }
     
     const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
     
@@ -114,7 +144,7 @@ export const useStableAuth = () => {
     });
 
     saveSession(session);
-  }, [saveSession, checkAdminStatus]);
+  }, [saveSession, checkAdminStatus, isSessionValid]);
 
   // Inicialização única
   useEffect(() => {
@@ -165,6 +195,11 @@ export const useStableAuth = () => {
       async (event: AuthChangeEvent, session: Session | null) => {
         console.log(`🔔 Auth event: ${event}`, session ? 'with session' : 'without session');
         
+        // Limpar timeout anterior
+        if (sessionCheckTimeoutRef.current) {
+          clearTimeout(sessionCheckTimeoutRef.current);
+        }
+        
         switch (event) {
           case 'SIGNED_IN':
           case 'TOKEN_REFRESHED':
@@ -184,12 +219,30 @@ export const useStableAuth = () => {
 
     listenerRef.current = subscription;
 
+    // Verificar periodicamente se a sessão ainda é válida
+    const checkSessionPeriodically = () => {
+      sessionCheckTimeoutRef.current = setTimeout(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && !isSessionValid(session)) {
+          console.log('⏰ Session expired during periodic check, signing out');
+          await supabase.auth.signOut();
+        }
+        checkSessionPeriodically();
+      }, 60000); // Verificar a cada minuto
+    };
+
+    checkSessionPeriodically();
+
     return () => {
       console.log('🧹 Cleaning up auth listener');
       subscription.unsubscribe();
       listenerRef.current = null;
+      
+      if (sessionCheckTimeoutRef.current) {
+        clearTimeout(sessionCheckTimeoutRef.current);
+      }
     };
-  }, [updateAuthState]);
+  }, [updateAuthState, isSessionValid]);
 
   const logout = useCallback(async () => {
     try {

@@ -17,6 +17,9 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isLoading) return; // Prevenir múltiplas submissões
+    
     setIsLoading(true);
     console.log('🔍 DEBUG: Admin login form submitted');
 
@@ -45,7 +48,7 @@ const AdminLogin = () => {
         return;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         console.log('🔍 DEBUG: User authenticated, checking admin status for:', data.user.email);
         
         const { data: adminData, error: adminError } = await supabase
@@ -72,6 +75,10 @@ const AdminLogin = () => {
         }
 
         console.log('🔍 DEBUG: Admin login successful for:', adminData.nome);
+        
+        // Aguardar um pouco para garantir que o estado seja atualizado
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         toast({
           title: "Login administrativo realizado!",
           description: `Bem-vindo(a), ${adminData.nome}!`,
