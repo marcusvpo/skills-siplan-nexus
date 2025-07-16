@@ -88,6 +88,18 @@ const Index = () => {
           </Card>
         </div>
 
+        {/* Debug Link */}
+        <div className="text-center mt-8">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-gray-400 border-gray-600 hover:bg-gray-800 hover:text-white"
+            onClick={() => navigate('/debug')}
+          >
+            Debug Panel
+          </Button>
+        </div>
+
       </div>
     </div>
   );

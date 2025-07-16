@@ -157,6 +157,14 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
       console.log('✅ [VideoProgressButton] Contexto do cartório configurado com sucesso');
 
+      // Testar se o contexto foi setado corretamente
+      const { data: testCartorioId, error: testError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
+      console.log('🔍 [VideoProgressButton] Contexto após setar:', testCartorioId);
+      
+      if (testError) {
+        console.error('❌ [VideoProgressButton] Erro ao testar contexto:', testError);
+      }
+
       // Usar a nova função robusta para registrar visualização
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
@@ -185,9 +193,10 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       }
 
       // Verificar se a função retornou sucesso
-      const result = data as { success: boolean; error?: string };
+      const result = data as { success: boolean; error?: string; debug?: string };
       if (result && !result.success) {
         console.error('❌ [VideoProgressButton] Erro retornado pela função:', result);
+        console.error('❌ [VideoProgressButton] Debug da função:', result.debug || 'Sem debug');
         toast({
           title: "Erro",
           description: result.error || "Erro desconhecido ao atualizar progresso",
