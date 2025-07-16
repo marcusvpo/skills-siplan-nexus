@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getValidSession } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
 export const useTabFocus = () => {
@@ -13,33 +13,18 @@ export const useTabFocus = () => {
         try {
           console.log('👁️ [useTabFocus] Usuário voltou para a aba, verificando sessão...');
           
-          const { data: { session }, error } = await supabase.auth.getSession();
+          const validSession = await getValidSession();
           
-          if (error) {
-            console.error('❌ [useTabFocus] Erro ao verificar sessão:', error);
-            return;
-          }
-          
-          if (!session) {
-            console.log('❌ [useTabFocus] Sessão expirou, redirecionando para login');
+          if (!validSession) {
+            console.log('❌ [useTabFocus] Sessão inválida ou expirada, redirecionando para login');
             navigate('/login');
             return;
           }
           
-          // Verificar se a sessão ainda é válida (não expirou)
-          const now = Math.floor(Date.now() / 1000);
-          const expiresAt = session.expires_at || 0;
-          
-          if (expiresAt <= now) {
-            console.log('❌ [useTabFocus] Sessão expirou, redirecionando para login');
-            await supabase.auth.signOut();
-            navigate('/login');
-            return;
-          }
-          
-          console.log('✅ [useTabFocus] Sessão válida');
+          console.log('✅ [useTabFocus] Sessão válida confirmada');
         } catch (error) {
           console.error('❌ [useTabFocus] Erro inesperado ao verificar sessão:', error);
+          navigate('/login');
         }
       }
     };
