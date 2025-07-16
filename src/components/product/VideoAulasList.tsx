@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Play, Clock, ArrowRight, Search, X } from 'lucide-react';
+import { Play, Clock, ArrowRight, Search, X, CheckCircle } from 'lucide-react';
+import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface VideoAula {
   id: string;
@@ -28,6 +29,9 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
   
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Hook para obter o progresso do produto
+  const { isVideoCompleto } = useProgressoReativo(productId);
 
   // Filtrar videoaulas com base no termo de pesquisa
   const filteredVideoAulas = useMemo(() => {
@@ -110,51 +114,79 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {sortedVideoAulas.map((aula) => (
-            <Card 
-              key={aula.id} 
-              className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group"
-              onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {/* Ícone e Ordem */}
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-red-600/20 rounded-lg group-hover:bg-red-600/30 transition-colors">
-                      <Play className="h-4 w-4 text-red-400" />
+          {sortedVideoAulas.map((aula) => {
+            const isCompleted = isVideoCompleto(aula.id);
+            
+            return (
+              <Card 
+                key={aula.id} 
+                className={`bg-gray-800/50 transition-all duration-300 cursor-pointer group ${
+                  isCompleted 
+                    ? 'border-green-500/60 shadow-green-500/20 shadow-lg hover:border-green-400/80' 
+                    : 'border-gray-600 hover:border-red-500/50'
+                }`}
+                onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Ícone e Ordem */}
+                    <div className="flex items-center justify-between">
+                      <div className={`p-2 rounded-lg transition-colors ${
+                        isCompleted 
+                          ? 'bg-green-600/20 group-hover:bg-green-600/30' 
+                          : 'bg-red-600/20 group-hover:bg-red-600/30'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Play className="h-4 w-4 text-red-400" />
+                        )}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {aula.ordem}
+                      </div>
                     </div>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {aula.ordem}
+
+                    {/* Título */}
+                    <div>
+                      <h3 className={`font-semibold transition-colors text-sm line-clamp-2 leading-tight ${
+                        isCompleted 
+                          ? 'text-green-100 group-hover:text-green-300' 
+                          : 'text-white group-hover:text-red-400'
+                      }`}>
+                        {aula.titulo}
+                      </h3>
+                    </div>
+
+                     {/* Botão Assistir */}
+                     <div className="space-y-2">
+                       <Button
+                        size="sm" 
+                        variant="outline"
+                        className={`w-full text-xs transition-colors ${
+                          isCompleted 
+                            ? 'border-green-600 text-green-300 hover:bg-green-600/20' 
+                            : 'border-gray-600 text-gray-300 hover:bg-gray-700'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
+                        }}
+                      >
+                        {isCompleted ? 'Concluída' : 'Assistir'}
+                        {isCompleted ? (
+                          <CheckCircle className="h-3 w-3 ml-1" />
+                        ) : (
+                          <ArrowRight className="h-3 w-3 ml-1" />
+                        )}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Título */}
-                  <div>
-                    <h3 className="font-semibold text-white group-hover:text-red-400 transition-colors text-sm line-clamp-2 leading-tight">
-                      {aula.titulo}
-                    </h3>
-                  </div>
-
-                   {/* Botão Assistir */}
-                   <div className="space-y-2">
-                     <Button
-                      size="sm" 
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
-                      }}
-                    >
-                      Assistir
-                      <ArrowRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
