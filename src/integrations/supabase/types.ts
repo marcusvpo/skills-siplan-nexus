@@ -614,6 +614,21 @@ export type Database = {
         Args: { p_produto_id: string; p_cartorio_id: string }
         Returns: Json
       }
+      get_user_progress_by_cartorio: {
+        Args: { p_cartorio_id: string }
+        Returns: {
+          user_id: string
+          username: string
+          email: string
+          is_active: boolean
+          produto_id: string
+          produto_nome: string
+          sistema_nome: string
+          total_aulas: number
+          aulas_concluidas: number
+          percentual: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
