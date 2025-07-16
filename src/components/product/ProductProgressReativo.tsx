@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Clock, BookOpen, RefreshCw } from 'lucide-react';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo';
+import { useProgressoSincronizado } from '@/hooks/useProgressoSincronizado';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,7 +20,7 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
   
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
-  const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId, refreshKey);
+  const { totalAulas, aulasCompletas, percentual, isLoading, error, forcarRefresh } = useProgressoSincronizado(produtoId, refreshKey);
   
   console.log('🟢 [ProductProgressReativo] Estado atual:', { 
     totalAulas, 
@@ -74,7 +74,7 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={() => setRefreshKey(prev => prev + 1)}
+            onClick={() => forcarRefresh()}
             className="mt-2"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
@@ -129,7 +129,7 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
               variant="outline" 
               onClick={() => {
                 console.log('🔄 [ProductProgressReativo] Refresh manual acionado');
-                setRefreshKey(prev => prev + 1);
+                forcarRefresh();
               }}
               className="h-6 px-2 text-xs"
               title="Atualizar progresso"
