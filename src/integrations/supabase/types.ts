@@ -644,6 +644,10 @@ export type Database = {
         Args: { cartorio_id_param: string }
         Returns: undefined
       }
+      test_cartorio_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       test_insert_visualizacao_cartorio: {
         Args: {
           p_cartorio_id: string

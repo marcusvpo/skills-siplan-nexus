@@ -165,6 +165,15 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         console.error('❌ [VideoProgressButton] Erro ao testar contexto:', testError);
       }
 
+      // Usar a função de teste para verificar múltiplas fontes de contexto
+      const { data: contextTest, error: contextTestError } = await supabase.rpc('test_cartorio_context');
+      
+      if (contextTestError) {
+        console.error('❌ [VideoProgressButton] Erro ao testar contexto completo:', contextTestError);
+      } else {
+        console.log('✅ [VideoProgressButton] Teste de contexto completo:', contextTest);
+      }
+
       // Usar a nova função robusta para registrar visualização
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
