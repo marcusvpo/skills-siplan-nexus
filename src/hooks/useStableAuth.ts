@@ -1,8 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { SupabaseWithRetry } from '@/utils/supabaseWithRetry';
+import { supabase, getValidSession } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface AuthState {
@@ -12,11 +11,11 @@ interface AuthState {
   isInitialized: boolean;
   isAdmin: boolean;
   error: string | null;
-  retryCount: number;
+  lastValidation: number;
 }
 
+const VALIDATION_INTERVAL = 30000; // Validar a cada 30 segundos
 const STORAGE_KEY = 'supabase.auth.token';
-const MAX_RETRIES = 3;
 
 export const useStableAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -26,49 +25,15 @@ export const useStableAuth = () => {
     isInitialized: false,
     isAdmin: false,
     error: null,
-    retryCount: 0
+    lastValidation: 0
   });
 
-  const initializationRef = useRef(false);
+  const validationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const listenerRef = useRef<any>(null);
-  const sessionCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Função para recuperar sessão do localStorage
-  const getStoredSession = useCallback(async () => {
-    try {
-      const storedSession = localStorage.getItem(STORAGE_KEY);
-      if (storedSession) {
-        const parsedSession = JSON.parse(storedSession);
-        console.log('🔍 DEBUG: Found stored session:', parsedSession);
-        return parsedSession;
-      }
-    } catch (error) {
-      console.error('❌ Error parsing stored session:', error);
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    return null;
-  }, []);
-
-  // Função para salvar sessão no localStorage
-  const saveSession = useCallback((session: Session | null) => {
-    try {
-      if (session) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-        console.log('💾 Session saved to localStorage');
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-        console.log('🗑️ Session removed from localStorage');
-      }
-    } catch (error) {
-      console.error('❌ Error saving session:', error);
-    }
-  }, []);
 
   // Função para verificar status de admin
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
-    if (!user?.email) {
-      return false;
-    }
+    if (!user?.email) return false;
 
     try {
       const { data: adminData, error } = await supabase
@@ -89,313 +54,153 @@ export const useStableAuth = () => {
     }
   }, []);
 
-  // Função para validar se a sessão ainda é válida
-  const isSessionValid = useCallback((session: Session | null): boolean => {
-    if (!session) return false;
+  // Função para validar e atualizar estado de auth
+  const validateAndUpdateAuth = useCallback(async (forceCheck: boolean = false) => {
+    const now = Date.now();
     
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at || 0;
-    
-    // Considerar sessão inválida se expira em menos de 5 minutos
-    return expiresAt > (now + 300);
-  }, []);
-
-  // Função para validar JWT payload
-  const validateJWT = useCallback((session: Session | null): boolean => {
-    if (!session?.access_token) return false;
-    
-    try {
-      const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
-      
-      // Verificar se o token é authenticated
-      if (jwtPayload.role !== 'authenticated') {
-        console.error('❌ [useStableAuth] Token não é authenticated:', jwtPayload.role);
-        return false;
-      }
-      
-      if (!jwtPayload.sub) {
-        console.error('❌ [useStableAuth] Token sem user_id (sub)');
-        return false;
-      }
-      
-      console.log('✅ [useStableAuth] JWT válido:', {
-        role: jwtPayload.role,
-        sub: jwtPayload.sub,
-        email: jwtPayload.email
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('❌ [useStableAuth] Erro ao validar JWT:', error);
-      return false;
-    }
-  }, []);
-
-  // Função para tentar refresh da sessão
-  const refreshSession = useCallback(async (): Promise<Session | null> => {
-    try {
-      console.log('🔄 [useStableAuth] Tentando refresh da sessão...');
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('❌ [useStableAuth] Erro no refresh:', error);
-        return null;
-      }
-      
-      if (data.session) {
-        // Validar JWT após refresh
-        if (!validateJWT(data.session)) {
-          console.error('❌ [useStableAuth] JWT inválido após refresh');
-          return null;
-        }
-        
-        console.log('✅ [useStableAuth] Sessão renovada com sucesso');
-        return data.session;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('❌ [useStableAuth] Erro inesperado no refresh:', error);
-      return null;
-    }
-  }, [validateJWT]);
-
-  // Função para retry da autenticação
-  const retryAuth = useCallback(async (attempt: number = 1): Promise<void> => {
-    if (attempt > MAX_RETRIES) {
-      console.error('❌ [useStableAuth] Máximo de tentativas excedido');
-      setAuthState(prev => ({ 
-        ...prev, 
-        error: 'Falha na autenticação após múltiplas tentativas',
-        loading: false,
-        retryCount: attempt - 1
-      }));
+    // Evitar validações muito frequentes, exceto se forçado
+    if (!forceCheck && (now - authState.lastValidation < 5000)) {
       return;
     }
 
     try {
-      console.log(`🔄 [useStableAuth] Tentativa ${attempt} de autenticação`);
+      console.log('🔄 [useStableAuth] Validando sessão...');
       
-      const { data, error } = await SupabaseWithRetry.getSessionWithRetry(1);
+      const validSession = await getValidSession();
       
-      if (error) {
-        throw error;
-      }
-      
-      const session = data?.session;
-      
-      // Validar JWT se sessão existe
-      if (session && !validateJWT(session)) {
-        console.error('❌ [useStableAuth] Sessão com JWT inválido');
-        throw new Error('JWT inválido');
-      }
-      
-      const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
-      
-      setAuthState({
-        session,
-        user: session?.user || null,
-        loading: false,
-        isInitialized: true,
-        isAdmin,
-        error: null,
-        retryCount: attempt
-      });
-      
-      saveSession(session);
-      
-    } catch (error) {
-      console.error(`❌ [useStableAuth] Tentativa ${attempt} falhou:`, error);
-      
-      if (attempt < MAX_RETRIES) {
-        const delay = 1000 * Math.pow(2, attempt - 1); // Backoff exponencial
-        setTimeout(() => retryAuth(attempt + 1), delay);
-      } else {
-        setAuthState(prev => ({ 
-          ...prev, 
-          error: 'Falha na autenticação',
+      if (validSession) {
+        const isAdmin = await checkAdminStatus(validSession.user);
+        
+        setAuthState({
+          session: validSession,
+          user: validSession.user,
           loading: false,
-          retryCount: attempt
-        }));
-      }
-    }
-  }, [checkAdminStatus, saveSession, validateJWT]);
-
-  // Função para atualizar estado de auth
-  const updateAuthState = useCallback(async (session: Session | null) => {
-    console.log('🔄 Updating auth state:', session ? 'with session' : 'without session');
-    
-    // Validar sessão antes de usar
-    if (session && !isSessionValid(session)) {
-      console.log('⚠️ Session expired, tentando refresh...');
-      
-      const refreshedSession = await refreshSession();
-      if (refreshedSession) {
-        session = refreshedSession;
-        console.log('✅ Session refreshed successfully');
+          isInitialized: true,
+          isAdmin,
+          error: null,
+          lastValidation: now
+        });
+        
+        console.log('✅ [useStableAuth] Sessão válida confirmada:', {
+          userId: validSession.user?.id,
+          email: validSession.user?.email,
+          isAdmin
+        });
       } else {
-        console.log('❌ Refresh failed, clearing session');
-        session = null;
-        localStorage.removeItem(STORAGE_KEY);
+        console.log('⚠️ [useStableAuth] Sessão inválida ou expirada');
+        
+        setAuthState({
+          session: null,
+          user: null,
+          loading: false,
+          isInitialized: true,
+          isAdmin: false,
+          error: null,
+          lastValidation: now
+        });
       }
-    }
-    
-    // Validar JWT se sessão existe
-    if (session && !validateJWT(session)) {
-      console.error('❌ [updateAuthState] JWT inválido, limpando sessão');
-      session = null;
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    
-    const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
-    
-    setAuthState(prevState => {
-      const newState = {
-        session,
-        user: session?.user || null,
+    } catch (error) {
+      console.error('❌ [useStableAuth] Erro na validação:', error);
+      
+      setAuthState(prev => ({
+        ...prev,
+        error: 'Erro na validação de sessão',
         loading: false,
-        isInitialized: true,
-        isAdmin,
-        error: null,
-        retryCount: 0
-      };
-      
-      // Só atualiza se realmente mudou
-      if (
-        prevState.session?.access_token !== newState.session?.access_token ||
-        prevState.loading !== newState.loading ||
-        prevState.isInitialized !== newState.isInitialized ||
-        prevState.isAdmin !== newState.isAdmin
-      ) {
-        return newState;
-      }
-      
-      return prevState;
-    });
+        lastValidation: now
+      }));
+    }
+  }, [authState.lastValidation, checkAdminStatus]);
 
-    saveSession(session);
-  }, [saveSession, checkAdminStatus, isSessionValid, refreshSession, validateJWT]);
-
-  // Inicialização única
+  // Inicialização única e robusta
   useEffect(() => {
-    if (initializationRef.current) return;
+    console.log('🚀 [useStableAuth] Inicializando autenticação...');
     
-    initializationRef.current = true;
-    console.log('🚀 Initializing auth...');
-
     const initAuth = async () => {
-      try {
-        // 1. Tentar recuperar sessão do localStorage primeiro
-        const storedSession = await getStoredSession();
-        if (storedSession && isSessionValid(storedSession) && validateJWT(storedSession)) {
-          console.log('📦 Using stored session');
-          await updateAuthState(storedSession);
-          return;
-        }
-
-        // 2. Se não há sessão armazenada válida, tentar com retry
-        console.log('🔍 Getting session from Supabase with retry...');
-        await retryAuth(1);
-
-      } catch (error) {
-        console.error('❌ Auth initialization error:', error);
-        await updateAuthState(null);
-      }
+      await validateAndUpdateAuth(true);
     };
 
     initAuth();
-  }, [getStoredSession, updateAuthState, isSessionValid, validateJWT, retryAuth]);
+  }, []);
 
   // Configurar listener de mudanças de auth
   useEffect(() => {
-    if (!initializationRef.current || listenerRef.current) return;
+    if (listenerRef.current) return;
 
-    console.log('👂 Setting up auth state listener...');
+    console.log('👂 [useStableAuth] Configurando listener de auth...');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        console.log(`🔔 Auth event: ${event}`, session ? 'with session' : 'without session');
+        console.log(`🔔 [useStableAuth] Auth event: ${event}`, session ? 'with session' : 'without session');
         
-        // Limpar timeout anterior
-        if (sessionCheckTimeoutRef.current) {
-          clearTimeout(sessionCheckTimeoutRef.current);
-        }
-        
-        switch (event) {
-          case 'SIGNED_IN':
-          case 'TOKEN_REFRESHED':
-            await updateAuthState(session);
-            break;
-          case 'SIGNED_OUT':
-            await updateAuthState(null);
-            break;
-          default:
-            // Para outros eventos, manter estado atual se não há mudança significativa
-            if (session) {
-              await updateAuthState(session);
-            }
-        }
+        // Para evitar loops, usar setTimeout
+        setTimeout(async () => {
+          await validateAndUpdateAuth(true);
+        }, 100);
       }
     );
 
     listenerRef.current = subscription;
 
-    // Verificar periodicamente se a sessão ainda é válida
-    const checkSessionPeriodically = () => {
-      sessionCheckTimeoutRef.current = setTimeout(async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session && (!isSessionValid(session) || !validateJWT(session))) {
-            console.log('⏰ Session expired or invalid during periodic check, signing out');
-            await supabase.auth.signOut();
-          }
-        } catch (error) {
-          console.error('❌ Error during periodic session check:', error);
-        }
-        checkSessionPeriodically();
-      }, 60000); // Verificar a cada minuto
-    };
-
-    checkSessionPeriodically();
-
     return () => {
-      console.log('🧹 Cleaning up auth listener');
+      console.log('🧹 [useStableAuth] Limpando listener');
       subscription.unsubscribe();
       listenerRef.current = null;
-      
-      if (sessionCheckTimeoutRef.current) {
-        clearTimeout(sessionCheckTimeoutRef.current);
+    };
+  }, [validateAndUpdateAuth]);
+
+  // Validação periódica
+  useEffect(() => {
+    if (!authState.isInitialized) return;
+
+    // Limpar interval anterior se existir
+    if (validationIntervalRef.current) {
+      clearInterval(validationIntervalRef.current);
+    }
+
+    // Configurar validação periódica apenas se há sessão ativa
+    if (authState.session) {
+      validationIntervalRef.current = setInterval(() => {
+        console.log('⏰ [useStableAuth] Validação periódica...');
+        validateAndUpdateAuth(false);
+      }, VALIDATION_INTERVAL);
+    }
+
+    return () => {
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+        validationIntervalRef.current = null;
       }
     };
-  }, [updateAuthState, isSessionValid, validateJWT]);
+  }, [authState.isInitialized, authState.session, validateAndUpdateAuth]);
 
   const logout = useCallback(async () => {
     try {
+      console.log('🚪 [useStableAuth] Executando logout...');
+      
       await supabase.auth.signOut();
       localStorage.removeItem(STORAGE_KEY);
+      
+      // Limpar timers de vídeo
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('video_timer_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      console.log('✅ [useStableAuth] Logout concluído');
     } catch (err) {
-      logger.error('❌ [useStableAuth] Error during logout:', { error: err });
+      logger.error('❌ [useStableAuth] Erro durante logout:', { error: err });
     }
   }, []);
 
-  const clearCacheAndRetry = useCallback(() => {
-    console.log('🧹 [useStableAuth] Clearing cache and retrying auth');
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    // Limpar cache
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('supabase.') || key.startsWith('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Retry auth
-    retryAuth(1);
-  }, [retryAuth]);
+  const forceRefresh = useCallback(async () => {
+    console.log('🔄 [useStableAuth] Forçando refresh da sessão...');
+    await validateAndUpdateAuth(true);
+  }, [validateAndUpdateAuth]);
 
   return {
     ...authState,
     logout,
-    clearCacheAndRetry
+    forceRefresh
   };
 };
