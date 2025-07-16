@@ -13,7 +13,7 @@ import { logger } from '@/utils/logger';
 import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored';
 import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
 import { DashboardStats } from '@/components/admin/DashboardStats';
-import { UserProgressViewRefactored } from '@/components/admin/UserProgressViewRefactored';
+import { UserProgressViewFinal } from '@/components/admin/UserProgressViewFinal';
 
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
@@ -164,7 +164,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
-            <UserProgressViewRefactored />
+            <UserProgressViewFinal />
           </TabsContent>
         </Tabs>
       </div>
