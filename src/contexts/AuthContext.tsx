@@ -66,11 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session: fallbackSession } } = await supabase.auth.getSession();
         if (fallbackSession) {
           console.log('✅ [AuthProvider] Sessão recuperada via fallback');
-          return fallbackSession;
+          return; // Fixed: return void instead of session
         }
       } else if (session) {
         console.log('✅ [AuthProvider] Sessão recuperada via refresh');
-        return session;
+        return; // Fixed: return void instead of session
       }
 
       // 3. Último recurso: verificar localStorage diretamente
