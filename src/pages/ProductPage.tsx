@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContextFixed';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
