@@ -30,6 +30,12 @@ export const useProgressoGeral = () => {
   const calcularProgressos = async () => {
     if (!user?.cartorio_id) return;
 
+    // ✅ AGUARDAR autenticação estar disponível
+    if (!user?.id) {
+      console.log('⚠️ [useProgressoGeral] Aguardando autenticação do usuário...');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -45,18 +51,18 @@ export const useProgressoGeral = () => {
       // Buscar todas as visualizações do cartório - FORÇA REFRESH
       const timestamp = Date.now();
       
-      // Obter user_id da autenticação
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
+      // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+      if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
+
+      console.log('🔍 [useProgressoGeral] Buscando visualizações para cartório:', user.cartorio_id, 'usuário:', user.id);
 
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
         .eq('cartorio_id', user.cartorio_id)
-        .eq('user_id', authUser.id)
+        .eq('user_id', user.id)
         .eq('completo', true)
         .range(0, 1000); // Força uma nova query sempre
 
@@ -113,7 +119,7 @@ export const useProgressoGeral = () => {
 
   useEffect(() => {
     calcularProgressos();
-  }, [user?.cartorio_id, refreshKey]);
+  }, [user?.cartorio_id, user?.id, refreshKey]);
 
   return {
     progressos,

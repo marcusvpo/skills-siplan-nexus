@@ -36,6 +36,12 @@ export const useProgressoProduto = (produtoId: string) => {
   const calcularProgresso = async () => {
     if (!user?.cartorio_id || !produtoId) return;
 
+    // ✅ AGUARDAR autenticação estar disponível
+    if (!user?.id) {
+      console.log('⚠️ [useProgressoProduto] Aguardando autenticação do usuário...');
+      return;
+    }
+
     try {
       setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -66,18 +72,18 @@ export const useProgressoProduto = (produtoId: string) => {
       // 2. Buscar videoaulas concluídas pelo cartório - FORÇA REFRESH
       const timestamp = Date.now();
       
-      // Obter user_id da autenticação
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
+      // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+      if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
+
+      console.log('🔍 [useProgressoProduto] Buscando visualizações para cartório:', user.cartorio_id, 'usuário:', user.id);
 
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
         .eq('cartorio_id', user.cartorio_id)
-        .eq('user_id', authUser.id)
+        .eq('user_id', user.id)
         .eq('completo', true)
         .in('video_aula_id', videoIds)
         .range(0, 1000); // Força uma nova query sempre
@@ -122,7 +128,7 @@ export const useProgressoProduto = (produtoId: string) => {
 
   useEffect(() => {
     calcularProgresso();
-  }, [produtoId, user?.cartorio_id, refreshKey]);
+  }, [produtoId, user?.cartorio_id, user?.id, refreshKey]);
 
   return {
     ...progresso,
