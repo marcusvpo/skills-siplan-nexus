@@ -73,11 +73,20 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           videoAulaId
         });
 
+        // ✅ Obter user_id da autenticação
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (!authUser) {
+          console.error('❌ [VideoProgressButton] Usuário não autenticado para verificação');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('visualizacoes_cartorio')
           .select('completo')
           .eq('video_aula_id', videoAulaId)
           .eq('cartorio_id', cartorioId)
+          .eq('user_id', authUser.id)
           .maybeSingle();
 
         if (error) {

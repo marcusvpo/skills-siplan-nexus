@@ -538,6 +538,7 @@ export type Database = {
           concluida: boolean | null
           data_conclusao: string | null
           id: string
+          user_id: string | null
           video_aula_id: string
         }
         Insert: {
@@ -546,6 +547,7 @@ export type Database = {
           concluida?: boolean | null
           data_conclusao?: string | null
           id?: string
+          user_id?: string | null
           video_aula_id: string
         }
         Update: {
@@ -554,6 +556,7 @@ export type Database = {
           concluida?: boolean | null
           data_conclusao?: string | null
           id?: string
+          user_id?: string | null
           video_aula_id?: string
         }
         Relationships: [
