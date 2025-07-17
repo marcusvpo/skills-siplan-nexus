@@ -115,12 +115,21 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         return;
       }
 
-      // ✅ CORREÇÃO: Buscar visualizações completas com query direta
+      // ✅ CORREÇÃO: Buscar visualizações completas com query direta incluindo user_id
       console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId);
+      
+      // Obter user_id da autenticação
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id, completo')
         .eq('cartorio_id', cartorioId)
+        .eq('user_id', authUser.id)
         .eq('completo', true)
         .in('video_aula_id', videoIds);
 

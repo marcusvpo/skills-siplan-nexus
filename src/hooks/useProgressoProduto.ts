@@ -65,10 +65,19 @@ export const useProgressoProduto = (produtoId: string) => {
 
       // 2. Buscar videoaulas concluídas pelo cartório - FORÇA REFRESH
       const timestamp = Date.now();
+      
+      // Obter user_id da autenticação
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data: visualizacoes, error: visualError } = await supabase
         .from('visualizacoes_cartorio')
         .select('video_aula_id')
         .eq('cartorio_id', user.cartorio_id)
+        .eq('user_id', authUser.id)
         .eq('completo', true)
         .in('video_aula_id', videoIds)
         .range(0, 1000); // Força uma nova query sempre
