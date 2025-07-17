@@ -13,9 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const { username, token } = await req.json()
+    console.log('🔍 [DEBUG] Iniciando teste de conectividade...')
     
-    console.log('🔍 [LOGIN] Iniciando login para username:', username)
+    // Primeiro, vamos testar apenas um GET simples
+    try {
+      const testResponse = await fetch('https://ws.siplan.com.br', {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Supabase-Edge-Function/1.0'
+        }
+      })
+      
+      console.log('✅ [DEBUG] Teste de conectividade:', testResponse.status)
+    } catch (testError) {
+      console.log('❌ [DEBUG] Erro no teste de conectividade:', testError.message)
+    }
+    
+    const { username, token } = await req.json()
+    console.log('📧 [DEBUG] Tentando login para:', username)
 
     // Criar cliente admin do Supabase
     const supabaseAdmin = createClient(
@@ -29,14 +44,23 @@ serve(async (req) => {
       }
     )
 
-    // 1. Validar credenciais no sistema legado
+    // 1. Validar credenciais no sistema legado com headers mais robustos
+    console.log('🔍 [DEBUG] Fazendo POST para API da Siplan...')
     const legacyResponse = await fetch('https://ws.siplan.com.br/cartorio/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Supabase-Edge-Function/1.0',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ username, token })
     })
 
+    console.log('📡 [DEBUG] Status da resposta:', legacyResponse.status)
+
     if (!legacyResponse.ok) {
+      const errorText = await legacyResponse.text()
+      console.log('❌ [DEBUG] Erro da API:', errorText)
       console.log('❌ [LOGIN] Falha na autenticação do sistema legado')
       return new Response(
         JSON.stringify({ success: false, error: 'Credenciais inválidas' }),
@@ -45,6 +69,7 @@ serve(async (req) => {
     }
 
     const userData = await legacyResponse.json()
+    console.log('✅ [DEBUG] Login bem-sucedido')
     console.log('✅ [LOGIN] Autenticação legada bem-sucedida para:', userData.username)
 
     // 2. Buscar ou criar usuário no Supabase Auth
