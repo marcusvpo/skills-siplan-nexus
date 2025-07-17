@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, setCartorioAuthContext, clearCartorioAuthContext, ensureSessionHydration } from '@/integrations/supabase/client';
+import { supabase, setCartorioAuthContext, clearCartorioAuthContext, ensureSessionHydration, syncTokensToCustomKey } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { customCartorioStorage } from '@/utils/customSupabaseStorage';
@@ -51,13 +51,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🔄 [AuthProvider] Iniciando recuperação robusta de sessão...');
     
     try {
-      // 1. Verificar storage customizado primeiro
+      // 1. Primeiro, sincronizar tokens das chaves padrão para customizada
+      await syncTokensToCustomKey();
+      
+      // 2. Verificar storage customizado após sincronização
       const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
       if (customToken) {
-        console.log('✅ [AuthProvider] Token encontrado no storage customizado');
+        console.log('✅ [AuthProvider] Token encontrado no storage customizado após sincronização');
       }
 
-      // 2. Forçar refresh da sessão
+      // 3. Forçar refresh da sessão
       const { data: { session }, error } = await supabase.auth.refreshSession();
       
       if (error) {
@@ -66,14 +69,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session: fallbackSession } } = await supabase.auth.getSession();
         if (fallbackSession) {
           console.log('✅ [AuthProvider] Sessão recuperada via fallback');
-          return; // Fixed: return void instead of session
+          return;
         }
       } else if (session) {
         console.log('✅ [AuthProvider] Sessão recuperada via refresh');
-        return; // Fixed: return void instead of session
+        return;
       }
 
-      // 3. Último recurso: verificar localStorage diretamente
+      // 4. Último recurso: verificar localStorage diretamente
       const directToken = localStorage.getItem('sb-cartorio-auth-token');
       if (directToken) {
         console.log('🔍 [AuthProvider] Token encontrado diretamente no localStorage');

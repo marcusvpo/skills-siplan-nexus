@@ -93,6 +93,33 @@ const getSupabaseInstance = () => {
 
 export const supabase = getSupabaseInstance();
 
+// ⭐ FUNÇÃO CRÍTICA PARA SINCRONIZAR TOKENS DE CHAVES PADRÃO PARA CUSTOMIZADA
+export const syncTokensToCustomKey = async (): Promise<void> => {
+  console.log('🔄 [syncTokensToCustomKey] Sincronizando tokens de chaves padrão para customizada...');
+  
+  const defaultKeys = [
+    'supabase.auth.token',
+    'sb-bnulocsnxiffavvabfdj-auth-token',
+    'sb-auth-token'
+  ];
+  
+  for (const key of defaultKeys) {
+    const value = localStorage.getItem(key);
+    if (value) {
+      console.log(`🔍 [syncTokensToCustomKey] Chave padrão encontrada: ${key}`);
+      try {
+        customCartorioStorage.setItem('sb-cartorio-auth-token', value);
+        console.log('✅ [syncTokensToCustomKey] Token sincronizado para chave customizada');
+        return; // Encontrou e sincronizou, pode parar
+      } catch (error) {
+        console.error('❌ [syncTokensToCustomKey] Erro ao sincronizar token:', error);
+      }
+    }
+  }
+  
+  console.log('⚠️ [syncTokensToCustomKey] Nenhum token encontrado nas chaves padrão');
+};
+
 // ⭐ FUNÇÃO CRÍTICA PARA GARANTIR HIDRATAÇÃO ROBUSTA NA INICIALIZAÇÃO
 export const ensureSessionHydration = async (): Promise<boolean> => {
   try {
@@ -101,11 +128,12 @@ export const ensureSessionHydration = async (): Promise<boolean> => {
     // 1. Debug completo do storage antes de tentar hidratar
     debugStorageKeys();
     
-    // 2. Verificar se nossa chave customizada existe
+    // 2. Sincronizar tokens de chaves padrão para customizada
+    await syncTokensToCustomKey();
+    
+    // 3. Verificar se nossa chave customizada existe agora
     const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
     console.log('🔍 [ensureSessionHydration] Token customizado encontrado:', !!customToken);
-    
-    // 3. Agora o Supabase usa diretamente o customStorage, não precisa copiar tokens
 
     // 4. Primeira tentativa: getSession() imediato
     console.log('🔄 [ensureSessionHydration] ETAPA 1: Tentando getSession...');
