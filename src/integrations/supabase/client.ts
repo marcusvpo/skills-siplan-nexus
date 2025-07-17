@@ -3,7 +3,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { debugSupabaseClient } from '@/utils/authDebug';
-import { customCartorioStorage } from '@/utils/customSupabaseStorage';
 
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
@@ -11,352 +10,115 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Singleton pattern: Uma única instância do cliente Supabase para toda a aplicação
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
-// ⭐ FUNÇÃO DE DEBUG CRÍTICA - Vamos descobrir qual chave está sendo usada
-const debugStorageKeys = () => {
-  console.log('🔍 [DEBUG] === DIAGNÓSTICO COMPLETO DE STORAGE ===');
-  
-  // Todas as chaves no localStorage
-  const allLocalStorageKeys = Object.keys(localStorage);
-  console.log('🔑 [DEBUG] TODAS as chaves localStorage:', allLocalStorageKeys);
-  
-  // Chaves relacionadas a auth/supabase
-  const authKeys = allLocalStorageKeys.filter(key => 
-    key.includes('auth') || 
-    key.includes('token') || 
-    key.includes('supabase') || 
-    key.includes('sb-')
-  );
-  console.log('🔐 [DEBUG] Chaves AUTH encontradas:', authKeys);
-  
-  // Valores dessas chaves
-  authKeys.forEach(key => {
-    const value = localStorage.getItem(key);
-    console.log(`📦 [DEBUG] ${key}:`, value ? 'TEM VALOR' : 'NULL', value?.substring(0, 100) + '...');
-  });
-  
-  console.log('🔍 [DEBUG] === FIM DO DIAGNÓSTICO ===');
-};
-
-// Função para obter a instância única do cliente Supabase com configuração otimizada
+// Função para obter a instância única do cliente Supabase
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
-    console.log('🔧 [Supabase] Criando instância otimizada do cliente com storage customizado');
-    
-    // Debug antes de criar o cliente
-    debugStorageKeys();
-    
+    console.log('🔧 [Supabase] Creating single client instance');
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
-        storage: customCartorioStorage, // ⭐ STORAGE CUSTOMIZADO COM DEBUG
-        storageKey: 'sb-cartorio-auth-token', // ⭐ CHAVE ESPECÍFICA
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false, // Alterado para false para evitar conflitos
-        flowType: 'pkce',
-        debug: true, // ⭐ DEBUG HABILITADO
-      },
-      realtime: {
-        params: {
-          eventsPerSecond: 10
-        }
+        persistSession: true, // Mantém a sessão persistente
+        autoRefreshToken: true, // Auto-refresh de tokens
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'supabase.auth.token',
       },
       global: {
         headers: {
-          'X-Client-Info': 'cartorio-app-debug'
-        }
-      }
+          'x-client-info': 'supabase-js-web/2.50.2'
+        },
+      },
     });
     
-    // ⭐ DIAGNÓSTICO CONTÍNUO E DETALHADO
-    supabaseInstance.auth.onAuthStateChange((event, session) => {
-      console.log(`🔄 [Supabase] Auth event: ${event}`, {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        hasRefreshToken: !!session?.refresh_token, // ⭐ ADICIONADO DEBUG DO REFRESH TOKEN
-        expiresAt: session?.expires_at,
-        userId: session?.user?.id,
-        tokenPreview: session?.access_token?.substring(0, 30) + '...',
-        refreshTokenPreview: session?.refresh_token?.substring(0, 30) + '...' // ⭐ PREVIEW DO REFRESH TOKEN
-      });
-      
-      // Debug storage após cada evento
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('🔍 [Supabase] Verificando storage após', event);
-        setTimeout(() => debugStorageKeys(), 100);
-      }
-    });
-    
+    // Debug apenas em desenvolvimento
     debugSupabaseClient();
   }
   return supabaseInstance;
 };
 
+// Export da instância única
 export const supabase = getSupabaseInstance();
 
-// ⭐ FUNÇÃO CRÍTICA PARA SINCRONIZAR TOKENS DE CHAVES PADRÃO PARA CUSTOMIZADA
-export const syncTokensToCustomKey = async (): Promise<void> => {
-  console.log('🔄 [syncTokensToCustomKey] Sincronizando tokens de chaves padrão para customizada...');
-  
-  const defaultKeys = [
-    'supabase.auth.token',
-    'sb-bnulocsnxiffavvabfdj-auth-token',
-    'sb-auth-token'
-  ];
-  
-  for (const key of defaultKeys) {
-    const value = localStorage.getItem(key);
-    if (value) {
-      console.log(`🔍 [syncTokensToCustomKey] Chave padrão encontrada: ${key}`);
-      try {
-        customCartorioStorage.setItem('sb-cartorio-auth-token', value);
-        console.log('✅ [syncTokensToCustomKey] Token sincronizado para chave customizada');
-        return; // Encontrou e sincronizou, pode parar
-      } catch (error) {
-        console.error('❌ [syncTokensToCustomKey] Erro ao sincronizar token:', error);
-      }
-    }
-  }
-  
-  console.log('⚠️ [syncTokensToCustomKey] Nenhum token encontrado nas chaves padrão');
-};
-
-// ⭐ FUNÇÃO CRÍTICA PARA GARANTIR HIDRATAÇÃO ROBUSTA NA INICIALIZAÇÃO
-export const ensureSessionHydration = async (): Promise<boolean> => {
-  try {
-    console.log('🔍 [ensureSessionHydration] === INICIANDO HIDRATAÇÃO ROBUSTA ===');
-    
-    // 1. Debug completo do storage antes de tentar hidratar
-    debugStorageKeys();
-    
-    // 2. Sincronizar tokens de chaves padrão para customizada
-    await syncTokensToCustomKey();
-    
-    // 3. Verificar se nossa chave customizada existe agora
-    const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
-    console.log('🔍 [ensureSessionHydration] Token customizado encontrado:', !!customToken);
-
-    // 4. Primeira tentativa: getSession() imediato
-    console.log('🔄 [ensureSessionHydration] ETAPA 1: Tentando getSession...');
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('❌ [ensureSessionHydration] Erro ao obter sessão:', error);
-    }
-    
-    if (session?.access_token) {
-      console.log('✅ [ensureSessionHydration] Sessão hidratada com sucesso!');
-      console.log('🔍 [ensureSessionHydration] Token present:', session.access_token.substring(0, 20) + '...');
-      return true;
-    }
-
-    // 5. Segunda tentativa: forçar refresh da sessão
-    console.log('🔄 [ensureSessionHydration] ETAPA 2: Tentando refresh...');
-    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-    
-    if (refreshError) {
-      console.error('❌ [ensureSessionHydration] Erro no refresh:', refreshError);
-    } else if (refreshData.session) {
-      console.log('✅ [ensureSessionHydration] Sessão restaurada via refresh');
-      return true;
-    }
-
-    // 6. Terceira tentativa: setSession manual se encontrou token
-    if (customToken) {
-      console.log('🔄 [ensureSessionHydration] ETAPA 3: Tentando setSession manual...');
-      try {
-        const parsedToken = JSON.parse(customToken);
-        if (parsedToken.access_token && parsedToken.refresh_token) {
-          console.log('🔍 [ensureSessionHydration] Token válido encontrado, definindo sessão...');
-          
-          const { data: setSessionData, error: setSessionError } = await supabase.auth.setSession({
-            access_token: parsedToken.access_token,
-            refresh_token: parsedToken.refresh_token
-          });
-          
-          if (setSessionError) {
-            console.error('❌ [ensureSessionHydration] Erro no setSession:', setSessionError);
-          } else if (setSessionData.session) {
-            console.log('✅ [ensureSessionHydration] Sessão definida manualmente com sucesso');
-            return true;
-          }
-        }
-      } catch (parseError) {
-        console.error('❌ [ensureSessionHydration] Erro ao parsear token:', parseError);
-      }
-    }
-    
-    console.warn('⚠️ [ensureSessionHydration] Nenhuma sessão válida encontrada após todas as tentativas');
-    return false;
-    
-  } catch (error) {
-    console.error('❌ [ensureSessionHydration] Erro inesperado:', error);
-    return false;
-  }
-};
-
-// Função para validar JWT com diagnóstico aprimorado
-export const getValidSession = async () => {
-  try {
-    console.log('🔍 [getValidSession] Iniciando validação com diagnóstico aprimorado...');
-    
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('❌ [getValidSession] Erro ao obter sessão:', error);
-      return null;
-    }
-    
-    if (!session) {
-      console.warn('⚠️ [getValidSession] Nenhuma sessão encontrada');
-      
-      // Diagnóstico adicional com custom storage
-      const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
-      console.log('🔍 [getValidSession] CustomStorage tem dados:', !!customToken);
-      
-      return null;
-    }
-    
-    // VALIDAÇÃO CRÍTICA: Analisar o JWT payload
-    if (session.access_token) {
-      try {
-        const jwtPayload = JSON.parse(atob(session.access_token.split('.')[1]));
-        
-        console.log('🔍 [getValidSession] JWT Payload Analysis:', {
-          role: jwtPayload.role,
-          sub: jwtPayload.sub,
-          email: jwtPayload.email,
-          exp: jwtPayload.exp,
-          iat: jwtPayload.iat,
-          aud: jwtPayload.aud,
-          tokenValid: jwtPayload.exp > Math.floor(Date.now() / 1000)
-        });
-        
-        // VERIFICAÇÃO 1: Token deve ser authenticated
-        if (jwtPayload.role !== 'authenticated') {
-          console.error('❌ [getValidSession] Token não é authenticated:', jwtPayload.role);
-          await supabase.auth.signOut();
-          return null;
-        }
-        
-        // VERIFICAÇÃO 2: Token deve ter user_id (sub)
-        if (!jwtPayload.sub) {
-          console.error('❌ [getValidSession] Token sem user_id (sub)');
-          await supabase.auth.signOut();
-          return null;
-        }
-        
-        // VERIFICAÇÃO 3: Token não pode estar expirado
-        const now = Math.floor(Date.now() / 1000);
-        if (jwtPayload.exp <= now) {
-          console.warn('⚠️ [getValidSession] Token expirado, tentando refresh...');
-          const refreshResult = await supabase.auth.refreshSession();
-          
-          if (refreshResult.error || !refreshResult.data.session) {
-            console.error('❌ [getValidSession] Erro no refresh:', refreshResult.error);
-            await supabase.auth.signOut();
-            return null;
-          }
-          
-          console.log('✅ [getValidSession] Token renovado com sucesso');
-          return refreshResult.data.session;
-        }
-        
-        console.log('✅ [getValidSession] Token authenticated válido confirmado');
-        
-      } catch (parseError) {
-        console.error('❌ [getValidSession] Erro ao analisar JWT:', parseError);
-        await supabase.auth.signOut();
-        return null;
-      }
-    }
-    
-    return session;
-  } catch (error) {
-    console.error('❌ [getValidSession] Erro inesperado:', error);
-    return null;
-  }
-};
-
-// Função para verificar se o usuário está autenticado
-export const isUserAuthenticated = async () => {
-  const session = await getValidSession();
-  return !!session;
-};
-
-// Função para obter headers de autenticação válidos com diagnóstico
-export const getAuthHeaders = async () => {
-  const session = await getValidSession();
-  
-  if (!session?.access_token) {
-    console.error('❌ [getAuthHeaders] Token authenticated não disponível');
-    return {};
-  }
-  
-  const headers = {
-    'Authorization': `Bearer ${session.access_token}`,
-    'apikey': SUPABASE_PUBLISHABLE_KEY,
-    'Content-Type': 'application/json'
-  };
-  
-  console.log('✅ [getAuthHeaders] Headers com token authenticated preparados');
-  return headers;
-};
-
-// Sistema simplificado de gerenciamento de contexto para cartórios
-class CartorioAuthManager {
+// Sistema de gerenciamento de contexto de autenticação para cartórios
+class AuthContextManager {
   private currentToken: string | null = null;
+  private currentHeaders: Record<string, string> = {};
 
-  setContext(token: string) {
-    console.log('🔐 [CartorioAuth] Configurando contexto para token:', token.substring(0, 20) + '...');
+  setCartorioContext(token: string) {
+    console.log('🔐 [AuthContext] Setting cartorio context with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+    
     this.currentToken = token;
+    this.currentHeaders = {};
+    
+    // Para tokens de cartório, configurar headers customizados
+    if (token.startsWith('CART-')) {
+      this.currentHeaders = {
+        'Authorization': `Bearer ${token}`,
+        'X-Custom-Auth': token,
+      };
+    } else {
+      this.currentHeaders = {
+        'Authorization': `Bearer ${token}`,
+      };
+    }
   }
 
   clearContext() {
-    console.log('🔐 [CartorioAuth] Limpando contexto');
+    console.log('🔐 [AuthContext] Clearing cartorio context');
     this.currentToken = null;
+    this.currentHeaders = {};
   }
 
-  hasValidContext(): boolean {
+  getHeaders(): Record<string, string> {
+    return { ...this.currentHeaders };
+  }
+
+  hasContext(): boolean {
     return this.currentToken !== null;
+  }
+
+  getCurrentToken(): string | null {
+    return this.currentToken;
   }
 }
 
-const cartorioAuthManager = new CartorioAuthManager();
+// Instância única do gerenciador de contexto
+const authContextManager = new AuthContextManager();
 
+// Função para configurar o contexto de autenticação de cartório
 export const setCartorioAuthContext = (token: string) => {
-  cartorioAuthManager.setContext(token);
+  authContextManager.setCartorioContext(token);
 };
 
+// Função para limpar o contexto de autenticação de cartório
 export const clearCartorioAuthContext = () => {
-  cartorioAuthManager.clearContext();
+  authContextManager.clearContext();
 };
 
-// Função para executar RPC com validação robusta de sessão
-export const executeRPCWithCartorioContext = async (rpcName: string, params: any) => {
-  console.log(`🔄 [executeRPC] Executando ${rpcName} com validação robusta...`);
+// Função para obter cliente com contexto de autenticação apropriado
+export const getAuthenticatedClient = () => {
+  // Sempre retorna a instância única do cliente Supabase
+  // O contexto de cartório é gerenciado via headers nas Edge Functions
+  return getSupabaseInstance();
+};
+
+// Helper function compatível com o código existente
+export const createAuthenticatedClient = (token: string) => {
+  console.log('🔐 [createAuthenticatedClient] Setting up context for token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
   
-  try {
-    // Garantir que temos uma sessão válida antes de executar
-    const session = await getValidSession();
-    
-    if (!session) {
-      console.error(`❌ [executeRPC] Sessão inválida para ${rpcName}`);
-      throw new Error('Sessão inválida. Faça login novamente.');
-    }
-    
-    console.log(`🔍 [executeRPC] Executando ${rpcName} com sessão válida`);
-    
-    const { data, error } = await supabase.rpc(rpcName as any, params);
-    
-    if (error) {
-      console.error(`❌ [executeRPC] Erro RPC ${rpcName}:`, error);
-      throw error;
-    }
-    
-    console.log(`✅ [executeRPC] ${rpcName} executado com sucesso`);
-    return data;
-  } catch (rpcError) {
-    console.error(`❌ [executeRPC] Falha na execução de ${rpcName}:`, rpcError);
-    throw rpcError;
-  }
+  // Em vez de criar nova instância, configuramos o contexto
+  setCartorioAuthContext(token);
+  
+  // Retorna a instância única configurada
+  return getAuthenticatedClient();
+};
+
+// Funções de compatibilidade (mantidas para não quebrar código existente)
+export const setCustomAuthToken = (token: string) => {
+  console.log('Setting custom auth token via compatibility function:', token);
+  setCartorioAuthContext(token);
+};
+
+export const clearCustomAuthToken = () => {
+  console.log('Clearing custom auth token via compatibility function');
+  clearCartorioAuthContext();
 };

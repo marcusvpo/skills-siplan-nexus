@@ -644,10 +644,6 @@ export type Database = {
           percentual: number
         }[]
       }
-      get_visualizacao_cartorio: {
-        Args: { p_cartorio_id: string; p_video_aula_id: string }
-        Returns: Json
-      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
