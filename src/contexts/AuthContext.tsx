@@ -100,17 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // ⭐ EFFECT PARA RECUPERAÇÃO AUTOMÁTICA
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!stableAuth.session && !stableAuth.loading) {
-        console.log('⚠️ [AuthProvider] Sessão não encontrada, tentando recuperar...');
-        recoverSession();
-      }
-    }, 2000); // Aguarda 2 segundos antes de tentar recuperar
-
-    return () => clearTimeout(timer);
-  }, [stableAuth.session, stableAuth.loading, recoverSession]);
+  // Remover o loop de recuperação automática que estava causando problemas
 
   // Restaurar usuário de cartório do localStorage
   useEffect(() => {

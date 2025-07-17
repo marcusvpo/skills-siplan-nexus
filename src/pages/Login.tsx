@@ -194,26 +194,6 @@ const Login = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {/* Botão de Debug para Limpar Cache */}
-          <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-yellow-400 font-medium">Debug</p>
-                <p className="text-xs text-gray-400">Limpar cache se estiver com problemas</p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={clearAuthState}
-                className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Limpar
-              </Button>
-            </div>
-          </div>
-
           {error && (
             <div className="flex items-center space-x-2 text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
