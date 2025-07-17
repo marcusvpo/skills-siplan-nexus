@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
+  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>, supabaseAccessToken?: string, supabaseRefreshToken?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -107,7 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type, user?.id]);
 
-  const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+  const login = async (
+    token: string, 
+    type: 'cartorio' | 'admin', 
+    userData?: Partial<User>,
+    supabaseAccessToken?: string,
+    supabaseRefreshToken?: string
+  ) => {
     console.log('🔐 [AuthContext] Login iniciado:', { type, hasUserData: !!userData });
     
     const newUser: User = {
@@ -129,49 +135,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const authClient = createAuthenticatedClient(token);
       setAuthenticatedClient(authClient);
       
-      // ✅ CRÍTICO: Configurar sessão do Supabase com o token customizado
-      try {
-        console.log('🔑 [AuthContext] Configurando sessão do Supabase com token customizado...');
-        
-        // Decodificar o token para extrair os dados do usuário
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('📋 [AuthContext] Token payload:', payload);
-        
-        // Configurar a sessão do Supabase manualmente
-        const sessionData = {
-          access_token: token,
-          refresh_token: token, // Usar o mesmo token como refresh
-          expires_in: payload.exp ? payload.exp - Math.floor(Date.now() / 1000) : 3600,
-          user: {
-            id: payload.user_id || userData?.id || '1',
-            email: payload.email || userData?.email || `${userData?.username}@cartorio.local`,
-            role: 'authenticated',
-            app_metadata: {
-              cartorio_id: payload.cartorio_id || userData?.cartorio_id,
-              cartorio_name: payload.cartorio_name || userData?.cartorio_name,
-              username: payload.username || userData?.username
-            },
-            user_metadata: {
-              cartorio_id: payload.cartorio_id || userData?.cartorio_id,
-              cartorio_name: payload.cartorio_name || userData?.cartorio_name,
-              username: payload.username || userData?.username
-            }
+      // ✅ CRÍTICO: Configurar sessão do Supabase com tokens REAIS
+      if (supabaseAccessToken && supabaseRefreshToken) {
+        try {
+          console.log('🔑 [AuthContext] Configurando sessão do Supabase com tokens REAIS...');
+          
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: supabaseAccessToken,
+            refresh_token: supabaseRefreshToken,
+          });
+          
+          if (sessionError) {
+            console.error('❌ [AuthContext] ERRO CRÍTICO ao configurar sessão do Supabase com tokens reais:', sessionError);
+          } else {
+            console.log('✅ [AuthContext] Sessão do Supabase configurada com sucesso com tokens reais.');
           }
-        };
-        
-        // Tentar configurar a sessão
-        const { error: sessionError } = await supabase.auth.setSession(sessionData);
-        
-        if (sessionError) {
-          console.error('❌ [AuthContext] Erro ao configurar sessão do Supabase:', sessionError);
-          // Continuar mesmo com erro, pois o cliente autenticado ainda funciona
-        } else {
-          console.log('✅ [AuthContext] Sessão do Supabase configurada com sucesso');
+        } catch (error) {
+          console.error('❌ [AuthContext] Erro inesperado ao tentar setar sessão Supabase:', error);
         }
-        
-      } catch (error) {
-        console.error('❌ [AuthContext] Erro ao processar token para sessão:', error);
-        // Continuar mesmo com erro
+      } else {
+        console.warn('⚠️ [AuthContext] Tokens REAIS do Supabase (access_token/refresh_token) não foram fornecidos para setSession.');
       }
       
       // Configurar contexto do cartório para RLS

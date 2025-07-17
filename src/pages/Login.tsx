@@ -88,20 +88,28 @@ const Login = () => {
       // Verificar estrutura da resposta
       console.log('🔍 [LOGIN] Verificando estrutura da resposta:');
       console.log('  - data.success:', data.success);
-      console.log('  - data.token:', data.token ? 'PRESENTE' : 'AUSENTE');
+      console.log('  - data.access_token:', data.access_token ? 'PRESENTE' : 'AUSENTE');
+      console.log('  - data.refresh_token:', data.refresh_token ? 'PRESENTE' : 'AUSENTE');
       console.log('  - data.cartorio:', data.cartorio ? 'PRESENTE' : 'AUSENTE');
       console.log('  - data.usuario:', data.usuario ? 'PRESENTE' : 'AUSENTE');
 
-      if (data.success && data.token && data.cartorio && data.usuario) {
+      if (data.success && data.access_token && data.refresh_token && data.cartorio && data.usuario) {
         console.log('✅ [LOGIN] Estrutura válida, prosseguindo com login...');
         
-        await login(data.token, 'cartorio', {
-          id: data.usuario.id,
-          name: data.usuario.username,
-          cartorio_id: data.cartorio.id,
-          cartorio_name: data.cartorio.nome,
-          username: data.usuario.username
-        });
+        await login(
+          'legacy-token', // Token customizado legacy (pode ser removido no futuro)
+          'cartorio', 
+          {
+            id: data.usuario.id,
+            name: data.usuario.username,
+            cartorio_id: data.cartorio.id,
+            cartorio_name: data.cartorio.nome,
+            username: data.usuario.username,
+            email: data.usuario.email
+          },
+          data.access_token,  // ✅ Token de acesso real do Supabase
+          data.refresh_token  // ✅ Token de refresh real do Supabase
+        );
         
         toast({
           title: "Login realizado com sucesso!",
@@ -113,7 +121,8 @@ const Login = () => {
         console.error('❌ [LOGIN] Estrutura inválida da resposta:');
         console.error('  - Campos faltando:', {
           success: !data.success,
-          token: !data.token,
+          access_token: !data.access_token,
+          refresh_token: !data.refresh_token,
           cartorio: !data.cartorio,
           usuario: !data.usuario
         });
