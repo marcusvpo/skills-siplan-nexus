@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,10 @@ const Login = () => {
     try {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
       
+      console.log('🔍 [LOGIN] Iniciando chamada para Edge Function...');
+      console.log('🔍 [LOGIN] URL:', 'https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio');
+      console.log('🔍 [LOGIN] Payload:', { username, login_token: token });
+      
       const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
         method: 'POST',
         headers: {
@@ -34,25 +39,62 @@ const Login = () => {
         body: JSON.stringify({ username, login_token: token }),
       });
 
+      console.log('🔍 [LOGIN] Resposta recebida:');
+      console.log('  - Status:', response.status);
+      console.log('  - StatusText:', response.statusText);
+      console.log('  - Headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Clone response para poder ler o texto múltiplas vezes
+      const responseClone = response.clone();
+      const responseText = await responseClone.text();
+      console.log('🔍 [LOGIN] Corpo da resposta (texto):', responseText);
+
       logger.info('Login response received', { status: response.status });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error: `Erro HTTP ${response.status}`,
-          code: 'HTTP_ERROR'
-        }));
+        console.error('❌ [LOGIN] Response não OK:', response.status);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ [LOGIN] Erro ao parsear JSON de erro:', parseError);
+          errorData = { 
+            error: `Erro HTTP ${response.status}: ${responseText}`,
+            code: 'HTTP_ERROR'
+          };
+        }
         
         logger.error('Login failed', { error: errorData, status: response.status });
         throw new Error(errorData.error || `Erro HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      // Tentar parsear JSON da resposta de sucesso
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('✅ [LOGIN] JSON parseado com sucesso:', data);
+      } catch (parseError) {
+        console.error('❌ [LOGIN] Erro ao parsear JSON de sucesso:', parseError);
+        console.error('❌ [LOGIN] Resposta que falhou no parse:', responseText);
+        throw new Error(`Resposta inválida do servidor - não é JSON válido: ${responseText.substring(0, 200)}`);
+      }
+
       logger.info('Login successful', { 
         cartorio: data.cartorio?.nome,
         usuario: data.usuario?.username
       });
 
+      // Verificar estrutura da resposta
+      console.log('🔍 [LOGIN] Verificando estrutura da resposta:');
+      console.log('  - data.success:', data.success);
+      console.log('  - data.token:', data.token ? 'PRESENTE' : 'AUSENTE');
+      console.log('  - data.cartorio:', data.cartorio ? 'PRESENTE' : 'AUSENTE');
+      console.log('  - data.usuario:', data.usuario ? 'PRESENTE' : 'AUSENTE');
+
       if (data.success && data.token && data.cartorio && data.usuario) {
+        console.log('✅ [LOGIN] Estrutura válida, prosseguindo com login...');
+        
         await login(data.token, 'cartorio', {
           id: data.usuario.id,
           name: data.usuario.username,
@@ -68,9 +110,17 @@ const Login = () => {
         
         navigate('/dashboard');
       } else {
-        throw new Error(data.error || 'Resposta inválida do servidor');
+        console.error('❌ [LOGIN] Estrutura inválida da resposta:');
+        console.error('  - Campos faltando:', {
+          success: !data.success,
+          token: !data.token,
+          cartorio: !data.cartorio,
+          usuario: !data.usuario
+        });
+        throw new Error(data.error || 'Resposta inválida do servidor - campos obrigatórios ausentes');
       }
     } catch (error) {
+      console.error('💥 [LOGIN] Erro capturado:', error);
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
@@ -104,7 +154,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-gray-800 flex items-center justify-center p-4 relative">
-      {/* Acesso Administrativo - posição discreta no canto superior direito */}
       <Link 
         to="/admin-login"
         className="absolute top-4 right-4 flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-400 transition-colors"
@@ -182,7 +231,6 @@ const Login = () => {
               </div>
             </div>
             
-            {/* Botão principal centralizado e destacado */}
             <Button 
               type="submit" 
               className="w-full bg-red-600 hover:bg-red-700 text-white py-4 text-xl font-semibold transition-all duration-200 hover:shadow-lg disabled:opacity-50 shadow-lg"
