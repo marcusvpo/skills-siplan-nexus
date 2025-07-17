@@ -51,7 +51,7 @@ const getSupabaseInstance = () => {
         storageKey: 'sb-cartorio-auth-token', // ⭐ CHAVE ESPECÍFICA
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true, // Alterado para true para detectar sessão na URL
+        detectSessionInUrl: false, // Alterado para false para evitar conflitos
         flowType: 'pkce',
         debug: true, // ⭐ DEBUG HABILITADO
       },
@@ -72,9 +72,11 @@ const getSupabaseInstance = () => {
       console.log(`🔄 [Supabase] Auth event: ${event}`, {
         hasSession: !!session,
         hasAccessToken: !!session?.access_token,
+        hasRefreshToken: !!session?.refresh_token, // ⭐ ADICIONADO DEBUG DO REFRESH TOKEN
         expiresAt: session?.expires_at,
         userId: session?.user?.id,
-        tokenPreview: session?.access_token?.substring(0, 30) + '...'
+        tokenPreview: session?.access_token?.substring(0, 30) + '...',
+        refreshTokenPreview: session?.refresh_token?.substring(0, 30) + '...' // ⭐ PREVIEW DO REFRESH TOKEN
       });
       
       // Debug storage após cada evento
@@ -103,27 +105,7 @@ export const ensureSessionHydration = async (): Promise<boolean> => {
     const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
     console.log('🔍 [ensureSessionHydration] Token customizado encontrado:', !!customToken);
     
-    // 3. Verificar se existe alguma chave padrão do Supabase
-    const defaultKeys = [
-      'supabase.auth.token',
-      'sb-bnulocsnxiffavvabfdj-auth-token',
-      'sb-auth-token'
-    ];
-    
-    for (const key of defaultKeys) {
-      const value = localStorage.getItem(key);
-      if (value) {
-        console.log(`🔍 [ensureSessionHydration] Chave padrão encontrada: ${key}`, value.substring(0, 50) + '...');
-        
-        // Se encontrou uma chave padrão, copiar para nossa chave customizada
-        try {
-          customCartorioStorage.setItem('sb-cartorio-auth-token', value);
-          console.log('✅ [ensureSessionHydration] Token copiado para chave customizada');
-        } catch (error) {
-          console.error('❌ [ensureSessionHydration] Erro ao copiar token:', error);
-        }
-      }
-    }
+    // 3. Agora o Supabase usa diretamente o customStorage, não precisa copiar tokens
 
     // 4. Primeira tentativa: getSession() imediato
     console.log('🔄 [ensureSessionHydration] ETAPA 1: Tentando getSession...');
