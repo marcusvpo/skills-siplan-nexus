@@ -73,10 +73,8 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           videoAulaId
         });
 
-        // ✅ Obter user_id da autenticação
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (!authUser) {
+        // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+        if (!user?.id) {
           console.error('❌ [VideoProgressButton] Usuário não autenticado para verificação');
           return;
         }
@@ -86,7 +84,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           .select('completo')
           .eq('video_aula_id', videoAulaId)
           .eq('cartorio_id', cartorioId)
-          .eq('user_id', authUser.id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         if (error) {
@@ -184,6 +182,15 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       }
 
       // Usar a nova função robusta para registrar visualização
+      console.log('💾 [VideoProgressButton] Executando RPC com dados:', {
+        p_video_aula_id: videoAulaId,
+        p_completo: newCompletedState,
+        p_concluida: newCompletedState,
+        p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
+        user_id: user.id,
+        cartorio_id: cartorioId
+      });
+
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
         p_completo: newCompletedState,

@@ -116,12 +116,10 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
       }
 
       // ✅ CORREÇÃO: Buscar visualizações completas com query direta incluindo user_id
-      console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId);
+      console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId, 'usuário:', user.id);
       
-      // Obter user_id da autenticação
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
+      // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+      if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
 
@@ -129,7 +127,7 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         .from('visualizacoes_cartorio')
         .select('video_aula_id, completo')
         .eq('cartorio_id', cartorioId)
-        .eq('user_id', authUser.id)
+        .eq('user_id', user.id)
         .eq('completo', true)
         .in('video_aula_id', videoIds);
 
