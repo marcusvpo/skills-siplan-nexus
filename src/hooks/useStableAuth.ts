@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, ensureSessionHydration, syncTokensToCustomKey } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface AuthState {
@@ -25,7 +25,7 @@ export const useStableAuth = () => {
 
   const listenerRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
-  const hydrationAttemptedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Função para verificar status de admin
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
@@ -52,6 +52,8 @@ export const useStableAuth = () => {
 
   // Função para atualizar estado de autenticação
   const updateAuthState = useCallback(async (session: Session | null) => {
+    if (!mountedRef.current) return;
+
     console.log('🔄 [useStableAuth] Atualizando estado de auth:', session ? 'com sessão VÁLIDA' : 'sem sessão');
 
     if (session?.access_token) {
@@ -66,30 +68,61 @@ export const useStableAuth = () => {
           exp: new Date(jwtPayload.exp * 1000).toISOString()
         });
         
+        // Verificar se o token não está expirado
+        const now = Math.floor(Date.now() / 1000);
+        if (jwtPayload.exp <= now) {
+          console.warn('⚠️ [useStableAuth] Token expirado, tentando renovar...');
+          
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            console.error('❌ [useStableAuth] Erro no refresh, fazendo logout:', refreshError);
+            await supabase.auth.signOut();
+            if (mountedRef.current) {
+              setAuthState({
+                session: null,
+                user: null,
+                loading: false,
+                isInitialized: true,
+                isAdmin: false,
+                error: 'Sessão expirada'
+              });
+            }
+            return;
+          }
+          
+          // Usar a nova sessão renovada
+          session = refreshData.session;
+        }
+        
         if (jwtPayload.role !== 'authenticated') {
           console.error('❌ [useStableAuth] Token não é authenticated:', jwtPayload.role);
           await supabase.auth.signOut();
-          setAuthState({
-            session: null,
-            user: null,
-            loading: false,
-            isInitialized: true,
-            isAdmin: false,
-            error: 'Token inválido'
-          });
+          if (mountedRef.current) {
+            setAuthState({
+              session: null,
+              user: null,
+              loading: false,
+              isInitialized: true,
+              isAdmin: false,
+              error: 'Token inválido'
+            });
+          }
           return;
         }
 
         const isAdmin = await checkAdminStatus(session.user);
         
-        setAuthState({
-          session,
-          user: session.user,
-          loading: false,
-          isInitialized: true,
-          isAdmin,
-          error: null
-        });
+        if (mountedRef.current) {
+          setAuthState({
+            session,
+            user: session.user,
+            loading: false,
+            isInitialized: true,
+            isAdmin,
+            error: null
+          });
+        }
         
         console.log('✅ [useStableAuth] Estado atualizado com sessão VÁLIDA:', {
           userId: session.user?.id,
@@ -101,77 +134,85 @@ export const useStableAuth = () => {
       } catch (error) {
         console.error('❌ [useStableAuth] Erro ao validar JWT:', error);
         await supabase.auth.signOut();
+        if (mountedRef.current) {
+          setAuthState({
+            session: null,
+            user: null,
+            loading: false,
+            isInitialized: true,
+            isAdmin: false,
+            error: 'Erro na validação do token'
+          });
+        }
+      }
+    } else {
+      if (mountedRef.current) {
         setAuthState({
           session: null,
           user: null,
           loading: false,
           isInitialized: true,
           isAdmin: false,
-          error: 'Erro na validação do token'
+          error: null
         });
       }
-    } else {
-      setAuthState({
-        session: null,
-        user: null,
-        loading: false,
-        isInitialized: true,
-        isAdmin: false,
-        error: null
-      });
       
       console.log('✅ [useStableAuth] Estado atualizado sem sessão');
     }
   }, [checkAdminStatus]);
 
-  // Inicialização robusta com hidratação garantida
+  // Inicialização controlada
   useEffect(() => {
     if (isInitializedRef.current) return;
     
-    console.log('🚀 [useStableAuth] Inicializando autenticação com hidratação robusta...');
+    console.log('🚀 [useStableAuth] Inicializando autenticação...');
     isInitializedRef.current = true;
+    mountedRef.current = true;
 
     const initializeAuth = async () => {
       try {
-        // ETAPA 0: Sincronizar tokens das chaves padrão para customizada
-        console.log('🔄 [useStableAuth] ETAPA 0: Sincronizando tokens para chave customizada...');
-        await syncTokensToCustomKey();
-        
-        // ETAPA 1: Garantir hidratação imediata da sessão
-        console.log('🔄 [useStableAuth] ETAPA 1: Garantindo hidratação da sessão...');
-        
-        if (!hydrationAttemptedRef.current) {
-          hydrationAttemptedRef.current = true;
-          const sessionHydrated = await ensureSessionHydration();
-          console.log('🔍 [useStableAuth] Resultado da hidratação:', sessionHydrated);
-        }
-
-         // ETAPA 2: Configurar listener APÓS hidratação
-         console.log('🔄 [useStableAuth] ETAPA 2: Configurando listener de auth...');
+        // ETAPA 1: Configurar listener PRIMEIRO
+        console.log('🔄 [useStableAuth] ETAPA 1: Configurando listener de auth...');
         
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
+            if (!mountedRef.current) return;
+            
             console.log(`🔔 [useStableAuth] Auth event: ${event}`, {
               hasSession: !!session,
               sessionUserId: session?.user?.id,
               tokenPresent: !!session?.access_token
             });
             
-            // Processar mudanças de estado imediatamente
+            // Evitar processar eventos duplicados ou desnecessários
+            if (event === 'INITIAL_SESSION') {
+              return; // Vamos buscar a sessão manualmente
+            }
+            
+            // Processar mudanças de estado
             await updateAuthState(session);
           }
         );
 
         listenerRef.current = subscription;
 
-         // ETAPA 3: Buscar sessão atual após configurar listener
-         console.log('🔄 [useStableAuth] ETAPA 3: Buscando sessão atual...');
+        // ETAPA 2: Buscar sessão atual APÓS configurar listener
+        console.log('🔄 [useStableAuth] ETAPA 2: Buscando sessão atual...');
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ [useStableAuth] Erro ao obter sessão inicial:', error);
-          await updateAuthState(null);
+          if (mountedRef.current) {
+            setAuthState({
+              session: null,
+              user: null,
+              loading: false,
+              isInitialized: true,
+              isAdmin: false,
+              error: 'Erro ao verificar autenticação'
+            });
+          }
           return;
         }
         
@@ -189,14 +230,16 @@ export const useStableAuth = () => {
 
       } catch (error) {
         console.error('❌ [useStableAuth] Erro na inicialização:', error);
-        setAuthState({
-          session: null,
-          user: null,
-          loading: false,
-          isInitialized: true,
-          isAdmin: false,
-          error: 'Erro na inicialização'
-        });
+        if (mountedRef.current) {
+          setAuthState({
+            session: null,
+            user: null,
+            loading: false,
+            isInitialized: true,
+            isAdmin: false,
+            error: 'Erro na inicialização'
+          });
+        }
       }
     };
 
@@ -205,12 +248,12 @@ export const useStableAuth = () => {
     // Cleanup na desmontagem
     return () => {
       console.log('🧹 [useStableAuth] Limpando listener na desmontagem');
+      mountedRef.current = false;
       if (listenerRef.current) {
         listenerRef.current.unsubscribe();
         listenerRef.current = null;
       }
       isInitializedRef.current = false;
-      hydrationAttemptedRef.current = false;
     };
   }, []); // Sem dependências para executar apenas uma vez
 

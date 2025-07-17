@@ -1,12 +1,14 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,6 +18,53 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Função para limpar todo o estado de autenticação
+  const clearAuthState = async () => {
+    try {
+      console.log('🧹 [Login] Limpando estado de autenticação...');
+      
+      // Limpar localStorage
+      localStorage.removeItem('sb-cartorio-auth-token');
+      localStorage.removeItem('supabase.auth.token');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase.') || key.startsWith('sb-') || key.startsWith('video_timer_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Limpar sessionStorage
+      sessionStorage.clear();
+      
+      // Fazer logout do Supabase
+      await supabase.auth.signOut();
+      
+      // Limpar campos do formulário
+      setUsername('');
+      setToken('');
+      setError('');
+      
+      toast({
+        title: "Cache limpo",
+        description: "Estado de autenticação foi resetado",
+      });
+      
+      console.log('✅ [Login] Estado limpo com sucesso');
+      
+      // Pequeno delay antes de recarregar
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ [Login] Erro ao limpar estado:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao limpar cache. Recarregue a página manualmente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,20 +102,20 @@ const Login = () => {
       });
 
       if (data.success && data.access_token && data.refresh_token) {
-        // CONFIGURAR SESSÃO SUPABASE COM TOKENS REAIS
-        const { supabase } = await import('@/integrations/supabase/client');
+        console.log("✅ [Login] Recebidos tokens do Supabase Auth");
         
+        // CONFIGURAR SESSÃO SUPABASE COM TOKENS REAIS
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: data.access_token,
           refresh_token: data.refresh_token,
         });
 
         if (setSessionError) {
-          console.error("❌ Erro ao configurar a sessão Supabase:", setSessionError);
+          console.error("❌ [Login] Erro ao configurar a sessão Supabase:", setSessionError);
           throw new Error('Erro ao configurar sessão de autenticação');
         }
 
-        console.log("✅ Sessão Supabase configurada com sucesso");
+        console.log("✅ [Login] Sessão Supabase configurada com sucesso");
         
         // Configurar contexto de autenticação customizado
         await login(data.access_token, 'cartorio', {
@@ -145,6 +194,26 @@ const Login = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* Botão de Debug para Limpar Cache */}
+          <div className="border border-yellow-500/20 bg-yellow-500/5 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-yellow-400 font-medium">Debug</p>
+                <p className="text-xs text-gray-400">Limpar cache se estiver com problemas</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearAuthState}
+                className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Limpar
+              </Button>
+            </div>
+          </div>
+
           {error && (
             <div className="flex items-center space-x-2 text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
