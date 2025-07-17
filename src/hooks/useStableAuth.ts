@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, ensureSessionHydration } from '@/integrations/supabase/client';
+import { supabase, ensureSessionHydration, syncTokensToCustomKey } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
 interface AuthState {
@@ -133,6 +133,10 @@ export const useStableAuth = () => {
 
     const initializeAuth = async () => {
       try {
+        // ETAPA 0: Sincronizar tokens das chaves padrão para customizada
+        console.log('🔄 [useStableAuth] ETAPA 0: Sincronizando tokens para chave customizada...');
+        await syncTokensToCustomKey();
+        
         // ETAPA 1: Garantir hidratação imediata da sessão
         console.log('🔄 [useStableAuth] ETAPA 1: Garantindo hidratação da sessão...');
         
@@ -142,8 +146,8 @@ export const useStableAuth = () => {
           console.log('🔍 [useStableAuth] Resultado da hidratação:', sessionHydrated);
         }
 
-        // ETAPA 2: Configurar listener APÓS hidratação
-        console.log('🔄 [useStableAuth] ETAPA 2: Configurando listener de auth...');
+         // ETAPA 2: Configurar listener APÓS hidratação
+         console.log('🔄 [useStableAuth] ETAPA 2: Configurando listener de auth...');
         
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
@@ -160,8 +164,8 @@ export const useStableAuth = () => {
 
         listenerRef.current = subscription;
 
-        // ETAPA 3: Buscar sessão atual após configurar listener
-        console.log('🔄 [useStableAuth] ETAPA 3: Buscando sessão atual...');
+         // ETAPA 3: Buscar sessão atual após configurar listener
+         console.log('🔄 [useStableAuth] ETAPA 3: Buscando sessão atual...');
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
