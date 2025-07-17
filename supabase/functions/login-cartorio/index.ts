@@ -173,39 +173,154 @@ serve(async (req) => {
       });
     }
 
-    console.log('Creating authentication token...');
+    // --- NOVA LÓGICA: Autenticar ou Criar no Supabase Auth ---
+    console.log('Attempting to authenticate with Supabase Auth...');
     
-    // Criar token de autenticação customizado
-    const authPayload = {
-      cartorio_id: acesso.cartorio_id,
-      cartorio_nome: acesso.cartorios.nome,
-      user_id: usuario.id,
-      username: usuario.username,
-      login_token: login_token,
-      role: 'cartorio_user',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 8), // 8 horas
-      iat: Math.floor(Date.now() / 1000),
-      iss: 'siplan-skills'
-    };
+    let supabaseAuthUser = null;
+    const authEmail = acesso.email_contato || `${usuario.username}@${acesso.cartorios.nome.toLowerCase().replace(/\s+/g, '')}.cartorio.local`;
 
-    // Usar base64 simples para o token customizado
-    const customToken = `CART-${btoa(JSON.stringify(authPayload))}`;
+    console.log('Auth email determined:', authEmail);
+
+    // 1. Tenta encontrar um usuário Auth existente pelo email
+    const { data: { users: existingAuthUsers }, error: listUsersError } = await supabase.auth.admin.listUsers({
+        perPage: 1000,
+        page: 1
+    });
+
+    if (listUsersError) {
+        console.error('Error listing Supabase Auth users:', listUsersError);
+        return new Response(JSON.stringify({ 
+          error: 'Erro interno de autenticação',
+          code: 'AUTH_LIST_ERROR',
+          debug: listUsersError.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Procurar por usuário existente
+    const existingUser = existingAuthUsers?.find(u => u.email === authEmail);
+    
+    if (existingUser) {
+        supabaseAuthUser = existingUser;
+        console.log('Found existing Supabase Auth user:', supabaseAuthUser.id);
+    } else {
+        // 2. Se não existir, cria um novo usuário Auth
+        console.log('Supabase Auth user not found. Creating a new one...');
+        const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        
+        const { data: newAuthUserData, error: createUserError } = await supabase.auth.admin.createUser({
+            email: authEmail,
+            password: randomPassword,
+            email_confirm: true,
+            user_metadata: {
+                cartorio_id: acesso.cartorio_id,
+                cartorio_name: acesso.cartorios.nome,
+                app_user_id: usuario.id,
+                username: usuario.username,
+                role: 'cartorio_user'
+            }
+        });
+
+        if (createUserError) {
+            console.error('Error creating Supabase Auth user:', createUserError);
+            return new Response(JSON.stringify({ 
+              error: 'Erro ao criar usuário de autenticação',
+              code: 'AUTH_CREATE_ERROR',
+              debug: createUserError.message
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        supabaseAuthUser = newAuthUserData.user;
+        console.log('New Supabase Auth user created:', supabaseAuthUser.id);
+    }
+
+    // 3. Autentica o usuário Auth para obter a sessão (access_token e refresh_token)
+    const { data: sessionData, error: signInError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: authEmail,
+        options: {
+            redirectTo: 'https://app.siplan.com.br/dashboard'
+        }
+    });
+
+    if (signInError) {
+        console.error('Error generating auth link:', signInError);
+        return new Response(JSON.stringify({ 
+          error: 'Erro ao gerar sessão de autenticação',
+          code: 'AUTH_SESSION_ERROR',
+          debug: signInError.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Como generateLink não retorna uma sessão diretamente, vamos criar uma usando admin.signInWithPassword
+    const { data: { session }, error: sessionError } = await supabase.auth.admin.signInWithPassword({
+        email: authEmail,
+        password: 'temp_password_will_be_replaced'
+    });
+
+    // Se a senha temporária não funcionar, vamos gerar uma sessão via admin
+    let finalSession = null;
+    if (sessionError || !session) {
+        // Usar signInUserById como alternativa
+        const { data: adminSession, error: adminSignInError } = await supabase.auth.admin.signInUserById(supabaseAuthUser.id);
+        
+        if (adminSignInError || !adminSession?.session) {
+            console.error('Error signing in Supabase Auth user:', adminSignInError);
+            return new Response(JSON.stringify({ 
+              error: 'Erro ao criar sessão de autenticação',
+              code: 'AUTH_SIGNIN_ERROR',
+              debug: adminSignInError?.message
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        finalSession = adminSession.session;
+    } else {
+        finalSession = session;
+    }
+
+    console.log('Supabase Auth session generated:', {
+        userId: finalSession.user.id,
+        hasAccessToken: !!finalSession.access_token,
+        hasRefreshToken: !!finalSession.refresh_token,
+        expiresAt: finalSession.expires_at
+    });
     
     console.log('Login successful for:', {
       cartorio: acesso.cartorios.nome,
       usuario: usuario.username
     });
 
+    // Retorna a sessão do Supabase Auth para o cliente
     return new Response(JSON.stringify({
       success: true,
-      token: customToken,
-      cartorio: {
+      // Retornar os tokens reais do Supabase Auth
+      access_token: finalSession.access_token,
+      refresh_token: finalSession.refresh_token,
+      expires_in: finalSession.expires_in,
+      expires_at: finalSession.expires_at,
+      token_type: finalSession.token_type,
+      user: {
+          id: finalSession.user.id,
+          email: finalSession.user.email,
+          user_metadata: finalSession.user.user_metadata
+      },
+      // Dados customizados do seu app
+      cartorio_data: {
         id: acesso.cartorio_id,
         nome: acesso.cartorios.nome,
         cidade: acesso.cartorios.cidade,
         estado: acesso.cartorios.estado
       },
-      usuario: {
+      app_user_data: {
         id: usuario.id,
         username: usuario.username,
         email: usuario.email
