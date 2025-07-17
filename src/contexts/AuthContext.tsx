@@ -31,24 +31,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
+  const [hasInitializedOnce, setHasInitializedOnce] = useState(false);
   
   const stableAuth = useStableAuth();
 
   console.log('🔍 DEBUG: AuthProvider render - auth state:', {
     hasSession: !!stableAuth.session,
-    hasUser: !!stableAuth.user,
+    hasUser: !!user,
     loading: stableAuth.loading,
     isInitialized: stableAuth.isInitialized,
-    isAdmin: stableAuth.isAdmin
+    isAdmin: stableAuth.isAdmin,
+    hasInitializedOnce
   });
 
   useEffect(() => {
-    // Verificar usuário de cartório salvo no localStorage
+    // Verificar usuário de cartório salvo no localStorage APENAS na primeira inicialização
+    if (hasInitializedOnce) {
+      console.log('⚡ [AuthContext] Pulando verificação localStorage - já inicializado');
+      return;
+    }
+
+    console.log('🔍 [AuthContext] Primeira inicialização - verificando localStorage');
+    
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         if (userData.type === 'cartorio' && userData.token) {
+          console.log('📦 [AuthContext] Restaurando usuário do localStorage:', userData.username);
           setUser(userData);
           const authClient = createAuthenticatedClient(userData.token);
           setAuthenticatedClient(authClient);
@@ -71,26 +81,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('siplan-user');
       }
     }
-  }, []);
+    
+    setHasInitializedOnce(true);
+  }, [hasInitializedOnce]);
 
   useEffect(() => {
-    // Atualizar usuário admin baseado no stableAuth
+    // Atualizar usuário admin baseado no stableAuth - APENAS se necessário
     if (stableAuth.session?.user && stableAuth.isAdmin) {
-      const adminUser: User = {
-        id: stableAuth.session.user.id,
-        name: 'Administrador',
-        type: 'admin',
-        email: stableAuth.session.user.email || ''
-      };
-      setUser(adminUser);
+      // Só atualizar se não há usuário atual OU se é diferente
+      if (!user || user.type !== 'admin' || user.id !== stableAuth.session.user.id) {
+        console.log('👤 [AuthContext] Configurando usuário admin');
+        const adminUser: User = {
+          id: stableAuth.session.user.id,
+          name: 'Administrador',
+          type: 'admin',
+          email: stableAuth.session.user.email || ''
+        };
+        setUser(adminUser);
+      }
     } else if (!stableAuth.session && user?.type === 'admin') {
       // Limpar usuário admin se não há sessão
+      console.log('🗑️ [AuthContext] Limpando usuário admin - sem sessão');
       setUser(null);
       setAuthenticatedClient(null);
     }
-  }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
+  }, [stableAuth.session, stableAuth.isAdmin, user?.type, user?.id]);
 
   const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
+    console.log('🔐 [AuthContext] Login iniciado:', { type, hasUserData: !!userData });
+    
     const newUser: User = {
       id: userData?.id || '1',
       name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
@@ -127,9 +146,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     }
+    
+    console.log('✅ [AuthContext] Login concluído com sucesso');
   };
 
   const logout = async () => {
+    console.log('🚪 [AuthContext] Logout iniciado');
+    
     // Sign out from Supabase Auth if it's an admin
     if (user?.type === 'admin') {
       await stableAuth.logout();
@@ -138,10 +161,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setAuthenticatedClient(null);
     localStorage.removeItem('siplan-user');
+    setHasInitializedOnce(false); // Reset para permitir nova inicialização
+    
+    console.log('✅ [AuthContext] Logout concluído');
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.loading;
+  const isLoading = !hasInitializedOnce || stableAuth.loading;
 
   return (
     <AuthContext.Provider value={{ 

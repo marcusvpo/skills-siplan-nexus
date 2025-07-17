@@ -27,43 +27,19 @@ export const useStableAuth = () => {
 
   const initializationRef = useRef(false);
   const listenerRef = useRef<any>(null);
-  const sessionCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stableStateRef = useRef<AuthState | null>(null);
 
-  // Função para recuperar sessão do localStorage
-  const getStoredSession = useCallback(async () => {
-    try {
-      const storedSession = localStorage.getItem(STORAGE_KEY);
-      if (storedSession) {
-        const parsedSession = JSON.parse(storedSession);
-        console.log('🔍 DEBUG: Found stored session:', parsedSession);
-        return parsedSession;
-      }
-    } catch (error) {
-      console.error('❌ Error parsing stored session:', error);
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    return null;
-  }, []);
-
-  // Função para salvar sessão no localStorage
-  const saveSession = useCallback((session: Session | null) => {
-    try {
-      if (session) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-        console.log('💾 Session saved to localStorage');
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-        console.log('🗑️ Session removed from localStorage');
-      }
-    } catch (error) {
-      console.error('❌ Error saving session:', error);
-    }
-  }, []);
-
-  // Função para verificar status de admin
+  // Função para verificar status de admin com cache
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
     if (!user?.email) {
       return false;
+    }
+
+    // Cache simples para evitar múltiplas consultas
+    const cacheKey = `admin_status_${user.email}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached !== null) {
+      return cached === 'true';
     }
 
     try {
@@ -78,7 +54,9 @@ export const useStableAuth = () => {
         return false;
       }
 
-      return !!adminData;
+      const isAdmin = !!adminData;
+      sessionStorage.setItem(cacheKey, isAdmin.toString());
+      return isAdmin;
     } catch (err) {
       logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
       return false;
@@ -92,113 +70,118 @@ export const useStableAuth = () => {
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = session.expires_at || 0;
     
-    // Considerar sessão inválida se expira em menos de 5 minutos
-    return expiresAt > (now + 300);
+    return expiresAt > (now + 300); // 5 minutos de margem
   }, []);
 
-  // Função para atualizar estado de auth
-  const updateAuthState = useCallback(async (session: Session | null) => {
-    console.log('🔄 Updating auth state:', session ? 'with session' : 'without session');
+  // Função para atualizar estado de auth de forma estável
+  const updateAuthState = useCallback(async (session: Session | null, force = false) => {
+    console.log('🔄 [useStableAuth] Updating auth state:', session ? 'with session' : 'without session');
     
     // Validar sessão antes de usar
     if (session && !isSessionValid(session)) {
-      console.log('⚠️ Session expired, clearing auth state');
-      session = null;
-      localStorage.removeItem(STORAGE_KEY);
-      
-      // Tentar refresh da sessão
+      console.log('⚠️ [useStableAuth] Session expired, attempting refresh...');
       try {
         const { data, error } = await supabase.auth.refreshSession();
         if (!error && data.session) {
           session = data.session;
-          console.log('✅ Session refreshed successfully');
+          console.log('✅ [useStableAuth] Session refreshed successfully');
+        } else {
+          console.log('❌ [useStableAuth] Failed to refresh session');
+          session = null;
         }
       } catch (err) {
-        console.error('❌ Error refreshing session:', err);
+        console.error('❌ [useStableAuth] Error refreshing session:', err);
+        session = null;
       }
     }
     
     const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
     
-    setAuthState(prevState => {
-      const newState = {
-        session,
-        user: session?.user || null,
-        loading: false,
-        isInitialized: true,
-        isAdmin,
-        error: null
-      };
-      
-      // Só atualiza se realmente mudou
-      if (
-        prevState.session?.access_token !== newState.session?.access_token ||
-        prevState.loading !== newState.loading ||
-        prevState.isInitialized !== newState.isInitialized ||
-        prevState.isAdmin !== newState.isAdmin
-      ) {
-        return newState;
-      }
-      
-      return prevState;
+    const newState: AuthState = {
+      session,
+      user: session?.user || null,
+      loading: false,
+      isInitialized: true,
+      isAdmin,
+      error: null
+    };
+
+    // Comparar com estado anterior para evitar updates desnecessários
+    const previousState = stableStateRef.current;
+    
+    if (!force && previousState && 
+        previousState.session?.access_token === newState.session?.access_token &&
+        previousState.loading === newState.loading &&
+        previousState.isInitialized === newState.isInitialized &&
+        previousState.isAdmin === newState.isAdmin) {
+      console.log('🔒 [useStableAuth] State unchanged, skipping update');
+      return;
+    }
+
+    console.log('📝 [useStableAuth] State changed, updating:', {
+      hadSession: !!previousState?.session,
+      hasSession: !!newState.session,
+      wasAdmin: previousState?.isAdmin,
+      isAdmin: newState.isAdmin
     });
 
-    saveSession(session);
-  }, [saveSession, checkAdminStatus, isSessionValid]);
+    stableStateRef.current = newState;
+    setAuthState(newState);
 
-  // Inicialização única
+    // Salvar sessão apenas se válida
+    if (session && isSessionValid(session)) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        console.log('💾 [useStableAuth] Session saved to localStorage');
+      } catch (error) {
+        console.error('❌ [useStableAuth] Error saving session:', error);
+      }
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('🗑️ [useStableAuth] Session removed from localStorage');
+    }
+  }, [checkAdminStatus, isSessionValid]);
+
+  // Inicialização única e estável
   useEffect(() => {
     if (initializationRef.current) return;
     
     initializationRef.current = true;
-    console.log('🚀 Initializing auth...');
+    console.log('🚀 [useStableAuth] Initializing auth...');
 
     const initAuth = async () => {
       try {
-        // 1. Tentar recuperar sessão do localStorage primeiro
-        const storedSession = await getStoredSession();
-        if (storedSession) {
-          console.log('📦 Using stored session');
-          await updateAuthState(storedSession);
-          return;
-        }
-
-        // 2. Se não há sessão armazenada, buscar do Supabase
-        console.log('🔍 Getting session from Supabase...');
+        // 1. Tentar buscar sessão do Supabase primeiro
+        console.log('🔍 [useStableAuth] Getting session from Supabase...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Error getting session:', error);
+          console.error('❌ [useStableAuth] Error getting session:', error);
           await updateAuthState(null);
           return;
         }
 
-        console.log('✅ Session retrieved:', session ? 'found' : 'not found');
-        await updateAuthState(session);
+        console.log('✅ [useStableAuth] Session retrieved:', session ? 'found' : 'not found');
+        await updateAuthState(session, true); // Force initial update
 
       } catch (error) {
-        console.error('❌ Auth initialization error:', error);
+        console.error('❌ [useStableAuth] Auth initialization error:', error);
         await updateAuthState(null);
       }
     };
 
     initAuth();
-  }, [getStoredSession, updateAuthState]);
+  }, [updateAuthState]);
 
   // Configurar listener de mudanças de auth (apenas uma vez)
   useEffect(() => {
     if (!initializationRef.current || listenerRef.current) return;
 
-    console.log('👂 Setting up auth state listener...');
+    console.log('👂 [useStableAuth] Setting up auth state listener...');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        console.log(`🔔 Auth event: ${event}`, session ? 'with session' : 'without session');
-        
-        // Limpar timeout anterior
-        if (sessionCheckTimeoutRef.current) {
-          clearTimeout(sessionCheckTimeoutRef.current);
-        }
+        console.log(`🔔 [useStableAuth] Auth event: ${event}`, session ? 'with session' : 'without session');
         
         switch (event) {
           case 'SIGNED_IN':
@@ -208,9 +191,15 @@ export const useStableAuth = () => {
           case 'SIGNED_OUT':
             await updateAuthState(null);
             break;
+          case 'INITIAL_SESSION':
+            // Para sessão inicial, só atualizar se realmente mudou
+            if (session !== stableStateRef.current?.session) {
+              await updateAuthState(session);
+            }
+            break;
           default:
-            // Para outros eventos, manter estado atual se não há mudança significativa
-            if (session) {
+            // Para outros eventos, verificar se há mudança real
+            if (session !== stableStateRef.current?.session) {
               await updateAuthState(session);
             }
         }
@@ -219,34 +208,18 @@ export const useStableAuth = () => {
 
     listenerRef.current = subscription;
 
-    // Verificar periodicamente se a sessão ainda é válida
-    const checkSessionPeriodically = () => {
-      sessionCheckTimeoutRef.current = setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && !isSessionValid(session)) {
-          console.log('⏰ Session expired during periodic check, signing out');
-          await supabase.auth.signOut();
-        }
-        checkSessionPeriodically();
-      }, 60000); // Verificar a cada minuto
-    };
-
-    checkSessionPeriodically();
-
     return () => {
-      console.log('🧹 Cleaning up auth listener');
+      console.log('🧹 [useStableAuth] Cleaning up auth listener');
       subscription.unsubscribe();
       listenerRef.current = null;
-      
-      if (sessionCheckTimeoutRef.current) {
-        clearTimeout(sessionCheckTimeoutRef.current);
-      }
     };
-  }, [updateAuthState, isSessionValid]);
+  }, [updateAuthState]);
 
   const logout = useCallback(async () => {
     try {
+      console.log('🚪 [useStableAuth] Logging out...');
       await supabase.auth.signOut();
+      sessionStorage.clear(); // Limpar cache de admin
       localStorage.removeItem(STORAGE_KEY);
     } catch (err) {
       logger.error('❌ [useStableAuth] Error during logout:', { error: err });
