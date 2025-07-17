@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
-import { executeRPCWithCartorioContext } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
@@ -13,81 +14,91 @@ interface VideoProgressButtonProps {
   onProgressChange?: (videoId: string, completo: boolean) => void;
 }
 
-interface VisualizacaoResult {
-  completo?: boolean;
-}
-
-interface RPCResult {
-  success?: boolean;
-  error?: string;
-  message?: string;
-}
-
 export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({ 
   videoAulaId,
   videoTitle = 'esta videoaula',
   produtoId,
   onProgressChange
 }) => {
-  console.log('🔵 [VideoProgressButton] Renderizado:', { videoAulaId, videoTitle });
+  console.log('🔵 [VideoProgressButton] Componente renderizado:', { 
+    videoAulaId, 
+    videoTitle,
+    produtoId,
+    onProgressChange: !!onProgressChange
+  });
   
+  // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
+  // O ID do cartório, obtido do user do AuthContextFixed
   const cartorioId = user?.cartorio_id;
   
-  // Verificar progresso inicial APENAS após autenticação completa
-  useEffect(() => {
-    // Se auth ainda carregando, aguardar
-    if (authLoading) {
-      console.log('⏳ [VideoProgressButton] Aguardando autenticação...');
-      setIsChecking(true);
-      return;
-    }
+  console.log('🔵 [VideoProgressButton] Estado inicial:', {
+    cartorioId,
+    isAuthenticated,
+    authLoading,
+    isCompleted,
+    isLoading,
+    isChecking
+  });
 
-    // Se não autenticado, finalizar verificação
-    if (!isAuthenticated || !cartorioId || !videoAulaId) {
-      console.log('⚠️ [VideoProgressButton] Não autenticado ou dados faltando');
-      setIsChecking(false);
-      setIsCompleted(false);
+  // Efeito para verificar o progresso inicial da videoaula
+  useEffect(() => {
+    // Só prossegue se o usuário estiver autenticado e os dados estiverem disponíveis
+    if (!isAuthenticated || authLoading || !cartorioId || !videoAulaId) {
+      if (!authLoading) {
+        setIsChecking(false);
+      }
       return;
     }
 
     const checkProgress = async () => {
       setIsChecking(true);
       try {
-        console.log('🔍 [VideoProgressButton] Verificando progresso para cartório autenticado:', cartorioId);
+        console.log('🔍 [VideoProgressButton] Checking progress:', {
+          cartorioId,
+          videoAulaId,
+          isAuthenticated,
+          userType: user?.type
+        });
 
-        const result = await executeRPCWithCartorioContext('get_visualizacao_cartorio', {
-          p_cartorio_id: cartorioId,
-          p_video_aula_id: videoAulaId
-        }) as any;
+        // ✅ CORREÇÃO: Usar query direta para verificar progresso
+        console.log('🔍 [VideoProgressButton] Verificando progresso com query direta:', {
+          cartorioId,
+          videoAulaId
+        });
 
-        console.log('✅ [VideoProgressButton] Resultado da visualização:', result);
-        
-        // Lidar com o novo formato de resposta
-        if (result?.success) {
-          setIsCompleted(result.completo || false);
+        const { data, error } = await supabase
+          .from('visualizacoes_cartorio')
+          .select('completo')
+          .eq('video_aula_id', videoAulaId)
+          .eq('cartorio_id', cartorioId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
         } else {
-          console.error('❌ [VideoProgressButton] Erro na resposta:', result?.error);
-          setIsCompleted(false);
+          console.log('✅ [VideoProgressButton] Progresso encontrado:', data);
+          setIsCompleted(data?.completo || false);
         }
       } catch (error) {
-        console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
-        setIsCompleted(false);
+        console.error('❌ [VideoProgressButton] Erro inesperado:', error);
       } finally {
         setIsChecking(false);
       }
     };
 
     checkProgress();
-  }, [cartorioId, videoAulaId, isAuthenticated, authLoading]);
+  }, [cartorioId, videoAulaId, isAuthenticated, authLoading, user?.type]);
 
-  // Função para marcar/desmarcar conclusão - SEM TIMER, imediatamente disponível
+  // Função para marcar/desmarcar a videoaula como concluída
   const toggleCompletion = async () => {
-    console.log('🔵 [VideoProgressButton] Toggle completion iniciado');
+    console.log('🔵 [VideoProgressButton] toggleCompletion chamado:', { cartorioId, videoAulaId, isLoading });
     
     if (!cartorioId || !videoAulaId || isLoading) return;
 
@@ -95,45 +106,124 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
 
     try {
       const newCompletedState = !isCompleted;
-      console.log('🔵 [VideoProgressButton] Novo estado:', newCompletedState);
+      console.log('🔵 [VideoProgressButton] Novo estado:', { newCompletedState, isCompleted });
 
-      const result = await executeRPCWithCartorioContext('registrar_visualizacao_cartorio_robust', {
+      console.log('🔄 [VideoProgressButton] Registrando visualização:', {
+        cartorioId,
+        videoAulaId,
+        newCompletedState,
+        userType: user?.type,
+        isAuthenticated,
+        hasUser: !!user
+      });
+
+      // Verificar se o usuário está autenticado
+      if (!isAuthenticated || !cartorioId) {
+        console.error('❌ [VideoProgressButton] Usuário não autenticado ou cartório não identificado', {
+          isAuthenticated,
+          cartorioId,
+          userType: user?.type
+        });
+        toast({
+          title: "Erro de autenticação",
+          description: "Faça login para marcar o progresso das videoaulas.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ CORREÇÃO: Usar função robusta com RLS configurado
+      console.log('🔄 [VideoProgressButton] Configurando contexto do cartório e registrando visualização:', {
+        cartorio_id: cartorioId,
+        video_aula_id: videoAulaId,
+        completo: newCompletedState,
+        concluida: newCompletedState
+      });
+
+      // Primeiro, setar o contexto do cartório para RLS
+      const { error: contextError } = await supabase.rpc('set_cartorio_context', {
+        p_cartorio_id: cartorioId
+      });
+
+      if (contextError) {
+        console.error('❌ [VideoProgressButton] Erro ao setar contexto:', contextError);
+        toast({
+          title: "Erro",
+          description: "Erro ao configurar contexto do cartório",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ [VideoProgressButton] Contexto do cartório configurado com sucesso');
+
+      // Testar se o contexto foi setado corretamente
+      const { data: testCartorioId, error: testError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
+      console.log('🔍 [VideoProgressButton] Contexto após setar:', testCartorioId);
+      
+      if (testError) {
+        console.error('❌ [VideoProgressButton] Erro ao testar contexto:', testError);
+      }
+
+      // Usar a função de teste para verificar múltiplas fontes de contexto
+      const { data: contextTest, error: contextTestError } = await supabase.rpc('test_cartorio_context');
+      
+      if (contextTestError) {
+        console.error('❌ [VideoProgressButton] Erro ao testar contexto completo:', contextTestError);
+      } else {
+        console.log('✅ [VideoProgressButton] Teste de contexto completo:', contextTest);
+      }
+
+      // Usar a nova função robusta para registrar visualização
+      const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
         p_completo: newCompletedState,
         p_concluida: newCompletedState,
         p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
-      }) as RPCResult;
+      });
 
-      // Verificar se a RPC foi bem-sucedida
-      if (result && typeof result === 'object' && 'success' in result) {
-        if (!result.success) {
-          console.error('❌ [VideoProgressButton] Erro retornado pela RPC:', result);
-          toast({
-            title: "Erro",
-            description: result.error || "Erro desconhecido ao atualizar progresso",
-            variant: "destructive",
-          });
-          return;
-        }
+      if (error) {
+        console.error('❌ [VideoProgressButton] Erro RPC:', error);
+        console.error('❌ [VideoProgressButton] Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Se o RPC falhar, mostrar toast informativo
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar o progresso. Verifique sua conexão e tente novamente.",
+          variant: "destructive",
+        });
+        
+        return;
       }
 
-      console.log('✅ [VideoProgressButton] Visualização registrada com sucesso:', result);
+      // Verificar se a função retornou sucesso
+      const result = data as { success: boolean; error?: string; debug?: string };
+      if (result && !result.success) {
+        console.error('❌ [VideoProgressButton] Erro retornado pela função:', result);
+        console.error('❌ [VideoProgressButton] Debug da função:', result.debug || 'Sem debug');
+        toast({
+          title: "Erro",
+          description: result.error || "Erro desconhecido ao atualizar progresso",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ [VideoProgressButton] Visualização registrada:', data);
       setIsCompleted(newCompletedState);
 
-      // CRÍTICO: Invalidar cache de progresso após mudança
+      // ✅ SEMPRE notificar mudança de progresso
       if (onProgressChange) {
+        console.log('🔵 [VideoProgressButton] Chamando onProgressChange:', { videoAulaId, newCompletedState });
         onProgressChange(videoAulaId, newCompletedState);
+      } else {
+        console.log('🔵 [VideoProgressButton] onProgressChange não fornecido - progresso local atualizado');
       }
-
-      // Disparar evento customizado para invalidar cache globalmente
-      window.dispatchEvent(new CustomEvent('progressoAtualizado', {
-        detail: {
-          videoAulaId,
-          produtoId,
-          completo: newCompletedState,
-          timestamp: Date.now()
-        }
-      }));
 
       toast({
         title: newCompletedState ? "Videoaula concluída!" : "Videoaula desmarcada",
@@ -142,42 +232,28 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           : `Você desmarcou "${videoTitle}" como concluída.`,
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ [VideoProgressButton] Erro ao atualizar progresso:', error);
-      
-      if (error.message?.includes('Sessão expirada') || error.message?.includes('Token')) {
-        toast({
-          title: "Sessão expirada",
-          description: "Sua sessão expirou. Redirecionando para login...",
-          variant: "destructive",
-        });
-        
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        toast({
-          title: "Erro",
-          description: "Não foi possível atualizar o progresso. Verifique sua conexão e tente novamente.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o progresso da videoaula.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Estados condicionais baseados em autenticação
-  if (authLoading) {
-    return (
-      <Button disabled className="w-full">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Autenticando...
-      </Button>
-    );
-  }
-
-  if (!isAuthenticated || !cartorioId) {
+  // Condição para não renderizar o botão
+  if (!isAuthenticated || authLoading || !cartorioId) {
+    if (authLoading) {
+      return (
+        <Button disabled className="w-full">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Autenticando...
+        </Button>
+      );
+    }
     return (
       <Button disabled className="w-full">
         <Circle className="mr-2 h-4 w-4" />
@@ -186,6 +262,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     );
   }
 
+  // Estado de carregamento enquanto verifica o progresso inicial
   if (isChecking) {
     return (
       <Button disabled className="w-full">
@@ -195,7 +272,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     );
   }
 
-  // Botão principal - IMEDIATAMENTE CLICÁVEL (sem timer de 2 minutos)
+  // Renderização final do botão "Marcar como Concluída"
   return (
     <Button
       onClick={toggleCompletion}
@@ -207,18 +284,21 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
       }`}
     >
       {isLoading ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Atualizando...
+        </>
       ) : isCompleted ? (
-        <CheckCircle className="mr-2 h-4 w-4" />
+        <>
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Concluída
+        </>
       ) : (
-        <Circle className="mr-2 h-4 w-4" />
+        <>
+          <Circle className="mr-2 h-4 w-4" />
+          Marcar como Concluída
+        </>
       )}
-      {isLoading 
-        ? 'Atualizando...' 
-        : isCompleted 
-          ? 'Concluída' 
-          : 'Marcar como Concluída'
-      }
     </Button>
   );
 };

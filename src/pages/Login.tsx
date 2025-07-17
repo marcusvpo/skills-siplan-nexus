@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -18,53 +16,6 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  // Função para limpar todo o estado de autenticação
-  const clearAuthState = async () => {
-    try {
-      console.log('🧹 [Login] Limpando estado de autenticação...');
-      
-      // Limpar localStorage
-      localStorage.removeItem('sb-cartorio-auth-token');
-      localStorage.removeItem('supabase.auth.token');
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('supabase.') || key.startsWith('sb-') || key.startsWith('video_timer_')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Limpar sessionStorage
-      sessionStorage.clear();
-      
-      // Fazer logout do Supabase
-      await supabase.auth.signOut();
-      
-      // Limpar campos do formulário
-      setUsername('');
-      setToken('');
-      setError('');
-      
-      toast({
-        title: "Cache limpo",
-        description: "Estado de autenticação foi resetado",
-      });
-      
-      console.log('✅ [Login] Estado limpo com sucesso');
-      
-      // Pequeno delay antes de recarregar
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
-    } catch (error) {
-      console.error('❌ [Login] Erro ao limpar estado:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao limpar cache. Recarregue a página manualmente.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,38 +48,22 @@ const Login = () => {
 
       const data = await response.json();
       logger.info('Login successful', { 
-        cartorio: data.cartorio_data?.nome,
-        usuario: data.app_user_data?.username
+        cartorio: data.cartorio?.nome,
+        usuario: data.usuario?.username
       });
 
-      if (data.success && data.access_token && data.refresh_token) {
-        console.log("✅ [Login] Recebidos tokens do Supabase Auth");
-        
-        // CONFIGURAR SESSÃO SUPABASE COM TOKENS REAIS
-        const { error: setSessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-
-        if (setSessionError) {
-          console.error("❌ [Login] Erro ao configurar a sessão Supabase:", setSessionError);
-          throw new Error('Erro ao configurar sessão de autenticação');
-        }
-
-        console.log("✅ [Login] Sessão Supabase configurada com sucesso");
-        
-        // Configurar contexto de autenticação customizado
-        await login(data.access_token, 'cartorio', {
-          id: data.app_user_data.id,
-          name: data.app_user_data.username,
-          cartorio_id: data.cartorio_data.id,
-          cartorio_name: data.cartorio_data.nome,
-          username: data.app_user_data.username
+      if (data.success && data.token && data.cartorio && data.usuario) {
+        await login(data.token, 'cartorio', {
+          id: data.usuario.id,
+          name: data.usuario.username,
+          cartorio_id: data.cartorio.id,
+          cartorio_name: data.cartorio.nome,
+          username: data.usuario.username
         });
         
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${data.app_user_data.username} - ${data.cartorio_data.nome}!`,
+          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
         });
         
         navigate('/dashboard');

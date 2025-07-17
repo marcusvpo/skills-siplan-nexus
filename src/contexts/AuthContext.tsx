@@ -1,9 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, setCartorioAuthContext, clearCartorioAuthContext, ensureSessionHydration, syncTokensToCustomKey } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createAuthenticatedClient, supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
-import { customCartorioStorage } from '@/utils/customSupabaseStorage';
 
 interface User {
   id: string;
@@ -25,8 +24,6 @@ interface AuthContextType {
   authenticatedClient: any;
   isLoading: boolean;
   isAdmin: boolean;
-  forceRefresh: () => Promise<void>;
-  recoverSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,107 +34,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const stableAuth = useStableAuth();
 
-  console.log('🔍 [AuthProvider] Estado atual:', {
+  console.log('🔍 DEBUG: AuthProvider render - auth state:', {
     hasSession: !!stableAuth.session,
     hasUser: !!stableAuth.user,
     loading: stableAuth.loading,
     isInitialized: stableAuth.isInitialized,
-    isAdmin: stableAuth.isAdmin,
-    cartorioUser: !!user
+    isAdmin: stableAuth.isAdmin
   });
 
-  // ⭐ FUNÇÃO DE RECUPERAÇÃO DE SESSÃO ROBUSTA
-  const recoverSession = useCallback(async () => {
-    console.log('🔄 [AuthProvider] Iniciando recuperação robusta de sessão...');
-    
-    try {
-      // 1. Primeiro, sincronizar tokens das chaves padrão para customizada
-      await syncTokensToCustomKey();
-      
-      // 2. Verificar storage customizado após sincronização
-      const customToken = customCartorioStorage.getItem('sb-cartorio-auth-token');
-      if (customToken) {
-        console.log('✅ [AuthProvider] Token encontrado no storage customizado após sincronização');
-      }
-
-      // 3. Forçar refresh da sessão
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('❌ [AuthProvider] Erro no refresh:', error);
-        // Tentar getSession como fallback
-        const { data: { session: fallbackSession } } = await supabase.auth.getSession();
-        if (fallbackSession) {
-          console.log('✅ [AuthProvider] Sessão recuperada via fallback');
-          return;
-        }
-      } else if (session) {
-        console.log('✅ [AuthProvider] Sessão recuperada via refresh');
-        return;
-      }
-
-      // 4. Último recurso: verificar localStorage diretamente
-      const directToken = localStorage.getItem('sb-cartorio-auth-token');
-      if (directToken) {
-        console.log('🔍 [AuthProvider] Token encontrado diretamente no localStorage');
-        try {
-          const parsedToken = JSON.parse(directToken);
-          if (parsedToken.access_token) {
-            console.log('✅ [AuthProvider] Token válido encontrado');
-            // Definir sessão manualmente
-            await supabase.auth.setSession({
-              access_token: parsedToken.access_token,
-              refresh_token: parsedToken.refresh_token
-            });
-          }
-        } catch (parseError) {
-          console.error('❌ [AuthProvider] Erro ao parsear token:', parseError);
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ [AuthProvider] Erro na recuperação de sessão:', error);
-    }
-  }, []);
-
-  // Remover o loop de recuperação automática que estava causando problemas
-
-  // Restaurar usuário de cartório do localStorage
   useEffect(() => {
+    // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         if (userData.type === 'cartorio' && userData.token) {
-          console.log('🔄 [AuthProvider] Restaurando usuário de cartório:', userData.cartorio_id);
-          
           setUser(userData);
-          setAuthenticatedClient(supabase);
+          const authClient = createAuthenticatedClient(userData.token);
+          setAuthenticatedClient(authClient);
           
-          // Configurar contexto do cartório
-          setCartorioAuthContext(userData.token);
-          
+          // Configurar contexto do cartório para usuário restaurado
           if (userData.cartorio_id) {
             supabase.rpc('set_cartorio_context', {
               p_cartorio_id: userData.cartorio_id
             }).then(({ error }) => {
               if (error) {
-                console.error('❌ [AuthProvider] Erro ao restaurar contexto:', error);
+                console.error('❌ [AuthContext] Erro ao restaurar contexto do cartório:', error);
               } else {
-                console.log('✅ [AuthProvider] Contexto restaurado:', userData.cartorio_id);
+                console.log('✅ [AuthContext] Contexto do cartório restaurado:', userData.cartorio_id);
               }
             });
           }
         }
       } catch (err) {
-        console.error('❌ [AuthProvider] Erro ao restaurar usuário:', err);
+        console.error('Error parsing saved user:', err);
         localStorage.removeItem('siplan-user');
       }
     }
   }, []);
 
-  // Atualizar usuário admin baseado no stableAuth
   useEffect(() => {
+    // Atualizar usuário admin baseado no stableAuth
     if (stableAuth.session?.user && stableAuth.isAdmin) {
       const adminUser: User = {
         id: stableAuth.session.user.id,
@@ -145,19 +82,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'admin',
         email: stableAuth.session.user.email || ''
       };
-      
-      console.log('✅ [AuthProvider] Configurando usuário admin:', adminUser.email);
       setUser(adminUser);
     } else if (!stableAuth.session && user?.type === 'admin') {
-      console.log('🔄 [AuthProvider] Limpando usuário admin (sem sessão)');
+      // Limpar usuário admin se não há sessão
       setUser(null);
       setAuthenticatedClient(null);
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
 
   const login = async (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    console.log('🔑 [AuthProvider] Login iniciado:', { type, userData });
-    
     const newUser: User = {
       id: userData?.id || '1',
       name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
@@ -172,13 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     localStorage.setItem('siplan-user', JSON.stringify(newUser));
     
-    // Configurar cliente para usuários de cartório
+    // Create authenticated client for cartorio users
     if (type === 'cartorio') {
-      setAuthenticatedClient(supabase);
+      const authClient = createAuthenticatedClient(token);
+      setAuthenticatedClient(authClient);
       
-      // Configurar contexto do cartório
-      setCartorioAuthContext(token);
-      
+      // Configurar contexto do cartório para RLS
       if (userData?.cartorio_id) {
         try {
           const { error: contextError } = await supabase.rpc('set_cartorio_context', {
@@ -186,46 +118,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           if (contextError) {
-            console.error('❌ [AuthProvider] Erro ao setar contexto RPC:', contextError);
+            console.error('❌ [AuthContext] Erro RPC ao setar contexto:', contextError);
           } else {
-            console.log('✅ [AuthProvider] Contexto do cartório configurado:', userData.cartorio_id);
+            console.log('✅ [AuthContext] Contexto do cartório configurado com sucesso:', userData.cartorio_id);
           }
         } catch (error) {
-          console.error('❌ [AuthProvider] Erro ao configurar contexto:', error);
+          console.error('❌ [AuthContext] Erro ao configurar contexto do cartório:', error);
         }
       }
     }
-    
-    console.log('✅ [AuthProvider] Login concluído:', newUser);
   };
 
   const logout = async () => {
-    console.log('🚪 [AuthProvider] Logout iniciado...');
-    
-    // Logout do Supabase Auth se for admin
+    // Sign out from Supabase Auth if it's an admin
     if (user?.type === 'admin') {
       await stableAuth.logout();
     }
     
-    // Limpar estado local
     setUser(null);
     setAuthenticatedClient(null);
-    clearCartorioAuthContext();
     localStorage.removeItem('siplan-user');
-    
-    // Limpar cache de timers
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('video_timer_')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    console.log('✅ [AuthProvider] Logout concluído');
-  };
-
-  const forceRefresh = async () => {
-    console.log('🔄 [AuthProvider] Forçando refresh da autenticação...');
-    await stableAuth.forceRefresh();
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
@@ -240,9 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated, 
       authenticatedClient,
       isLoading,
-      isAdmin: stableAuth.isAdmin,
-      forceRefresh,
-      recoverSession
+      isAdmin: stableAuth.isAdmin
     }}>
       {children}
     </AuthContext.Provider>
