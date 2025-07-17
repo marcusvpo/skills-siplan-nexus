@@ -2,9 +2,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const supabase = createClient(
+// Cliente Supabase com permissões de administrador
+const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
 );
 
 interface LoginRequest {
@@ -60,7 +67,7 @@ serve(async (req) => {
     console.log('Searching for token and user in database...');
     
     // Buscar o acesso do cartório com JOIN otimizado
-    const { data: acesso, error: acessoError } = await supabase
+    const { data: acesso, error: acessoError } = await supabaseAdmin
       .from('acessos_cartorio')
       .select(`
         id,
@@ -147,7 +154,7 @@ serve(async (req) => {
 
     // Buscar o usuário do cartório
     console.log('Searching for cartorio user...');
-    const { data: usuario, error: usuarioError } = await supabase
+    const { data: usuario, error: usuarioError } = await supabaseAdmin
       .from('cartorio_usuarios')
       .select('*')
       .eq('cartorio_id', acesso.cartorio_id)
@@ -173,32 +180,114 @@ serve(async (req) => {
       });
     }
 
-    console.log('Creating authentication token...');
+    console.log('Creating Supabase Auth session...');
     
-    // Criar token de autenticação customizado
-    const authPayload = {
-      cartorio_id: acesso.cartorio_id,
-      cartorio_nome: acesso.cartorios.nome,
-      user_id: usuario.id,
-      username: usuario.username,
-      login_token: login_token,
-      role: 'cartorio_user',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 8), // 8 horas
-      iat: Math.floor(Date.now() / 1000),
-      iss: 'siplan-skills'
-    };
+    // Verificar se o usuário existe no Supabase Auth
+    if (!usuario.email) {
+      console.log('User has no email, cannot create Supabase Auth session');
+      return new Response(JSON.stringify({ 
+        error: 'Usuário não tem email configurado. Entre em contato com o administrador.',
+        code: 'NO_EMAIL'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    // Usar base64 simples para o token customizado
-    const customToken = `CART-${btoa(JSON.stringify(authPayload))}`;
+    // Gerar tokens reais do Supabase Auth
+    const { data: generatedLinkData, error: generatedLinkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: usuario.email,
+      options: {
+        data: {
+          cartorio_id: acesso.cartorio_id,
+          cartorio_nome: acesso.cartorios.nome,
+          username: usuario.username,
+          role: 'cartorio_user'
+        }
+      }
+    });
+
+    if (generatedLinkError) {
+      console.error('Error generating Supabase Auth tokens:', generatedLinkError);
+      
+      // Tentar criar o usuário se não existir
+      if (generatedLinkError.message.includes('User not found')) {
+        console.log('Creating new user in Supabase Auth...');
+        const { data: newUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+          email: usuario.email,
+          password: crypto.randomUUID(), // Senha aleatória, não será usada
+          email_confirm: true,
+          user_metadata: {
+            cartorio_id: acesso.cartorio_id,
+            cartorio_nome: acesso.cartorios.nome,
+            username: usuario.username,
+            role: 'cartorio_user'
+          }
+        });
+
+        if (createUserError) {
+          console.error('Error creating user in Supabase Auth:', createUserError);
+          return new Response(JSON.stringify({ 
+            error: 'Erro ao criar usuário no sistema de autenticação',
+            code: 'AUTH_CREATE_ERROR'
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Tentar gerar tokens novamente
+        const { data: retryGeneratedLinkData, error: retryGeneratedLinkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: usuario.email,
+          options: {
+            data: {
+              cartorio_id: acesso.cartorio_id,
+              cartorio_nome: acesso.cartorios.nome,
+              username: usuario.username,
+              role: 'cartorio_user'
+            }
+          }
+        });
+
+        if (retryGeneratedLinkError) {
+          console.error('Error generating tokens after creating user:', retryGeneratedLinkError);
+          return new Response(JSON.stringify({ 
+            error: 'Erro ao gerar tokens de autenticação',
+            code: 'AUTH_TOKEN_ERROR'
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        generatedLinkData.properties = retryGeneratedLinkData.properties;
+        generatedLinkData.user = retryGeneratedLinkData.user;
+      } else {
+        return new Response(JSON.stringify({ 
+          error: 'Erro ao gerar sessão de autenticação',
+          code: 'AUTH_SESSION_ERROR'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    const { access_token, refresh_token } = generatedLinkData.properties;
+    const supabaseAuthUser = generatedLinkData.user;
     
     console.log('Login successful for:', {
       cartorio: acesso.cartorios.nome,
-      usuario: usuario.username
+      usuario: usuario.username,
+      supabase_user_id: supabaseAuthUser.id
     });
 
     return new Response(JSON.stringify({
       success: true,
-      token: customToken,
+      access_token: access_token,
+      refresh_token: refresh_token,
       cartorio: {
         id: acesso.cartorio_id,
         nome: acesso.cartorios.nome,
@@ -206,9 +295,10 @@ serve(async (req) => {
         estado: acesso.cartorios.estado
       },
       usuario: {
-        id: usuario.id,
+        id: supabaseAuthUser.id, // ID do Supabase Auth
         username: usuario.username,
-        email: usuario.email
+        email: usuario.email,
+        cartorio_user_id: usuario.id // ID da tabela cartorio_usuarios
       },
       message: `Bem-vindo(a), ${usuario.username}! Acesso autorizado para ${acesso.cartorios.nome}.`
     }), {
