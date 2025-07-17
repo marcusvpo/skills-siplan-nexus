@@ -194,89 +194,74 @@ serve(async (req) => {
       });
     }
 
-    // Gerar tokens reais do Supabase Auth
-    const { data: generatedLinkData, error: generatedLinkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: usuario.email,
-      options: {
-        data: {
+    // Tentar obter o usuário do auth primeiro
+    const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.getUserByEmail(usuario.email);
+    
+    let supabaseAuthUser;
+    let access_token;
+    let refresh_token;
+    
+    if (authUserError || !authUser.user) {
+      console.log('User not found in auth, creating new user...');
+      
+      // Criar usuário no auth
+      const { data: newUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+        email: usuario.email,
+        password: crypto.randomUUID(), // Senha aleatória, não será usada
+        email_confirm: true,
+        user_metadata: {
           cartorio_id: acesso.cartorio_id,
           cartorio_nome: acesso.cartorios.nome,
           username: usuario.username,
           role: 'cartorio_user'
         }
-      }
-    });
+      });
 
-    if (generatedLinkError) {
-      console.error('Error generating Supabase Auth tokens:', generatedLinkError);
-      
-      // Tentar criar o usuário se não existir
-      if (generatedLinkError.message.includes('User not found')) {
-        console.log('Creating new user in Supabase Auth...');
-        const { data: newUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-          email: usuario.email,
-          password: crypto.randomUUID(), // Senha aleatória, não será usada
-          email_confirm: true,
-          user_metadata: {
-            cartorio_id: acesso.cartorio_id,
-            cartorio_nome: acesso.cartorios.nome,
-            username: usuario.username,
-            role: 'cartorio_user'
-          }
-        });
-
-        if (createUserError) {
-          console.error('Error creating user in Supabase Auth:', createUserError);
-          return new Response(JSON.stringify({ 
-            error: 'Erro ao criar usuário no sistema de autenticação',
-            code: 'AUTH_CREATE_ERROR'
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        // Tentar gerar tokens novamente
-        const { data: retryGeneratedLinkData, error: retryGeneratedLinkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
-          email: usuario.email,
-          options: {
-            data: {
-              cartorio_id: acesso.cartorio_id,
-              cartorio_nome: acesso.cartorios.nome,
-              username: usuario.username,
-              role: 'cartorio_user'
-            }
-          }
-        });
-
-        if (retryGeneratedLinkError) {
-          console.error('Error generating tokens after creating user:', retryGeneratedLinkError);
-          return new Response(JSON.stringify({ 
-            error: 'Erro ao gerar tokens de autenticação',
-            code: 'AUTH_TOKEN_ERROR'
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        generatedLinkData.properties = retryGeneratedLinkData.properties;
-        generatedLinkData.user = retryGeneratedLinkData.user;
-      } else {
+      if (createUserError) {
+        console.error('Error creating user in Supabase Auth:', createUserError);
         return new Response(JSON.stringify({ 
-          error: 'Erro ao gerar sessão de autenticação',
-          code: 'AUTH_SESSION_ERROR'
+          error: 'Erro ao criar usuário no sistema de autenticação',
+          code: 'AUTH_CREATE_ERROR'
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+      
+      supabaseAuthUser = newUserData.user;
+    } else {
+      supabaseAuthUser = authUser.user;
     }
+    
+    // Gerar tokens usando createSession
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.createSession({
+      user_id: supabaseAuthUser.id,
+      user_metadata: {
+        cartorio_id: acesso.cartorio_id,
+        cartorio_nome: acesso.cartorios.nome,
+        username: usuario.username,
+        role: 'cartorio_user'
+      }
+    });
 
-    const { access_token, refresh_token } = generatedLinkData.properties;
-    const supabaseAuthUser = generatedLinkData.user;
+    if (sessionError) {
+      console.error('Error creating session:', sessionError);
+      return new Response(JSON.stringify({ 
+        error: 'Erro ao criar sessão de autenticação',
+        code: 'AUTH_SESSION_ERROR'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    access_token = sessionData.access_token;
+    refresh_token = sessionData.refresh_token;
+    
+    console.log('Token extraction:', {
+      access_token: access_token ? 'present' : 'missing',
+      refresh_token: refresh_token ? 'present' : 'missing'
+    });
     
     console.log('Login successful for:', {
       cartorio: acesso.cartorios.nome,
