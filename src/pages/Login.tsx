@@ -48,22 +48,38 @@ const Login = () => {
 
       const data = await response.json();
       logger.info('Login successful', { 
-        cartorio: data.cartorio?.nome,
-        usuario: data.usuario?.username
+        cartorio: data.cartorio_data?.nome,
+        usuario: data.app_user_data?.username
       });
 
-      if (data.success && data.token && data.cartorio && data.usuario) {
-        await login(data.token, 'cartorio', {
-          id: data.usuario.id,
-          name: data.usuario.username,
-          cartorio_id: data.cartorio.id,
-          cartorio_name: data.cartorio.nome,
-          username: data.usuario.username
+      if (data.success && data.access_token && data.refresh_token) {
+        // CONFIGURAR SESSÃO SUPABASE COM TOKENS REAIS
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+
+        if (setSessionError) {
+          console.error("❌ Erro ao configurar a sessão Supabase:", setSessionError);
+          throw new Error('Erro ao configurar sessão de autenticação');
+        }
+
+        console.log("✅ Sessão Supabase configurada com sucesso");
+        
+        // Configurar contexto de autenticação customizado
+        await login(data.access_token, 'cartorio', {
+          id: data.app_user_data.id,
+          name: data.app_user_data.username,
+          cartorio_id: data.cartorio_data.id,
+          cartorio_name: data.cartorio_data.nome,
+          username: data.app_user_data.username
         });
         
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
+          description: `Bem-vindo(a), ${data.app_user_data.username} - ${data.cartorio_data.nome}!`,
         });
         
         navigate('/dashboard');
