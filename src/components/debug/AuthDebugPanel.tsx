@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { User, Database, CheckCircle } from 'lucide-react';
 
-export const AuthDebugPanel: React.FC = () => {
+// Removido o 'export' aqui, pois já estará no final
+const AuthDebugPanel: React.FC = () => { // AGORA DEFINIDO SEM 'export' AQUI
   const { user, isAuthenticated, login, logout } = useAuth();
   const [isTestingLogin, setIsTestingLogin] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
@@ -311,5 +312,5 @@ export const AuthDebugPanel: React.FC = () => {
     </Card>
   );
 };
-
-export { AuthDebugPanel };
+// Adicionada a linha de exportação correta aqui no final do arquivo
+export { AuthDebugPanel }; 
