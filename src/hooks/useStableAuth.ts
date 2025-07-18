@@ -107,7 +107,7 @@ export const useStableAuth = () => {
       error: null // Limpa qualquer erro anterior após a atualização
     };
 
-    logger.debug('📝 [useStableAuth] Novo estado auth:', {
+    logger.debug('�� [useStableAuth] Novo estado auth:', {
       hasSession: !!newState.session,
       hasUser: !!newState.user,
       loading: newState.loading,
@@ -123,7 +123,7 @@ export const useStableAuth = () => {
       try {
         localStorage.setItem('supabase.auth.token', JSON.stringify(currentSession));
         logger.debug('💾 [useStableAuth] Sessão Supabase salva no localStorage.');
-      } catch (error) {
+      }  catch (error) {
         logger.error('❌ [useStableAuth] Erro ao salvar sessão no localStorage:', error);
       }
     } else {
@@ -137,7 +137,7 @@ export const useStableAuth = () => {
     if (initializationRef.current) return; // Garante que só roda uma vez
     
     initializationRef.current = true;
-    logger.info('�� [useStableAuth] Iniciando verificação de autenticação...');
+    logger.info('🚀 [useStableAuth] Iniciando verificação de autenticação...');
 
     const initAuth = async () => {
       try {
@@ -171,7 +171,7 @@ export const useStableAuth = () => {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        logger.debug(`🔔 [useStableAuth] Evento Auth recebido: ${event}`, { hasSession: !!session });
+        logger.debug(`�� [useStableAuth] Evento Auth recebido: ${event}`, { hasSession: !!session });
         // Sempre atualiza o estado em resposta a qualquer evento de autenticação
         await updateAuthState(session, `event-${event}`);
       }
@@ -190,7 +190,7 @@ export const useStableAuth = () => {
   // Função para fazer logout do Supabase Auth nativo
   const logout = useCallback(async () => {
     try {
-      logger.info('�� [useStableAuth] Realizando logout...');
+      logger.info('🚪 [useStableAuth] Realizando logout...');
       await supabase.auth.signOut();
       sessionStorage.clear(); // Limpa o cache de status de admin
       localStorage.removeItem('supabase.auth.token'); // Remove a sessão do localStorage
