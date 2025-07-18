@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
@@ -14,7 +14,11 @@ import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess
 import { logger } from '@/utils/logger';
 
 const ProductPage = () => {
-  const { systemId, productId } = useParams();
+  const { systemId, productId } = useParams<{ 
+    systemId: string; 
+    productId: string; 
+    videoId: string; 
+  }>();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -80,7 +84,7 @@ const ProductPage = () => {
   }
 
   useEffect(() => {
-    logger.info('🎯 [ProductPage] Final state check', { 
+    logger.info('🎯 [ProductPage] Final state check', {
       sistemasCount: sistemas?.length,
       currentSystemFound: !!currentSystem,
       currentProductFound: !!currentProduct,
