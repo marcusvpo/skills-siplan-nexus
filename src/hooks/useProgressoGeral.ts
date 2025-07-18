@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { useProgressContext } from '@/contexts/ProgressContext';
 
 // Helper hook to safely use progress context
