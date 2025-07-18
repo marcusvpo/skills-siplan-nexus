@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export const TreinamentosSection: React.FC = () => {
             <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar categorias</h3>
             <p className="text-gray-400 text-center mb-6">
-              {error.message || 'Não foi possível carregar as categorias.'}
+              {error instanceof Error ? error.message : 'Erro desconhecido ao carregar categorias.'}
             </p>
             <div className="space-y-3">
               <Button
