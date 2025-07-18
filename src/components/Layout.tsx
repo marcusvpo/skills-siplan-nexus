@@ -19,9 +19,10 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
     navigate('/');
   };
 
-  if (isLoading) {
+  // Mostrar loading apenas se realmente estiver carregando e não há usuário
+  if (isLoading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
+      <div className="min-h-screen flex items-center justify-center page-transition bg-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
           <div className="text-white text-enhanced">Carregando...</div>

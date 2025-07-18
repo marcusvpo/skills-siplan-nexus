@@ -13,8 +13,6 @@ interface AuthState {
   error: string | null;
 }
 
-const STORAGE_KEY = 'supabase.auth.token';
-
 export const useStableAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     session: null,
@@ -27,7 +25,6 @@ export const useStableAuth = () => {
 
   const initializationRef = useRef(false);
   const listenerRef = useRef<any>(null);
-  const stableStateRef = useRef<AuthState | null>(null);
 
   // Função para verificar status de admin com cache
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
@@ -74,8 +71,8 @@ export const useStableAuth = () => {
   }, []);
 
   // Função para atualizar estado de auth de forma estável
-  const updateAuthState = useCallback(async (session: Session | null, force = false) => {
-    console.log('🔄 [useStableAuth] Updating auth state:', session ? 'with session' : 'without session');
+  const updateAuthState = useCallback(async (session: Session | null, source: string = 'unknown') => {
+    console.log(`🔄 [useStableAuth] Updating auth state from ${source}:`, session ? 'with session' : 'without session');
     
     // Validar sessão antes de usar
     if (session && !isSessionValid(session)) {
@@ -100,44 +97,33 @@ export const useStableAuth = () => {
     const newState: AuthState = {
       session,
       user: session?.user || null,
-      loading: false,
+      loading: false, // Sempre definir loading como false após qualquer atualização
       isInitialized: true,
       isAdmin,
       error: null
     };
 
-    // Comparar com estado anterior para evitar updates desnecessários
-    const previousState = stableStateRef.current;
-    
-    if (!force && previousState && 
-        previousState.session?.access_token === newState.session?.access_token &&
-        previousState.loading === newState.loading &&
-        previousState.isInitialized === newState.isInitialized &&
-        previousState.isAdmin === newState.isAdmin) {
-      console.log('🔒 [useStableAuth] State unchanged, skipping update');
-      return;
-    }
-
-    console.log('📝 [useStableAuth] State changed, updating:', {
-      hadSession: !!previousState?.session,
+    console.log('📝 [useStableAuth] New state:', {
       hasSession: !!newState.session,
-      wasAdmin: previousState?.isAdmin,
-      isAdmin: newState.isAdmin
+      hasUser: !!newState.user,
+      loading: newState.loading,
+      isInitialized: newState.isInitialized,
+      isAdmin: newState.isAdmin,
+      source
     });
 
-    stableStateRef.current = newState;
     setAuthState(newState);
 
     // Salvar sessão apenas se válida
     if (session && isSessionValid(session)) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        localStorage.setItem('supabase.auth.token', JSON.stringify(session));
         console.log('💾 [useStableAuth] Session saved to localStorage');
       } catch (error) {
         console.error('❌ [useStableAuth] Error saving session:', error);
       }
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('supabase.auth.token');
       console.log('🗑️ [useStableAuth] Session removed from localStorage');
     }
   }, [checkAdminStatus, isSessionValid]);
@@ -151,22 +137,21 @@ export const useStableAuth = () => {
 
     const initAuth = async () => {
       try {
-        // 1. Tentar buscar sessão do Supabase primeiro
         console.log('🔍 [useStableAuth] Getting session from Supabase...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ [useStableAuth] Error getting session:', error);
-          await updateAuthState(null);
+          await updateAuthState(null, 'init-error');
           return;
         }
 
         console.log('✅ [useStableAuth] Session retrieved:', session ? 'found' : 'not found');
-        await updateAuthState(session, true); // Force initial update
+        await updateAuthState(session, 'init');
 
       } catch (error) {
         console.error('❌ [useStableAuth] Auth initialization error:', error);
-        await updateAuthState(null);
+        await updateAuthState(null, 'init-exception');
       }
     };
 
@@ -183,26 +168,8 @@ export const useStableAuth = () => {
       async (event: AuthChangeEvent, session: Session | null) => {
         console.log(`🔔 [useStableAuth] Auth event: ${event}`, session ? 'with session' : 'without session');
         
-        switch (event) {
-          case 'SIGNED_IN':
-          case 'TOKEN_REFRESHED':
-            await updateAuthState(session);
-            break;
-          case 'SIGNED_OUT':
-            await updateAuthState(null);
-            break;
-          case 'INITIAL_SESSION':
-            // Para sessão inicial, só atualizar se realmente mudou
-            if (session !== stableStateRef.current?.session) {
-              await updateAuthState(session);
-            }
-            break;
-          default:
-            // Para outros eventos, verificar se há mudança real
-            if (session !== stableStateRef.current?.session) {
-              await updateAuthState(session);
-            }
-        }
+        // Sempre atualizar o estado para qualquer evento de auth
+        await updateAuthState(session, `event-${event}`);
       }
     );
 
@@ -220,7 +187,7 @@ export const useStableAuth = () => {
       console.log('🚪 [useStableAuth] Logging out...');
       await supabase.auth.signOut();
       sessionStorage.clear(); // Limpar cache de admin
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('supabase.auth.token');
     } catch (err) {
       logger.error('❌ [useStableAuth] Error during logout:', { error: err });
     }
