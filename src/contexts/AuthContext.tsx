@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>, supabaseAccessToken?: string, supabaseRefreshToken?: string) => Promise<void>;
+  login: (username: string, login_token: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -117,75 +117,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [stableAuth.session, stableAuth.isAdmin, user?.type, user?.id]);
 
-  const login = async (
-    token: string, 
-    type: 'cartorio' | 'admin', 
-    userData?: Partial<User>,
-    supabaseAccessToken?: string,
-    supabaseRefreshToken?: string
-  ) => {
-    console.log('🔐 [AuthContext] Login iniciado:', { type, hasUserData: !!userData });
+  const login = async (username: string, login_token: string) => {
+    console.log('🔐 [AuthContext] Login iniciado para cartório:', { username });
     
-    const newUser: User = {
-      id: userData?.id || '1',
-      name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
-      type,
-      token: type === 'cartorio' ? token : undefined,
-      cartorio_id: userData?.cartorio_id,
-      cartorio_name: userData?.cartorio_name,
-      username: userData?.username,
-      email: userData?.email
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('siplan-user', JSON.stringify(newUser));
-    
-    // Create authenticated client for cartorio users
-    if (type === 'cartorio') {
-      const authClient = createAuthenticatedClient(token);
+    try {
+      // Chamar Edge Function para autenticar
+      const response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`
+        },
+        body: JSON.stringify({ username, login_token })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro na autenticação');
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erro na autenticação');
+      }
+
+      // Configurar sessão do Supabase
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+      if (sessionError) {
+        console.error('❌ [AuthContext] Erro ao configurar sessão:', sessionError);
+        throw new Error('Erro ao configurar sessão');
+      }
+
+      // Criar objeto user
+      const newUser: User = {
+        id: data.user.id,
+        name: data.cartorio?.nome || username,
+        type: 'cartorio',
+        token: login_token,
+        cartorio_id: data.user.cartorio_id,
+        cartorio_name: data.cartorio?.nome,
+        username: data.user.username,
+        email: data.user.email || `${username}@cartorio.local`
+      };
+
+      setUser(newUser);
+      localStorage.setItem('siplan-user', JSON.stringify(newUser));
+
+      // Configurar cliente autenticado
+      const authClient = createAuthenticatedClient(login_token);
       setAuthenticatedClient(authClient);
-      
-      // ✅ CRÍTICO: Configurar sessão do Supabase com tokens REAIS
-      if (supabaseAccessToken && supabaseRefreshToken) {
-        try {
-          console.log('🔑 [AuthContext] Configurando sessão do Supabase com tokens REAIS...');
-          
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: supabaseAccessToken,
-            refresh_token: supabaseRefreshToken,
-          });
-          
-          if (sessionError) {
-            console.error('❌ [AuthContext] ERRO CRÍTICO ao configurar sessão do Supabase com tokens reais:', sessionError);
-          } else {
-            console.log('✅ [AuthContext] Sessão do Supabase configurada com sucesso com tokens reais.');
-          }
-        } catch (error) {
-          console.error('❌ [AuthContext] Erro inesperado ao tentar setar sessão Supabase:', error);
-        }
-      } else {
-        console.warn('⚠️ [AuthContext] Tokens REAIS do Supabase (access_token/refresh_token) não foram fornecidos para setSession.');
+
+      // Configurar contexto do cartório
+      if (data.user.cartorio_id) {
+        await supabase.rpc('set_cartorio_context', {
+          p_cartorio_id: data.user.cartorio_id
+        });
       }
-      
-      // Configurar contexto do cartório para RLS
-      if (userData?.cartorio_id) {
-        try {
-          const { error: contextError } = await supabase.rpc('set_cartorio_context', {
-            p_cartorio_id: userData.cartorio_id
-          });
-          
-          if (contextError) {
-            console.error('❌ [AuthContext] Erro RPC ao setar contexto:', contextError);
-          } else {
-            console.log('✅ [AuthContext] Contexto do cartório configurado com sucesso:', userData.cartorio_id);
-          }
-        } catch (error) {
-          console.error('❌ [AuthContext] Erro ao configurar contexto do cartório:', error);
-        }
-      }
+
+      console.log('✅ [AuthContext] Login concluído com sucesso');
+    } catch (error) {
+      console.error('❌ [AuthContext] Erro no login:', error);
+      throw error;
     }
-    
-    console.log('✅ [AuthContext] Login concluído com sucesso');
   };
 
   const logout = async () => {
