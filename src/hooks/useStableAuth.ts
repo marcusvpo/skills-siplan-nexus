@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,14 +16,14 @@ export const useStableAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     session: null,
     user: null,
-    loading: true,
-    isInitialized: false,
+    loading: true, // Começa como true para indicar que a verificação está em andamento
+    isInitialized: false, // Começa como false para indicar que a inicialização não terminou
     isAdmin: false,
     error: null
   });
 
-  const initializationRef = useRef(false);
-  const listenerRef = useRef<any>(null);
+  const initializationRef = useRef(false); // Garante que a inicialização só aconteça uma vez
+  const listenerRef = useRef<any>(null); // Referência para a inscrição do listener
 
   // Função para verificar status de admin com cache
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
@@ -32,27 +31,29 @@ export const useStableAuth = () => {
       return false;
     }
 
-    // Cache simples para evitar múltiplas consultas
     const cacheKey = `admin_status_${user.email}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached !== null) {
+      logger.debug(`[useStableAuth] Admin status for ${user.email} from cache: ${cached}`);
       return cached === 'true';
     }
 
     try {
+      logger.debug(`[useStableAuth] Checking admin status for ${user.email} from DB.`);
       const { data: adminData, error } = await supabase
         .from('admins')
         .select('id')
         .eq('email', user.email)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') { // PGRST116 é 'Not found'
         logger.error('❌ [useStableAuth] Error checking admin status:', { error });
         return false;
       }
 
       const isAdmin = !!adminData;
-      sessionStorage.setItem(cacheKey, isAdmin.toString());
+      sessionStorage.setItem(cacheKey, isAdmin.toString()); // Salva no cache
+      logger.debug(`[useStableAuth] Admin status for ${user.email} from DB: ${isAdmin}`);
       return isAdmin;
     } catch (err) {
       logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
@@ -60,50 +61,53 @@ export const useStableAuth = () => {
     }
   }, []);
 
-  // Função para validar se a sessão ainda é válida
+  // Função para validar se a sessão do Supabase ainda é válida
   const isSessionValid = useCallback((session: Session | null): boolean => {
     if (!session) return false;
     
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = session.expires_at || 0;
     
-    return expiresAt > (now + 300); // 5 minutos de margem
+    // Considera a sessão válida se expira em mais de 5 minutos
+    return expiresAt > (now + 300); 
   }, []);
 
-  // Função para atualizar estado de auth de forma estável
+  // Função central para atualizar o estado de autenticação de forma estável
   const updateAuthState = useCallback(async (session: Session | null, source: string = 'unknown') => {
-    console.log(`🔄 [useStableAuth] Updating auth state from ${source}:`, session ? 'with session' : 'without session');
+    logger.debug(`🔄 [useStableAuth] Atualizando estado auth (source: ${source}):`, { hasSession: !!session });
     
-    // Validar sessão antes de usar
-    if (session && !isSessionValid(session)) {
-      console.log('⚠️ [useStableAuth] Session expired, attempting refresh...');
+    let currentSession = session;
+
+    // Tenta refreshar a sessão se ela não for válida
+    if (currentSession && !isSessionValid(currentSession)) {
+      logger.debug('⚠️ [useStableAuth] Sessão expirada ou quase expirando, tentando refresh...');
       try {
         const { data, error } = await supabase.auth.refreshSession();
         if (!error && data.session) {
-          session = data.session;
-          console.log('✅ [useStableAuth] Session refreshed successfully');
+          currentSession = data.session;
+          logger.debug('✅ [useStableAuth] Sessão refreshada com sucesso.');
         } else {
-          console.log('❌ [useStableAuth] Failed to refresh session');
-          session = null;
+          logger.warn('❌ [useStableAuth] Falha ao refreshar sessão, invalidando-a.', { error });
+          currentSession = null; // Invalida a sessão se não puder ser refreshada
         }
       } catch (err) {
-        console.error('❌ [useStableAuth] Error refreshing session:', err);
-        session = null;
+        logger.error('❌ [useStableAuth] Erro ao refreshar sessão:', err);
+        currentSession = null;
       }
     }
     
-    const isAdmin = session?.user ? await checkAdminStatus(session.user) : false;
+    const isAdmin = currentSession?.user ? await checkAdminStatus(currentSession.user) : false;
     
     const newState: AuthState = {
-      session,
-      user: session?.user || null,
-      loading: false, // Sempre definir loading como false após qualquer atualização
-      isInitialized: true,
+      session: currentSession,
+      user: currentSession?.user || null,
+      loading: false, // O processo de atualização terminou, então não está mais "carregando"
+      isInitialized: true, // A inicialização do hook terminou
       isAdmin,
-      error: null
+      error: null // Limpa qualquer erro anterior após a atualização
     };
 
-    console.log('📝 [useStableAuth] New state:', {
+    logger.debug('📝 [useStableAuth] Novo estado auth:', {
       hasSession: !!newState.session,
       hasUser: !!newState.user,
       loading: newState.loading,
@@ -114,85 +118,89 @@ export const useStableAuth = () => {
 
     setAuthState(newState);
 
-    // Salvar sessão apenas se válida
-    if (session && isSessionValid(session)) {
+    // Salva a sessão no localStorage apenas se ela for válida
+    if (currentSession && isSessionValid(currentSession)) {
       try {
-        localStorage.setItem('supabase.auth.token', JSON.stringify(session));
-        console.log('💾 [useStableAuth] Session saved to localStorage');
+        localStorage.setItem('supabase.auth.token', JSON.stringify(currentSession));
+        logger.debug('💾 [useStableAuth] Sessão Supabase salva no localStorage.');
       } catch (error) {
-        console.error('❌ [useStableAuth] Error saving session:', error);
+        logger.error('❌ [useStableAuth] Erro ao salvar sessão no localStorage:', error);
       }
     } else {
-      localStorage.removeItem('supabase.auth.token');
-      console.log('🗑️ [useStableAuth] Session removed from localStorage');
+      localStorage.removeItem('supabase.auth.token'); // Remove se a sessão não é válida
+      logger.debug('🗑️ [useStableAuth] Sessão Supabase removida do localStorage.');
     }
   }, [checkAdminStatus, isSessionValid]);
 
-  // Inicialização única e estável
+  // Efeito para a inicialização única e estável do hook
   useEffect(() => {
-    if (initializationRef.current) return;
+    if (initializationRef.current) return; // Garante que só roda uma vez
     
     initializationRef.current = true;
-    console.log('🚀 [useStableAuth] Initializing auth...');
+    logger.info('�� [useStableAuth] Iniciando verificação de autenticação...');
 
     const initAuth = async () => {
       try {
-        console.log('🔍 [useStableAuth] Getting session from Supabase...');
+        logger.debug('🔍 [useStableAuth] Obtendo sessão do Supabase...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ [useStableAuth] Error getting session:', error);
+          logger.error('❌ [useStableAuth] Erro ao obter sessão inicial:', error);
           await updateAuthState(null, 'init-error');
           return;
         }
 
-        console.log('✅ [useStableAuth] Session retrieved:', session ? 'found' : 'not found');
-        await updateAuthState(session, 'init');
+        logger.debug('✅ [useStableAuth] Sessão inicial obtida:', { hasSession: !!session });
+        await updateAuthState(session, 'init'); // Atualiza o estado com a sessão inicial
 
       } catch (error) {
-        console.error('❌ [useStableAuth] Auth initialization error:', error);
+        logger.error('❌ [useStableAuth] Erro durante a inicialização do auth:', error);
         await updateAuthState(null, 'init-exception');
       }
     };
 
-    initAuth();
-  }, [updateAuthState]);
+    initAuth(); // Chama a função de inicialização
+  }, [updateAuthState]); // Depende de updateAuthState
 
-  // Configurar listener de mudanças de auth (apenas uma vez)
+  // Efeito para configurar o listener de mudanças de autenticação do Supabase
   useEffect(() => {
+    // Garante que o listener só é configurado se a inicialização já ocorreu e não há um listener ativo
     if (!initializationRef.current || listenerRef.current) return;
 
-    console.log('👂 [useStableAuth] Setting up auth state listener...');
+    logger.info('�� [useStableAuth] Configurando listener de mudanças de autenticação...');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        console.log(`🔔 [useStableAuth] Auth event: ${event}`, session ? 'with session' : 'without session');
-        
-        // Sempre atualizar o estado para qualquer evento de auth
+        logger.debug(`🔔 [useStableAuth] Evento Auth recebido: ${event}`, { hasSession: !!session });
+        // Sempre atualiza o estado em resposta a qualquer evento de autenticação
         await updateAuthState(session, `event-${event}`);
       }
     );
 
-    listenerRef.current = subscription;
+    listenerRef.current = subscription; // Armazena a inscrição do listener
 
+    // Função de limpeza para desinscrever o listener na desmontagem
     return () => {
-      console.log('🧹 [useStableAuth] Cleaning up auth listener');
+      logger.info('🧹 [useStableAuth] Limpando listener de autenticação.');
       subscription.unsubscribe();
       listenerRef.current = null;
     };
-  }, [updateAuthState]);
+  }, [updateAuthState]); // Depende de updateAuthState
 
+  // Função para fazer logout do Supabase Auth nativo
   const logout = useCallback(async () => {
     try {
-      console.log('🚪 [useStableAuth] Logging out...');
+      logger.info('�� [useStableAuth] Realizando logout...');
       await supabase.auth.signOut();
-      sessionStorage.clear(); // Limpar cache de admin
-      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear(); // Limpa o cache de status de admin
+      localStorage.removeItem('supabase.auth.token'); // Remove a sessão do localStorage
+      logger.info('✅ [useStableAuth] Logout concluído.');
     } catch (err) {
-      logger.error('❌ [useStableAuth] Error during logout:', { error: err });
+      logger.error('❌ [useStableAuth] Erro durante o logout:', { error: err });
     }
-  }, []);
+  }, []); // Sem dependências, pois apenas chama funções já estáveis
 
+  // Retorna o estado atual e a função de logout
   return {
     ...authState,
     logout
