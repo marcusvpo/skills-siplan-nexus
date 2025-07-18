@@ -2,7 +2,8 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 
 // Hook to fetch systems with access control via RLS
 export const useSistemasCartorioWithAccess = () => {
@@ -40,8 +41,8 @@ export const useSistemasCartorioWithAccess = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`,
-            'X-Custom-Auth': user.token,
+            'Authorization': `Bearer ${user.token}`, // Usa o token do usuário logado
+            'X-Custom-Auth': user.token, // Para compatibilidade ou uso customizado
           },
         });
 
