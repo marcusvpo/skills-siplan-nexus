@@ -1,19 +1,24 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-// Ajuste o import baseado no seu arquivo real
-import { supabase } from '../lib/client'; // ou o caminho correto do seu arquivo
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
   username: string;
+  name: string;
   email?: string;
-  // Adicione outros campos conforme necessário
+  type: 'admin' | 'cartorio';
+  cartorio_id?: string;
+  cartorio_name?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, loginToken: string) => Promise<any>;
+  login: (loginToken: string, userType: string) => Promise<any>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,7 +42,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser({
             id: session.user.id,
             username: session.user.user_metadata?.username || session.user.email || '',
-            email: session.user.email
+            name: session.user.user_metadata?.name || session.user.user_metadata?.username || session.user.email || '',
+            email: session.user.email,
+            type: session.user.user_metadata?.type || 'cartorio',
+            cartorio_id: session.user.user_metadata?.cartorio_id,
+            cartorio_name: session.user.user_metadata?.cartorio_name
           });
         } else {
           console.log('ℹ️ [AuthContext] No active session');
@@ -60,7 +69,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser({
             id: session.user.id,
             username: session.user.user_metadata?.username || session.user.email || '',
-            email: session.user.email
+            name: session.user.user_metadata?.name || session.user.user_metadata?.username || session.user.email || '',
+            email: session.user.email,
+            type: session.user.user_metadata?.type || 'cartorio',
+            cartorio_id: session.user.user_metadata?.cartorio_id,
+            cartorio_name: session.user.user_metadata?.cartorio_name
           });
         } else {
           setUser(null);
@@ -74,19 +87,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (username: string, loginToken: string): Promise<any> => {
+  const login = async (loginToken: string, userType: string): Promise<any> => {
     console.log('🚀 [AuthContext] Starting login process...');
-    console.log('📝 [AuthContext] Username:', username);
     console.log('🔑 [AuthContext] Token present:', !!loginToken);
+    console.log('👤 [AuthContext] User type:', userType);
     
     try {
       setIsLoading(true);
       
       console.log('📡 [AuthContext] Calling Edge Function...');
       
-      const { data, error } = await supabase.functions.invoke('login', {
+      const { data, error } = await supabase.functions.invoke('login-cartorio', {
         body: {
-          username: username.trim(),
           login_token: loginToken.trim()
         }
       });
@@ -105,8 +117,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       console.log('✅ [AuthContext] Login successful:', data);
       
-      // Aqui você pode definir o estado de autenticação se necessário
-      // setUser(data.user);
+      // Se recebeu token JWT customizado, configurar no Supabase
+      if (data.jwt_token) {
+        console.log('🔐 [AuthContext] Setting custom JWT token');
+        // Aqui você pode configurar o token customizado se necessário
+      }
       
       return data;
     } catch (error: any) {
@@ -140,7 +155,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     user,
     login,
     logout,
-    isLoading
+    isLoading,
+    isAuthenticated: !!user,
+    isAdmin: user?.type === 'admin'
   };
 
   return (
