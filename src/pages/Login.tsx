@@ -43,26 +43,46 @@ const Login: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    console.log('🚀 [Login] Starting authentication process...');
+    console.log('🔍 [Login] Form submit event triggered');
     
-    if (!formData.username.trim() || !formData.login_token.trim()) {
-      setError('Por favor, preencha todos os campos');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
     try {
-      console.log('🚀 [Login] Starting authentication process...');
+      console.log('🔍 [Login] Step 1: Preventing default form submission');
+      e.preventDefault();
       
-      // Chamar a Edge Function login-cartorio
+      console.log('🔍 [Login] Step 2: Checking form data validation');
+      console.log('🔍 [Login] Username:', formData.username);
+      console.log('🔍 [Login] Token length:', formData.login_token.length);
+      
+      if (!formData.username.trim() || !formData.login_token.trim()) {
+        console.log('❌ [Login] Validation failed: empty fields');
+        setError('Por favor, preencha todos os campos');
+        return;
+      }
+
+      console.log('🔍 [Login] Step 3: Setting loading state to true');
+      setIsLoading(true);
+      console.log('🔍 [Login] Step 4: Clearing previous errors');
+      setError('');
+
+      console.log('🔍 [Login] Step 5: Preparing to call Supabase function');
+      console.log('🔍 [Login] Supabase client:', !!supabase);
+      console.log('🔍 [Login] Functions available:', !!supabase.functions);
+
+      console.log('🔍 [Login] Step 6: Making Edge Function call with data:');
+      console.log('🔍 [Login] - username:', formData.username);
+      console.log('🔍 [Login] - login_token:', formData.login_token ? 'present' : 'missing');
+
       const { data, error: functionError } = await supabase.functions.invoke('login-cartorio', {
         body: {
           username: formData.username,
           login_token: formData.login_token
         }
       });
+
+      console.log('🔍 [Login] Step 7: Edge Function response received');
+      console.log('🔍 [Login] - data:', data);
+      console.log('🔍 [Login] - error:', functionError);
 
       if (functionError) {
         console.error('❌ [Login] Edge Function error:', functionError);
@@ -76,18 +96,18 @@ const Login: React.FC = () => {
 
       console.log('✅ [Login] Authentication successful:', data);
 
-      // Chamar o método login do contexto com apenas o token e tipo
+      console.log('🔍 [Login] Step 8: Calling login context method');
       login(formData.login_token, 'cartorio');
 
-      console.log('🔄 [Login] Redirecting to dashboard...');
-      
-      // Redirecionamento direto após login bem-sucedido
+      console.log('🔍 [Login] Step 9: Preparing to redirect');
       navigate('/dashboard');
 
     } catch (err: any) {
-      console.error('❌ [Login] Error:', err);
+      console.error('❌ [Login] Error in handleSubmit:', err);
+      console.error('❌ [Login] Error stack:', err.stack);
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
+      console.log('🔍 [Login] Step 10: Setting loading to false');
       setIsLoading(false);
     }
   };
