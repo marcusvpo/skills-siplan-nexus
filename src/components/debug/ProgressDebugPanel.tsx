@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Bug, Eye } from 'lucide-react';
 import { useProgressoGeral } from '@/hooks/useProgressoGeral';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { useProgressContext } from '@/contexts/ProgressContext';
 
 export const ProgressDebugPanel: React.FC = () => {
