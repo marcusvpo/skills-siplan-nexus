@@ -25,7 +25,7 @@ export const AuthDebugPanel: React.FC = () => {
         email: 'demo@siplan.com.br'
       };
 
-      await login('DEMO-SIPLANSKILLS-CARTORIO', 'cartorio', demoUser);
+      await login('user.test', 'CART-1751554048539-2H6W7O');
       
       toast({
         title: "Login de demonstração realizado",
