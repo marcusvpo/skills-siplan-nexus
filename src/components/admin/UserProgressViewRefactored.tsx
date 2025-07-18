@@ -5,7 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Users, TrendingUp, BookOpen, CheckCircle, Loader2, ArrowLeft, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { toast } from '@/hooks/use-toast';
 
 interface CartorioBasico {
@@ -355,7 +356,7 @@ export const UserProgressViewRefactored: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div>
                       <Button
                         variant="outline"
                         size="sm"
