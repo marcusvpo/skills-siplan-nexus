@@ -13,24 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔍 [DEBUG] Iniciando teste de conectividade...')
+    console.log('🔍 [LOGIN] Iniciando processo de autenticação...')
     
-    // Primeiro, vamos testar apenas um GET simples
-    try {
-      const testResponse = await fetch('https://ws.siplan.com.br', {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Supabase-Edge-Function/1.0'
-        }
-      })
-      
-      console.log('✅ [DEBUG] Teste de conectividade:', testResponse.status)
-    } catch (testError) {
-      console.log('❌ [DEBUG] Erro no teste de conectividade:', testError.message)
-    }
-    
-    const { username, token } = await req.json()
-    console.log('📧 [DEBUG] Tentando login para:', username)
+    const { username, login_token } = await req.json()
+    console.log('🔍 [LOGIN] Tentativa de login para username:', username)
 
     // Criar cliente admin do Supabase
     const supabaseAdmin = createClient(
@@ -44,136 +30,168 @@ serve(async (req) => {
       }
     )
 
-    // 1. Validar credenciais no sistema legado com headers mais robustos
-    console.log('🔍 [DEBUG] Fazendo POST para API da Siplan...')
-    const legacyResponse = await fetch('https://ws.siplan.com.br/cartorio/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Supabase-Edge-Function/1.0',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ username, token })
-    })
+    console.log('🔍 [LOGIN] Token recebido (presença):', login_token ? 'sim' : 'não')
 
-    console.log('📡 [DEBUG] Status da resposta:', legacyResponse.status)
+    // 1. Buscar usuário e validar token na tabela acessos_cartorio
+    const { data: usuario, error: userError } = await supabaseAdmin
+      .from('cartorio_usuarios')
+      .select(`
+        id,
+        cartorio_id,
+        username,
+        email,
+        is_active,
+        user_id,
+        auth_user_id,
+        cartorios!inner(
+          id,
+          nome,
+          is_active
+        )
+      `)
+      .eq('username', username)
+      .eq('is_active', true)
+      .eq('cartorios.is_active', true)
+      .single()
 
-    if (!legacyResponse.ok) {
-      const errorText = await legacyResponse.text()
-      console.log('❌ [DEBUG] Erro da API:', errorText)
-      console.log('❌ [LOGIN] Falha na autenticação do sistema legado')
+    if (userError || !usuario) {
+      console.log('❌ [LOGIN] Usuário não encontrado ou inativo:', usuario?.username || username)
       return new Response(
-        JSON.stringify({ success: false, error: 'Credenciais inválidas' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Usuário não encontrado ou inativo',
+          code: 'USER_NOT_FOUND'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       )
     }
 
-    const userData = await legacyResponse.json()
-    console.log('✅ [DEBUG] Login bem-sucedido')
-    console.log('✅ [LOGIN] Autenticação legada bem-sucedida para:', userData.username)
+    console.log('✅ [LOGIN] Usuário e cartório ativos encontrados:', usuario.username)
 
-    // 2. Buscar ou criar usuário no Supabase Auth
-    const email = `${username}@cartorio.local`
-    
-    // Tentar buscar usuário existente usando a API correta
-    const { data: existingUsers, error: searchError } = await supabaseAdmin.auth.admin.listUsers({
-      filter: `email.eq.${email}`
-    })
+    // 2. Validar token de acesso na tabela acessos_cartorio
+    const { data: acesso, error: accessError } = await supabaseAdmin
+      .from('acessos_cartorio')
+      .select('*')
+      .eq('cartorio_id', usuario.cartorio_id)
+      .eq('login_token', login_token)
+      .eq('ativo', true)
+      .gte('data_expiracao', new Date().toISOString())
+      .single()
 
-    console.log('🔍 [LOGIN] Busca de usuário existente:', { existingUsers, searchError })
+    if (accessError || !acesso) {
+      console.log('❌ [LOGIN] Token inválido, expirado ou inativo')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Token inválido, expirado ou inativo',
+          code: 'INVALID_TOKEN'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
 
+    console.log('✅ [LOGIN] Token de acesso validado com sucesso na tabela acessos_cartorio.')
+
+    // 3. Buscar/criar usuário no Supabase Auth
+    const email = usuario.email || `${username}@cartorio.local`
     let authUser
-    let session
 
-    if (existingUsers && existingUsers.users && existingUsers.users.length > 0) {
-      // Usuário existe, gerar nova sessão
-      authUser = existingUsers.users[0]
-      console.log('✅ [LOGIN] Usuário encontrado:', authUser.id)
-      
-      // Gerar tokens usando generateAccessToken
-      const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.admin.generateAccessToken(authUser.id)
-      
-      if (tokenError) {
-        console.error('❌ [LOGIN] Erro ao gerar token:', tokenError)
-        throw tokenError
-      }
-      
-      session = {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || 'refresh_token_placeholder',
-        user: authUser
-      }
+    if (usuario.auth_user_id) {
+      // Usuário já existe no Supabase Auth
+      console.log('✅ [LOGIN] Usuário existente no Supabase Auth:', usuario.auth_user_id)
+      authUser = { id: usuario.auth_user_id, email }
     } else {
-      // Criar novo usuário
-      console.log('🔄 [LOGIN] Criando novo usuário')
+      // Criar novo usuário no Supabase Auth
+      console.log('🔄 [LOGIN] Criando novo usuário no Supabase Auth')
       
       const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
-        password: `temp_${Date.now()}`, // Senha temporária
+        password: `temp_${Date.now()}`,
         email_confirm: true,
         user_metadata: {
-          username: userData.username,
-          cartorio_id: userData.cartorio_id,
+          username: usuario.username,
+          cartorio_id: usuario.cartorio_id,
           sistema_legado: true
         }
       })
 
       if (createError) {
-        console.error('❌ [LOGIN] Erro ao criar usuário:', createError)
-        throw createError
+        console.error('❌ [LOGIN] Erro ao criar usuário no Supabase Auth:', createError)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Erro interno ao criar usuário',
+            code: 'USER_CREATION_ERROR'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
       }
 
       authUser = newUserData.user
-      console.log('✅ [LOGIN] Usuário criado:', authUser.id)
+      console.log('✅ [LOGIN] Usuário criado no Supabase Auth:', authUser.id)
 
-      // Gerar tokens para o novo usuário
-      const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.admin.generateAccessToken(authUser.id)
-      
-      if (tokenError) {
-        console.error('❌ [LOGIN] Erro ao gerar token para novo usuário:', tokenError)
-        throw tokenError
-      }
-      
-      session = {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || 'refresh_token_placeholder',
-        user: authUser
-      }
+      // Atualizar cartorio_usuarios com o auth_user_id
+      await supabaseAdmin
+        .from('cartorio_usuarios')
+        .update({ auth_user_id: authUser.id })
+        .eq('id', usuario.id)
     }
 
-    // 3. Inserir/atualizar dados do usuário na tabela usuarios
-    const { error: upsertError } = await supabaseAdmin
-      .from('usuarios')
-      .upsert({
-        id: authUser.id,
-        username: userData.username,
-        cartorio_id: userData.cartorio_id,
-        ativo: true,
-        ultimo_login: new Date().toISOString(),
-        dados_legado: userData
-      }, {
-        onConflict: 'id'
-      })
+    // 4. Gerar tokens de acesso do Supabase Auth
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+      options: {
+        redirectTo: `${req.headers.get('origin') || 'https://skills.siplan.com.br'}/dashboard`
+      }
+    })
 
-    if (upsertError) {
-      console.error('❌ [LOGIN] Erro ao salvar dados do usuário:', upsertError)
-      // Não falhar por isso, apenas logar
+    if (linkError) {
+      console.error('❌ [LOGIN] Erro ao gerar link/tokens:', linkError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Erro ao gerar sessão de autenticação',
+          code: 'SESSION_ERROR'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    const { properties } = linkData
+    if (!properties?.access_token || !properties?.refresh_token) {
+      console.error('❌ [LOGIN] AccessToken ou RefreshToken não encontrados no link gerado.')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Tokens de autenticação não gerados',
+          code: 'TOKEN_ERROR'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     console.log('🎉 [LOGIN] Login completo com sucesso')
 
-    // 4. Retornar resposta com tokens
+    // 5. Retornar resposta completa
     return new Response(
       JSON.stringify({
         success: true,
-        user: {
-          id: authUser.id,
-          username: userData.username,
-          cartorio_id: userData.cartorio_id,
-          email: authUser.email
+        cartorio: {
+          id: usuario.cartorio_id,
+          nome: usuario.cartorios.nome,
+          cidade: 'Jaboticabal', // Hardcoded por enquanto
+          estado: 'SP'
         },
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
+        usuario: {
+          id: authUser.id,
+          username: usuario.username,
+          email: email,
+          cartorio_user_id: usuario.id
+        },
+        access_token: properties.access_token,
+        refresh_token: properties.refresh_token,
+        message: `Bem-vindo(a), ${usuario.username}! Acesso autorizado para ${usuario.cartorios.nome}.`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

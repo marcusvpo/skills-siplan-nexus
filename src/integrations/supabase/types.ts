@@ -124,29 +124,35 @@ export type Database = {
       }
       cartorio_usuarios: {
         Row: {
+          auth_user_id: string | null
           cartorio_id: string
           created_at: string | null
           email: string | null
           id: string
           is_active: boolean | null
+          updated_at: string | null
           user_id: string | null
           username: string
         }
         Insert: {
+          auth_user_id?: string | null
           cartorio_id: string
           created_at?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          updated_at?: string | null
           user_id?: string | null
           username: string
         }
         Update: {
+          auth_user_id?: string | null
           cartorio_id?: string
           created_at?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          updated_at?: string | null
           user_id?: string | null
           username?: string
         }

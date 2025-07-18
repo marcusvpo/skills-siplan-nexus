@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,10 +26,13 @@ const Login = () => {
       logger.userAction('Login attempt started', { username, hasToken: !!token });
       
       console.log('🔍 [LOGIN] Iniciando chamada para Edge Function...');
-      console.log('🔍 [LOGIN] URL:', 'https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio');
-      console.log('🔍 [LOGIN] Payload:', { username, login_token: token });
       
-      const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio', {
+      // URL dinâmica baseada no ambiente atual
+      const baseUrl = window.location.origin.includes('lovable.app') 
+        ? 'https://bnulocsnxiffavvabfdj.supabase.co'
+        : 'https://bnulocsnxiffavvabfdj.supabase.co';
+      
+      const response = await fetch(`${baseUrl}/functions/v1/login-cartorio`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,65 +41,24 @@ const Login = () => {
         body: JSON.stringify({ username, login_token: token }),
       });
 
-      console.log('🔍 [LOGIN] Resposta recebida:');
-      console.log('  - Status:', response.status);
-      console.log('  - StatusText:', response.statusText);
-      console.log('  - Headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Clone response para poder ler o texto múltiplas vezes
-      const responseClone = response.clone();
-      const responseText = await responseClone.text();
-      console.log('🔍 [LOGIN] Corpo da resposta (texto):', responseText);
+      console.log('🔍 [LOGIN] Status da resposta:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [LOGIN] Erro HTTP:', errorText);
+        throw new Error(`Erro do servidor: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ [LOGIN] Resposta recebida:', data);
 
       logger.info('Login response received', { status: response.status });
-      
-      if (!response.ok) {
-        console.error('❌ [LOGIN] Response não OK:', response.status);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('❌ [LOGIN] Erro ao parsear JSON de erro:', parseError);
-          errorData = { 
-            error: `Erro HTTP ${response.status}: ${responseText}`,
-            code: 'HTTP_ERROR'
-          };
-        }
-        
-        logger.error('Login failed', { error: errorData, status: response.status });
-        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
-      }
 
-      // Tentar parsear JSON da resposta de sucesso
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('✅ [LOGIN] JSON parseado com sucesso:', data);
-      } catch (parseError) {
-        console.error('❌ [LOGIN] Erro ao parsear JSON de sucesso:', parseError);
-        console.error('❌ [LOGIN] Resposta que falhou no parse:', responseText);
-        throw new Error(`Resposta inválida do servidor - não é JSON válido: ${responseText.substring(0, 200)}`);
-      }
-
-      logger.info('Login successful', { 
-        cartorio: data.cartorio?.nome,
-        usuario: data.usuario?.username
-      });
-
-      // Verificar estrutura da resposta
-      console.log('🔍 [LOGIN] Verificando estrutura da resposta:');
-      console.log('  - data.success:', data.success);
-      console.log('  - data.access_token:', data.access_token ? 'PRESENTE' : 'AUSENTE');
-      console.log('  - data.refresh_token:', data.refresh_token ? 'PRESENTE' : 'AUSENTE');
-      console.log('  - data.cartorio:', data.cartorio ? 'PRESENTE' : 'AUSENTE');
-      console.log('  - data.usuario:', data.usuario ? 'PRESENTE' : 'AUSENTE');
-
-      if (data.success && data.access_token && data.refresh_token && data.cartorio && data.usuario) {
-        console.log('✅ [LOGIN] Estrutura válida, prosseguindo com login...');
+      if (data.success && data.access_token && data.refresh_token) {
+        console.log('✅ [LOGIN] Login bem-sucedido, configurando sessão...');
         
         await login(
-          'legacy-token', // Token customizado legacy (pode ser removido no futuro)
+          'cartorio-session', // Token legacy para compatibilidade
           'cartorio', 
           {
             id: data.usuario.id,
@@ -107,46 +68,33 @@ const Login = () => {
             username: data.usuario.username,
             email: data.usuario.email
           },
-          data.access_token,  // ✅ Token de acesso real do Supabase
-          data.refresh_token  // ✅ Token de refresh real do Supabase
+          data.access_token,
+          data.refresh_token
         );
         
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${data.usuario.username} - ${data.cartorio.nome}!`,
+          description: data.message || `Bem-vindo(a), ${data.usuario.username}!`,
         });
         
         navigate('/dashboard');
       } else {
-        console.error('❌ [LOGIN] Estrutura inválida da resposta:');
-        console.error('  - Campos faltando:', {
-          success: !data.success,
-          access_token: !data.access_token,
-          refresh_token: !data.refresh_token,
-          cartorio: !data.cartorio,
-          usuario: !data.usuario
-        });
-        throw new Error(data.error || 'Resposta inválida do servidor - campos obrigatórios ausentes');
+        console.error('❌ [LOGIN] Estrutura de resposta inválida:', data);
+        throw new Error(data.error || 'Resposta inválida do servidor');
       }
     } catch (error) {
       console.error('💥 [LOGIN] Erro capturado:', error);
       logger.error('Login error', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      // Mapear códigos de erro para mensagens mais amigáveis
+      // Mapear erros para mensagens amigáveis
       let friendlyMessage = errorMessage;
-      if (errorMessage.includes('INVALID_TOKEN')) {
-        friendlyMessage = 'Token não encontrado. Verifique se digitou corretamente.';
-      } else if (errorMessage.includes('EXPIRED_TOKEN')) {
-        friendlyMessage = 'Token expirado. Entre em contato com o administrador.';
-      } else if (errorMessage.includes('INACTIVE_TOKEN')) {
-        friendlyMessage = 'Token desativado. Entre em contato com o administrador.';
-      } else if (errorMessage.includes('INACTIVE_CARTORIO')) {
-        friendlyMessage = 'Cartório inativo. Entre em contato com o administrador.';
-      } else if (errorMessage.includes('USER_NOT_FOUND')) {
+      if (errorMessage.includes('USER_NOT_FOUND')) {
         friendlyMessage = 'Usuário não encontrado ou inativo.';
-      } else if (errorMessage.includes('MISSING_FIELDS')) {
-        friendlyMessage = 'Preencha todos os campos obrigatórios.';
+      } else if (errorMessage.includes('INVALID_TOKEN')) {
+        friendlyMessage = 'Token inválido, expirado ou inativo.';
+      } else if (errorMessage.includes('SESSION_ERROR')) {
+        friendlyMessage = 'Erro ao criar sessão. Tente novamente.';
       }
       
       setError(friendlyMessage);
@@ -248,7 +196,7 @@ const Login = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Verificando...</span>
+                  <span>Autenticando...</span>
                 </div>
               ) : (
                 'Acessar Plataforma'

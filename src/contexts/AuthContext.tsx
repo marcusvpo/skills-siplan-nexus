@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [authenticatedClient, setAuthenticatedClient] = useState<any>(null);
   const [hasInitializedOnce, setHasInitializedOnce] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   
   const stableAuth = useStableAuth();
 
@@ -84,6 +85,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setHasInitializedOnce(true);
   }, [hasInitializedOnce]);
+
+  useEffect(() => {
+    // Sincronizar sessão local com stableAuth
+    if (stableAuth.session) {
+      setSession(stableAuth.session);
+    } else {
+      setSession(null);
+    }
+  }, [stableAuth.session]);
 
   useEffect(() => {
     // Atualizar usuário admin baseado no stableAuth - APENAS se necessário
@@ -213,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session: stableAuth.session, 
+      session: session || stableAuth.session, 
       login, 
       logout, 
       isAuthenticated, 
