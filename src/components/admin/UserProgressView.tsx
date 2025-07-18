@@ -5,7 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Users, TrendingUp, BookOpen, CheckCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { toast } from '@/hooks/use-toast';
 
 interface CartorioProgress {
@@ -186,7 +187,7 @@ export const UserProgressView: React.FC = () => {
               return (
                 <Card 
                   key={cartorio.id} 
-                  className="glass-effect border-gray-600/50 hover:border-red-500/50 transition-all duration-300"
+                  className="glass-effect border-gray-600/50 hover:border-blue-500/50 transition-all duration-300"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
