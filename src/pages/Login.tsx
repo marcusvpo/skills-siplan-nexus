@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -16,8 +18,20 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirecionar se já está autenticado
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('🔄 [Login] User already authenticated, redirecting...');
+      if (user.type === 'admin') {
+        navigate('/admin');
+      } else if (user.type === 'cartorio') {
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,10 +54,45 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(formData.username, formData.login_token);
+      console.log('🚀 [Login] Starting authentication process...');
+      
+      // Chamar a Edge Function login-cartorio
+      const { data, error: functionError } = await supabase.functions.invoke('login-cartorio', {
+        body: {
+          username: formData.username,
+          login_token: formData.login_token
+        }
+      });
+
+      if (functionError) {
+        console.error('❌ [Login] Edge Function error:', functionError);
+        throw new Error(functionError.message || 'Erro na autenticação');
+      }
+
+      if (!data.success) {
+        console.error('❌ [Login] Authentication failed:', data.message);
+        throw new Error(data.message || 'Credenciais inválidas');
+      }
+
+      console.log('✅ [Login] Authentication successful:', data);
+
+      // Chamar o método login do contexto com os dados do usuário
+      login(formData.login_token, 'cartorio', {
+        id: data.user.id,
+        name: data.user.cartorio_name || formData.username,
+        cartorio_id: data.user.cartorio_id,
+        cartorio_name: data.user.cartorio_name,
+        username: formData.username,
+        email: data.user.email
+      });
+
+      console.log('🔄 [Login] Redirecting to dashboard...');
+      
+      // Redirecionamento direto após login bem-sucedido
       navigate('/dashboard');
+
     } catch (err: any) {
-      console.error('Erro no login:', err);
+      console.error('❌ [Login] Error:', err);
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setIsLoading(false);

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
+import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 
 interface User {
@@ -31,52 +32,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
   const stableAuth = useStableAuth();
+  const navigate = useNavigate();
 
   console.log('🔍 DEBUG: AuthProvider render - stableAuth state:', {
     hasUser: !!stableAuth.user,
     hasSession: !!stableAuth.session,
     loading: stableAuth.loading,
     isAdmin: stableAuth.isAdmin,
-    error: stableAuth.error
+    error: stableAuth.error,
+    isInitialized: stableAuth.isInitialized
   });
 
+  // Efeito para inicialização do usuário de cartório
   useEffect(() => {
+    if (hasInitialized) return;
+    
     console.log('🔍 DEBUG: AuthProvider localStorage check starting...');
+    
     // Verificar usuário de cartório salvo no localStorage
     const savedUser = localStorage.getItem('siplan-user');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         console.log('🔍 DEBUG: Found saved user in localStorage:', userData);
-        logger.info('🔐 [AuthContextFixed] Restored user from localStorage:', { 
-          type: userData.type, 
-          cartorio_id: userData.cartorio_id,
-          token: userData.token ? 'present' : 'missing'
-        });
         
         if (userData.type === 'cartorio' && userData.token) {
           setUser(userData);
           
-          // Configurar contexto de autenticação para cartório usando instância única
+          // Configurar contexto de autenticação para cartório
           try {
             setCartorioAuthContext(userData.token);
-            
-            logger.info('🔐 [AuthContextFixed] Cartorio auth context set:', {
-              cartorio_id: userData.cartorio_id,
-              tokenPrefix: userData.token.substring(0, 10)
-            });
+            logger.info('🔐 [AuthContextFixed] Cartorio auth context set from localStorage');
           } catch (err) {
             logger.error('❌ [AuthContextFixed] Error setting cartorio auth context:', err);
           }
         }
       } catch (err) {
         console.log('🔍 DEBUG: Error parsing saved user from localStorage:', err);
-        logger.error('❌ [AuthContextFixed] Error parsing saved user:', err);
         localStorage.removeItem('siplan-user');
         
-        // Se houver erro, configurar usuário demo
+        // Configurar usuário demo
         const demoUser: User = {
           id: 'demo-user-id',
           name: 'Cartório de Demonstração',
@@ -93,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCartorioAuthContext(demoUser.token);
       }
     } else {
-      // Configurar usuário demo padrão
+      // Configurar usuário demo padrão se não há dados salvos
       console.log('🔍 DEBUG: No saved user found in localStorage, setting up demo user');
       const demoUser: User = {
         id: 'demo-user-id',
@@ -106,7 +104,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: 'demo@siplan.com.br'
       };
       
-      console.log('🔍 DEBUG: Setting up demo user:', demoUser);
       setUser(demoUser);
       localStorage.setItem('siplan-user', JSON.stringify(demoUser));
       
@@ -117,20 +114,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.error('❌ [AuthContextFixed] Error setting demo cartorio auth context:', err);
       }
     }
-  }, []);
+    
+    setHasInitialized(true);
+  }, [hasInitialized]);
 
+  // Efeito para gerenciar usuário admin baseado no stableAuth
   useEffect(() => {
+    if (!stableAuth.isInitialized) return;
+
     console.log('🔍 DEBUG: AuthProvider stableAuth effect triggered with:', {
       hasSession: !!stableAuth.session,
       isAdmin: stableAuth.isAdmin,
       userType: user?.type,
-      sessionUserEmail: stableAuth.session?.user?.email
+      sessionUserEmail: stableAuth.session?.user?.email,
+      loading: stableAuth.loading
     });
 
-    // Atualizar usuário admin baseado no stableAuth - SOMENTE se não há usuário atual
-    if (stableAuth.session?.user && stableAuth.isAdmin && !user) {
+    // Se há uma sessão ativa e é admin, configurar usuário admin
+    if (stableAuth.session?.user && stableAuth.isAdmin) {
       console.log('🔍 DEBUG: Setting admin user from stableAuth');
-      logger.info('🔐 [AuthContextFixed] Setting admin user from stableAuth');
       
       const adminUser: User = {
         id: stableAuth.session.user.id,
@@ -151,14 +153,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem('siplan-user');
         }
       }
-    } else if (!stableAuth.session && user?.type === 'admin') {
-      // Limpar usuário admin se não há sessão
+    }
+    // Se não há sessão mas o usuário atual é admin, limpar
+    else if (!stableAuth.session && user?.type === 'admin') {
       console.log('🔍 DEBUG: Clearing admin user - no session');
-      logger.info('🔐 [AuthContextFixed] Clearing admin user - no session');
       setUser(null);
       clearCartorioAuthContext();
     }
-  }, [stableAuth.session, stableAuth.isAdmin, user?.type]);
+  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isInitialized, user?.type]);
+
+  // Efeito para redirecionamento automático após autenticação
+  useEffect(() => {
+    // Só executar se a autenticação estiver inicializada e não estivermos carregando
+    if (!stableAuth.isInitialized || stableAuth.loading) return;
+
+    console.log('🔍 DEBUG: Checking for redirect with:', {
+      hasSession: !!stableAuth.session,
+      hasUser: !!user,
+      userType: user?.type,
+      currentPath: window.location.pathname
+    });
+
+    // Se temos uma sessão e usuário, e estamos numa página de auth, redirecionar
+    if (stableAuth.session && user && window.location.pathname === '/login') {
+      console.log('🔄 [AuthContextFixed] Redirecting after successful login');
+      
+      if (user.type === 'admin') {
+        navigate('/admin');
+      } else if (user.type === 'cartorio') {
+        navigate('/dashboard');
+      }
+    }
+  }, [stableAuth.session, stableAuth.isInitialized, stableAuth.loading, user, navigate]);
 
   const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
     logger.info('🔐 [AuthContextFixed] Login called:', { 
@@ -186,11 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       try {
         setCartorioAuthContext(token);
-        
-        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete:', {
-          cartorio_id: newUser.cartorio_id,
-          tokenLength: token.length
-        });
+        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete');
       } catch (err) {
         logger.error('❌ [AuthContextFixed] Error setting cartorio auth context during login:', err);
       }
@@ -221,21 +243,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.loading;
+  const isLoading = stableAuth.loading && !hasInitialized;
 
   // Sempre usar a instância única do Supabase
   const authenticatedClient = supabase;
 
   // Debug log do estado atual
   useEffect(() => {
-    console.log('🔍 DEBUG: AuthContextFixed current state update:', {
+    console.log('🔍 DEBUG: AuthContextFixed current state:', {
       hasUser: !!user,
       userType: user?.type,
       hasSession: !!stableAuth.session,
       stableAuthIsAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
-      usingSharedClient: true
+      hasInitialized,
+      stableAuthInitialized: stableAuth.isInitialized
     });
 
     logger.info('🔐 [AuthContextFixed] Current auth state:', {
@@ -245,9 +268,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: stableAuth.isAdmin,
       isAuthenticated,
       isLoading,
-      usingSharedClient: true
+      hasInitialized,
+      stableAuthInitialized: stableAuth.isInitialized
     });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, hasInitialized, stableAuth.isInitialized]);
 
   return (
     <AuthContext.Provider value={{ 

@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 
 const Dashboard = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   // Verificações de segurança críticas para usuário cartório
@@ -18,8 +18,15 @@ const Dashboard = () => {
       isAuthenticated, 
       userType: user?.type,
       cartorioId: user?.cartorio_id,
-      user: user
+      user: user,
+      isLoading
     });
+
+    // Não fazer verificações se ainda estiver carregando
+    if (isLoading) {
+      console.log('⏳ [Dashboard] Still loading, waiting...');
+      return;
+    }
 
     if (!isAuthenticated) {
       console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
@@ -47,7 +54,7 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, isLoading]);
 
   const handleLogout = async () => {
     try {
@@ -67,10 +74,10 @@ const Dashboard = () => {
     }
   };
 
-  // Loading state
-  if (!user) {
+  // Loading state - mostrar apenas se realmente carregando
+  if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
+      <div className="min-h-screen flex items-center justify-center page-transition bg-black">
         <Card className="gradient-card shadow-elevated border-gray-600/50">
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
