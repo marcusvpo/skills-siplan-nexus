@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { toast } from '@/hooks/use-toast';
 
 // Interfaces padronizadas
@@ -585,7 +585,7 @@ export const useDeleteVideoAula = () => {
       queryClient.invalidateQueries({ queryKey: ['video-aulas-by-product'] });
       toast({
         title: "Videoaula excluída",
-        description: "A videoaula foi excluída com sucesso.",
+        description: "O videoaula foi excluída com sucesso.",
       });
     },
     onError: (error) => {
