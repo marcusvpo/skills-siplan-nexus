@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { User, Database, CheckCircle } from 'lucide-react';
@@ -16,16 +17,17 @@ export const AuthDebugPanel: React.FC = () => {
     setIsTestingLogin(true);
     try {
       // Simular login de cartório com dados reais dos logs
-      const demoUser = {
-        id: 'demo-user-id',
-        name: 'Cartório Teste Final',
-        cartorio_id: '6bee8971-43ab-4e11-9f4e-558242227cbb',
-        cartorio_name: 'Cartório Teste Final',
-        username: 'user.test',
-        email: 'demo@siplan.com.br'
-      };
-
-      await login('user.test', 'CART-1751554048539-2H6W7O');
+      // A função login agora espera o username como primeiro argumento, e o objeto user data como terceiro
+      // o login_token é passado dentro do userData
+      await login('user.test', 'cartorio', { 
+        id: 'mock-user-id', // ID mock para o user local do AuthContext
+        name: 'Cartório Teste Final', 
+        cartorio_id: '6bee8971-43ab-4e11-9f4e-558242227cbb', 
+        cartorio_name: 'Cartório Teste Final', 
+        username: 'user.test', 
+        email: 'x@x.com', // Este email deve ser o mesmo usado para o Supabase Auth
+        token: 'CART-1751554048539-2H6W7O' // O token real para a Edge Function
+      });
       
       toast({
         title: "Login de demonstração realizado",
@@ -309,3 +311,5 @@ export const AuthDebugPanel: React.FC = () => {
     </Card>
   );
 };
+
+export { AuthDebugPanel };
