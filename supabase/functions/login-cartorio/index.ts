@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -119,35 +118,52 @@ serve(async (req) => {
 
     try {
       console.log('🔍 [LOGIN] Verificando usuário no Supabase Auth...');
-      const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email);
-      authUser = existingUser.user;
-      console.log('✅ [LOGIN] Usuário existente no Supabase Auth:', authUser?.id);
-    } catch (error) {
-      console.log('ℹ️ [LOGIN] Criando usuário no Supabase Auth...');
+      const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(email);
       
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: email,
-        password: login_token, // Usar o token como password temporária
-        user_metadata: {
-          username: userData.username,
-          cartorio_id: userData.cartorio_id,
-          tipo: 'cartorio'
-        }
-      });
-
-      if (createError) {
-        console.error('❌ [LOGIN] Erro ao criar usuário no Supabase Auth:', createError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Erro ao criar sessão de autenticação'
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+      if (getUserError && getUserError.message !== 'User not found') {
+        console.error('❌ [LOGIN] Erro ao verificar usuário:', getUserError);
+        throw getUserError;
       }
+      
+      if (existingUser.user) {
+        authUser = existingUser.user;
+        console.log('✅ [LOGIN] Usuário existente no Supabase Auth:', authUser?.id);
+      } else {
+        console.log('ℹ️ [LOGIN] Criando usuário no Supabase Auth...');
+        
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email: email,
+          password: login_token, // Usar o token como password temporária
+          user_metadata: {
+            username: userData.username,
+            cartorio_id: userData.cartorio_id,
+            tipo: 'cartorio'
+          }
+        });
 
-      authUser = newUser.user;
-      console.log('✅ [LOGIN] Usuário criado no Supabase Auth:', authUser?.id);
+        if (createError) {
+          console.error('❌ [LOGIN] Erro ao criar usuário no Supabase Auth:', createError);
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Erro ao criar sessão de autenticação'
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        authUser = newUser.user;
+        console.log('✅ [LOGIN] Usuário criado no Supabase Auth:', authUser?.id);
+      }
+    } catch (error) {
+      console.error('❌ [LOGIN] Erro ao verificar/criar usuário:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Erro na verificação do usuário'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     if (!authUser) {
@@ -261,4 +277,3 @@ serve(async (req) => {
     });
   }
 });
-
