@@ -137,34 +137,76 @@ serve(async (req) => {
         .eq('id', usuario.id)
     }
 
-    // 4. Gerar tokens de acesso do Supabase Auth
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: `${req.headers.get('origin') || 'https://skills.siplan.com.br'}/dashboard`
-      }
-    })
+    console.log('🔑 [LOGIN] Gerando tokens de sessão para o usuário Supabase Auth:', authUser.id)
 
-    if (linkError) {
-      console.error('❌ [LOGIN] Erro ao gerar link/tokens:', linkError)
+    // 4. Gerar sessão de autenticação do Supabase Auth
+    let access_token, refresh_token;
+    
+    try {
+      // Método 1: Tentar generateAccessToken (mais direto)
+      const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.admin.generateAccessToken(authUser.id)
+      
+      if (tokenData?.access_token) {
+        access_token = tokenData.access_token
+        refresh_token = tokenData.refresh_token || `refresh_${Date.now()}`
+        console.log('✅ [LOGIN] Tokens gerados via generateAccessToken')
+      } else {
+        console.log('⚠️ [LOGIN] generateAccessToken falhou, tentando createSession...')
+        
+        // Método 2: Criar uma sessão temporária
+        const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.createSession({
+          user_id: authUser.id,
+          session_duration: 86400 // 24 horas
+        })
+        
+        if (sessionData?.access_token) {
+          access_token = sessionData.access_token
+          refresh_token = sessionData.refresh_token || `refresh_${Date.now()}`
+          console.log('✅ [LOGIN] Tokens gerados via createSession')
+        } else {
+          // Método 3: Fallback - usar generateLink e extrair tokens
+          console.log('⚠️ [LOGIN] createSession falhou, tentando generateLink...')
+          
+          const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'signup',
+            email: email,
+            password: `temp_${Date.now()}`,
+            options: {
+              redirectTo: `${req.headers.get('origin') || 'https://skills.siplan.com.br'}/dashboard`
+            }
+          })
+          
+          if (linkData?.properties?.access_token) {
+            access_token = linkData.properties.access_token
+            refresh_token = linkData.properties.refresh_token || `refresh_${Date.now()}`
+            console.log('✅ [LOGIN] Tokens gerados via generateLink')
+          } else {
+            console.error('❌ [LOGIN] Todos os métodos de geração de token falharam')
+            console.error('❌ [LOGIN] TokenError:', tokenError)
+            console.error('❌ [LOGIN] SessionError:', sessionError)
+            console.error('❌ [LOGIN] LinkError:', linkError)
+            throw new Error('Falha ao gerar tokens de autenticação')
+          }
+        }
+      }
+    } catch (tokenGenerationError) {
+      console.error('❌ [LOGIN] Erro crítico na geração de tokens:', tokenGenerationError)
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Erro ao gerar sessão de autenticação',
-          code: 'SESSION_ERROR'
+          error: 'Erro interno na geração de tokens',
+          code: 'TOKEN_GENERATION_ERROR'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
-    const { properties } = linkData
-    if (!properties?.access_token || !properties?.refresh_token) {
-      console.error('❌ [LOGIN] AccessToken ou RefreshToken não encontrados no link gerado.')
+    if (!access_token) {
+      console.error('❌ [LOGIN] access_token não foi gerado por nenhum método')
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Tokens de autenticação não gerados',
+          error: 'Falha na geração de tokens de autenticação',
           code: 'TOKEN_ERROR'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -189,8 +231,8 @@ serve(async (req) => {
           email: email,
           cartorio_user_id: usuario.id
         },
-        access_token: properties.access_token,
-        refresh_token: properties.refresh_token,
+        access_token: access_token,
+        refresh_token: refresh_token,
         message: `Bem-vindo(a), ${usuario.username}! Acesso autorizado para ${usuario.cartorios.nome}.`
       }),
       {
