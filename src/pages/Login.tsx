@@ -8,7 +8,8 @@ import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
-    token: ''
+    username: '',
+    password: ''
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -30,8 +31,8 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.token.trim()) {
-      setError('Por favor, digite o token de acesso');
+    if (!formData.username.trim() || !formData.password.trim()) {
+      setError('Por favor, preencha todos os campos');
       return;
     }
 
@@ -39,11 +40,11 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(formData.token, 'cartorio');
+      await login(formData.username, formData.password);
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Erro no login:', err);
-      setError(err.message || 'Erro ao fazer login. Verifique o token.');
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setIsLoading(false);
     }
@@ -75,21 +76,47 @@ const Login: React.FC = () => {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="token" className="text-sm font-medium text-gray-700">
-                Token de Acesso
+              <label htmlFor="username" className="text-sm font-medium text-gray-700">
+                Usuário
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
-                  id="token"
-                  name="token"
+                  id="username"
+                  name="username"
                   type="text"
-                  placeholder="Digite seu token de acesso"
-                  value={formData.token}
+                  placeholder="Digite seu usuário"
+                  value={formData.username}
                   onChange={handleInputChange}
                   className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   disabled={isLoading}
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Senha
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Digite sua senha"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="pr-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
