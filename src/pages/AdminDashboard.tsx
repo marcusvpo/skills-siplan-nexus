@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
             <CardContent className="p-1">
               <TabsList className="grid w-full grid-cols-3 glass-effect border-gray-700/50 p-1">
                 <TabsTrigger 
-                  value="cartorios" 
+                  value="cartorios"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
                 >
                   <Building className="h-4 w-4 mr-2" />
