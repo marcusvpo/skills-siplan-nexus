@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -20,8 +19,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => void;
-  logout: () => void;
+  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   authenticatedClient: any;
   isLoading: boolean;
@@ -32,257 +31,237 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  
-  const stableAuth = useStableAuth();
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Controla o carregamento geral do AuthProvider
+  const [session, setSession] = useState<Session | null>(null); // Supabase session
+
+  const stableAuth = useStableAuth(); // Hook para gerenciar o estado nativo do Supabase Auth
   const navigate = useNavigate();
 
-  console.log('🔍 DEBUG: AuthProvider render - stableAuth state:', {
-    hasUser: !!stableAuth.user,
-    hasSession: !!stableAuth.session,
-    loading: stableAuth.loading,
-    isAdmin: stableAuth.isAdmin,
-    error: stableAuth.error,
-    isInitialized: stableAuth.isInitialized
-  });
-
-  // Efeito para inicialização do usuário de cartório
+  // Efeito para a verificação inicial de autenticação (localStorage e useStableAuth)
   useEffect(() => {
-    if (hasInitialized) return;
-    
-    console.log('🔍 DEBUG: AuthProvider localStorage check starting...');
-    
-    // Verificar usuário de cartório salvo no localStorage
-    const savedUser = localStorage.getItem('siplan-user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        console.log('🔍 DEBUG: Found saved user in localStorage:', userData);
-        
-        if (userData.type === 'cartorio' && userData.token) {
-          setUser(userData);
-          
-          // Configurar contexto de autenticação para cartório
-          try {
-            setCartorioAuthContext(userData.token);
-            logger.info('🔐 [AuthContextFixed] Cartorio auth context set from localStorage');
-          } catch (err) {
-            logger.error('❌ [AuthContextFixed] Error setting cartorio auth context:', err);
-          }
-        }
-      } catch (err) {
-        console.log('🔍 DEBUG: Error parsing saved user from localStorage:', err);
-        localStorage.removeItem('siplan-user');
-        
-        // Configurar usuário demo
-        const demoUser: User = {
-          id: 'demo-user-id',
-          name: 'Cartório de Demonstração',
-          type: 'cartorio',
-          token: 'DEMO-SIPLANSKILLS-CARTORIO',
-          cartorio_id: '550e8400-e29b-41d4-a716-446655440000',
-          cartorio_name: 'Cartório de Demonstração',
-          username: 'demo',
-          email: 'demo@siplan.com.br'
-        };
-        
-        setUser(demoUser);
-        localStorage.setItem('siplan-user', JSON.stringify(demoUser));
-        setCartorioAuthContext(demoUser.token);
-      }
-    } else {
-      // Configurar usuário demo padrão se não há dados salvos
-      console.log('🔍 DEBUG: No saved user found in localStorage, setting up demo user');
-      const demoUser: User = {
-        id: 'demo-user-id',
-        name: 'Cartório de Demonstração',
-        type: 'cartorio',
-        token: 'DEMO-SIPLANSKILLS-CARTORIO',
-        cartorio_id: '550e8400-e29b-41d4-a716-446655440000',
-        cartorio_name: 'Cartório de Demonstração',
-        username: 'demo',
-        email: 'demo@siplan.com.br'
-      };
-      
-      setUser(demoUser);
-      localStorage.setItem('siplan-user', JSON.stringify(demoUser));
-      
-      try {
-        setCartorioAuthContext(demoUser.token);
-        logger.info('🔐 [AuthContextFixed] Demo cartorio auth context set');
-      } catch (err) {
-        logger.error('❌ [AuthContextFixed] Error setting demo cartorio auth context:', err);
-      }
-    }
-    
-    setHasInitialized(true);
-  }, [hasInitialized]);
+    let isMounted = true; // Flag para evitar atualizações de estado em componente desmontado
 
-  // Efeito para gerenciar usuário admin baseado no stableAuth
-  useEffect(() => {
-    if (!stableAuth.isInitialized) return;
+    const performInitialAuthCheck = async () => {
+      setIsLoadingAuth(true); // Começa a verificação inicial
 
-    console.log('🔍 DEBUG: AuthProvider stableAuth effect triggered with:', {
-      hasSession: !!stableAuth.session,
-      isAdmin: stableAuth.isAdmin,
-      userType: user?.type,
-      sessionUserEmail: stableAuth.session?.user?.email,
-      loading: stableAuth.loading
-    });
-
-    // Se há uma sessão ativa e é admin, configurar usuário admin
-    if (stableAuth.session?.user && stableAuth.isAdmin) {
-      console.log('🔍 DEBUG: Setting admin user from stableAuth');
-      
-      const adminUser: User = {
-        id: stableAuth.session.user.id,
-        name: 'Administrador',
-        type: 'admin',
-        email: stableAuth.session.user.email || ''
-      };
-      setUser(adminUser);
-      
-      // Limpar contexto de cartório se existir
-      clearCartorioAuthContext();
-      
-      // Limpar dados de cartório se existirem
+      // 1. Tenta restaurar usuário de cartório do localStorage
       const savedUser = localStorage.getItem('siplan-user');
       if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        if (userData.type === 'cartorio') {
+        try {
+          const userData = JSON.parse(savedUser);
+          if (userData.type === 'cartorio' && userData.token) {
+            if (isMounted) {
+              setUser(userData);
+              setCartorioAuthContext(userData.token); // Configura o contexto customizado do cartório
+              logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage.');
+              setIsLoadingAuth(false); // Verificação inicial completa
+              return; // Sai, pois o usuário de cartório foi carregado
+            }
+          } else {
+            localStorage.removeItem('siplan-user'); // Limpa se for inválido
+          }
+        } catch (err) {
+          logger.error('❌ [AuthContextFixed] Erro ao parsear usuário do localStorage:', err);
           localStorage.removeItem('siplan-user');
         }
       }
-    }
-    // Se não há sessão mas o usuário atual é admin, limpar
-    else if (!stableAuth.session && user?.type === 'admin') {
-      console.log('🔍 DEBUG: Clearing admin user - no session');
-      setUser(null);
-      clearCartorioAuthContext();
-    }
-  }, [stableAuth.session, stableAuth.isAdmin, stableAuth.isInitialized, user?.type]);
 
-  // Efeito para redirecionamento automático após autenticação
+      // 2. Se não restaurou do localStorage, verifica o stableAuth (para admins/autenticação nativa)
+      // Espera até que stableAuth tenha completado sua própria inicialização
+      if (!stableAuth.isInitialized) {
+        logger.debug('⏳ [AuthContextFixed] Aguardando useStableAuth finalizar inicialização...');
+        // Este useEffect será re-executado quando stableAuth.isInitialized mudar
+        return; 
+      }
+
+      // Se stableAuth já inicializou, sincroniza o estado
+      if (stableAuth.session?.user && stableAuth.isAdmin) {
+        const adminUser: User = {
+          id: stableAuth.session.user.id,
+          name: 'Administrador', // Nome genérico para admin
+          type: 'admin',
+          email: stableAuth.session.user.email || ''
+        };
+        if (isMounted) {
+          setUser(adminUser);
+          setSession(stableAuth.session); // Sincroniza a sessão Supabase
+          clearCartorioAuthContext(); // Limpa qualquer contexto de cartório existente
+          logger.info('�� [AuthContextFixed] Usuário admin sincronizado do stableAuth.');
+        }
+      } else {
+        // Nenhuma sessão Supabase ativa ou não é admin
+        if (isMounted) {
+          setUser(null);
+          setSession(null);
+          clearCartorioAuthContext();
+          logger.info('🚫 [AuthContextFixed] Nenhuma sessão Supabase ativa para sincronizar.');
+        }
+      }
+      
+      if (isMounted) {
+        setIsLoadingAuth(false); // Marca a verificação inicial como completa
+      }
+    };
+
+    performInitialAuthCheck(); // Executa a verificação na montagem
+
+    // Função de limpeza para o useEffect
+    return () => {
+      isMounted = false;
+    };
+  }, [stableAuth.isInitialized, stableAuth.session, stableAuth.isAdmin]); // Dependências
+
+  // Efeito para gerenciar redirecionamento automático após autenticação
   useEffect(() => {
-    // Só executar se a autenticação estiver inicializada e não estivermos carregando
-    if (!stableAuth.isInitialized || stableAuth.loading) return;
+    // Só executa se a autenticação estiver inicializada e não estivermos carregando
+    if (isLoadingAuth) return;
 
-    console.log('🔍 DEBUG: Checking for redirect with:', {
-      hasSession: !!stableAuth.session,
-      hasUser: !!user,
+    logger.debug('🔍 DEBUG: AuthContextFixed - Verificando redirecionamento com:', {
+      userPresent: !!user,
       userType: user?.type,
       currentPath: window.location.pathname
     });
 
-    // Se temos uma sessão e usuário, e estamos numa página de auth, redirecionar
-    if (stableAuth.session && user && window.location.pathname === '/login') {
-      console.log('🔄 [AuthContextFixed] Redirecting after successful login');
-      
+    // Se temos um usuário e estamos na página de login/admin-login, redirecionar
+    if (user && (window.location.pathname === '/login' || window.location.pathname === '/admin-login')) {
+      logger.info('🔄 [AuthContextFixed] Redirecionando após login bem-sucedido...');
       if (user.type === 'admin') {
         navigate('/admin');
       } else if (user.type === 'cartorio') {
         navigate('/dashboard');
       }
     }
-  }, [stableAuth.session, stableAuth.isInitialized, stableAuth.loading, user, navigate]);
+  }, [isLoadingAuth, user, navigate]);
 
-  const login = (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => {
-    logger.info('🔐 [AuthContextFixed] Login called:', { 
-      type, 
-      userData: !!userData,
-      cartorio_id: userData?.cartorio_id,
-      token: token ? 'present' : 'missing'
-    });
-    
-    const newUser: User = {
-      id: userData?.id || '1',
-      name: userData?.name || (type === 'cartorio' ? 'Cartório' : 'Administrador'),
-      type,
-      token: type === 'cartorio' ? token : undefined,
-      cartorio_id: userData?.cartorio_id,
-      cartorio_name: userData?.cartorio_name,
-      username: userData?.username,
-      email: userData?.email
-    };
-    
-    setUser(newUser);
-    
-    if (type === 'cartorio') {
-      localStorage.setItem('siplan-user', JSON.stringify(newUser));
-      
-      try {
-        setCartorioAuthContext(token);
-        logger.info('🔐 [AuthContextFixed] Cartorio login setup complete');
-      } catch (err) {
-        logger.error('❌ [AuthContextFixed] Error setting cartorio auth context during login:', err);
+  const login = async (usernameOrToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>): Promise<void> => {
+    setIsLoadingAuth(true); // Ativa o carregamento para a ação de login
+    logger.info('🔐 [AuthContextFixed] Login chamado:', { type, usernameOrToken, userData: !!userData });
+
+    try {
+      if (type === 'cartorio') {
+        // Chamada à Edge Function para autenticação de cartório
+        const response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`
+          },
+          body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Erro HTTP' }));
+          logger.error('❌ [AuthContextFixed] Erro na Edge Function de login:', errorData);
+          throw new Error(errorData.error || 'Erro na autenticação');
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          logger.error('❌ [AuthContextFixed] Falha no login da Edge Function:', data.error);
+          throw new Error(data.error || 'Erro na autenticação');
+        }
+
+        // Configura sessão Supabase com tokens da Edge Function
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessionError) {
+          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase:', sessionError);
+          throw new Error('Erro ao configurar sessão');
+        }
+
+        // Configura contexto customizado do cartório (para RLS)
+        setCartorioAuthContext(data.login_token);
+
+        // Atualiza estado local do usuário e localStorage
+        const newUser: User = {
+          id: data.user.id,
+          name: data.cartorio?.nome || data.user.username,
+          type: 'cartorio',
+          token: data.login_token, // O token customizado do cartório
+          cartorio_id: data.user.cartorio_id,
+          cartorio_name: data.cartorio?.nome,
+          username: data.user.username,
+          email: data.user.email
+        };
+        setUser(newUser);
+        localStorage.setItem('siplan-user', JSON.stringify(newUser));
+
+        logger.info('✅ [AuthContextFixed] Login de cartório concluído com sucesso.');
+      } else {
+        // Implementar login de admin aqui (se necessário, o stableAuth já lida com isso)
+        // Para admin, apenas garantir que o stableAuth esteja sincronizado e o user é admin.
+        logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Normalmente via Supabase nativo.');
+        // Este caso pode ser mais simples, dependendo de como você gerencia o login do admin.
+        // Se o admin loga via `supabase.auth.signInWithPassword` em `Login.tsx`,
+        // o `useStableAuth` já lida com a sessão e o `useEffect` acima sincroniza.
+        // A função `login` do AuthContextType é mais para o fluxo customizado do cartório.
       }
-    } else {
-      // Para admin, limpar qualquer contexto de cartório
-      clearCartorioAuthContext();
+    } catch (error) {
+      logger.error('❌ [AuthContextFixed] Erro durante o processo de login:', error);
+      throw error; // Re-lança o erro para a UI poder lidar
+    } finally {
+      setIsLoadingAuth(false); // Garante que o estado de carregamento é desativado
     }
-    
-    logger.info('✅ [AuthContextFixed] User logged in successfully:', { 
-      type: newUser.type, 
-      cartorio_id: newUser.cartorio_id 
-    });
   };
 
-  const logout = async () => {
-    logger.info('🔐 [AuthContextFixed] Logout called');
-    
-    // Sign out from Supabase Auth if it's an admin
-    if (user?.type === 'admin') {
-      await stableAuth.logout();
+  const logout = async (): Promise<void> => {
+    setIsLoadingAuth(true); // Ativa o carregamento para a ação de logout
+    logger.info('🔐 [AuthContextFixed] Logout chamado.');
+
+    try {
+      if (user?.type === 'admin') {
+        await stableAuth.logout(); // Desloga do Supabase Auth nativo
+      } else {
+        // Para usuário de cartório (token customizado), apenas limpa o contexto local
+        clearCartorioAuthContext();
+        localStorage.removeItem('siplan-user');
+      }
+      setUser(null); // Limpa o estado do usuário local
+      setSession(null); // Limpa o estado da sessão Supabase
+      logger.info('✅ [AuthContextFixed] Logout concluído com sucesso.');
+    } catch (error) {
+      logger.error('❌ [AuthContextFixed] Erro durante o logout:', error);
+      throw error; // Re-lança o erro
+    } finally {
+      setIsLoadingAuth(false); // Garante que o estado de carregamento é desativado
     }
-    
-    setUser(null);
-    clearCartorioAuthContext();
-    localStorage.removeItem('siplan-user');
-    
-    logger.info('✅ [AuthContextFixed] User logged out successfully');
   };
 
+  // Define o estado isAuthenticated baseado na presença de usuário ou sessão Supabase
   const isAuthenticated = !!user || !!stableAuth.session;
-  const isLoading = stableAuth.loading && !hasInitialized;
+  // O estado isLoading é o flag principal do AuthProvider
+  const isLoading = isLoadingAuth;
 
-  // Sempre usar a instância única do Supabase
+  // A instância do Supabase é sempre a mesma
   const authenticatedClient = supabase;
 
-  // Debug log do estado atual
+  // Logs para depuração do estado do contexto de autenticação
   useEffect(() => {
-    console.log('🔍 DEBUG: AuthContextFixed current state:', {
-      hasUser: !!user,
+    logger.debug('🔍 DEBUG: AuthContextFixed estado atual:', {
+      userPresent: !!user,
       userType: user?.type,
-      hasSession: !!stableAuth.session,
-      stableAuthIsAdmin: stableAuth.isAdmin,
-      isAuthenticated,
-      isLoading,
-      hasInitialized,
-      stableAuthInitialized: stableAuth.isInitialized
+      hasSupabaseSession: !!stableAuth.session,
+      isAdminFromStableAuth: stableAuth.isAdmin,
+      isUserAuthenticated: isAuthenticated,
+      isAuthLoading: isLoading,
+      isLoadingAuthFlag: isLoadingAuth, // O flag interno
+      stableAuthIsLoading: stableAuth.loading, // O flag do stableAuth
+      stableAuthIsInitialized: stableAuth.isInitialized // O flag de inicialização do stableAuth
     });
-
-    logger.info('🔐 [AuthContextFixed] Current auth state:', {
-      hasUser: !!user,
-      userType: user?.type,
-      hasSession: !!stableAuth.session,
-      isAdmin: stableAuth.isAdmin,
-      isAuthenticated,
-      isLoading,
-      hasInitialized,
-      stableAuthInitialized: stableAuth.isInitialized
-    });
-  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, hasInitialized, stableAuth.isInitialized]);
+  }, [user, stableAuth.session, stableAuth.isAdmin, isAuthenticated, isLoading, isLoadingAuth, stableAuth.loading, stableAuth.isInitialized]);
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session: stableAuth.session, 
+      session: stableAuth.session, // Sempre usa a sessão do stableAuth como fonte da verdade
       login, 
       logout, 
       isAuthenticated, 
       authenticatedClient,
-      isLoading,
-      isAdmin: stableAuth.isAdmin
+      isLoading, // Usa o flag principal de loading
+      isAdmin: stableAuth.isAdmin // Usa o flag de admin do stableAuth
     }}>
       {children}
     </AuthContext.Provider>
