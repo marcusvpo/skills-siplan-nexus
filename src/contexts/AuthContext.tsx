@@ -1,1 +1,0 @@
-// Todos os componentes devem importar o AuthProvider de '@/contexts/AuthContextFixed'.
