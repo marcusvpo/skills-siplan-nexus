@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Adicionado useEffect
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContextFixed'; // Importação corrigida para AuthContextFixed
 import { Button } from '@/components/ui/button'; // Importações necessárias
@@ -14,7 +14,7 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading: isAuthGlobalLoading } = useAuth(); // Pega o isLoading global do AuthContext
+  const { login, isLoading: isAuthGlobalLoading, isAuthenticated, user, isAdmin } = useAuth(); // Pega o isLoading global do AuthContext
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     login_token: ''
@@ -22,6 +22,23 @@ const Login: React.FC = () => {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false); // Estado local para o formulário
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Estado para mostrar/ocultar senha
+
+  // Efeito para redirecionar após autenticação bem-sucedida
+  useEffect(() => {
+    if (isAuthGlobalLoading) {
+      // Ainda carregando o estado inicial de autenticação, não redirecionar ainda
+      return; 
+    }
+
+    if (isAuthenticated && user) {
+      console.log('✅ [Login Page] Usuário autenticado, redirecionando...');
+      if (isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, user, isAdmin, navigate, isAuthGlobalLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -39,10 +56,10 @@ const Login: React.FC = () => {
     try {
       console.log('🔍 [Login] Chamando método de login...');
       // A função login do AuthContextFixed já lida com o isLoading global
-      await login(formData.username, 'cartorio', { token: formData.login_token }); 
-      console.log('✅ [Login] Autenticação bem-sucedida (aguardando redirecionamento do AuthContext)');
-      // O redirecionamento será tratado pelo useEffect em AuthContextFixed.tsx
-      // Não navegamos aqui diretamente para evitar corrida de dados.
+      // Passa o username e o token customizado
+      await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username }); 
+      console.log('✅ [Login] Autenticação bem-sucedida (aguardando redirecionamento do useEffect)');
+      // O redirecionamento será tratado pelo useEffect acima
     } catch (err: any) {
       console.error('❌ [Login] Erro de autenticação:', {
         message: err.message,
@@ -68,6 +85,11 @@ const Login: React.FC = () => {
         </Card>
       </div>
     );
+  }
+
+  // Se já está autenticado, não mostra o formulário de login. O useEffect acima fará o redirecionamento.
+  if (isAuthenticated && user) {
+    return null; // ou um spinner, se preferir
   }
 
   return (
