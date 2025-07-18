@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
-import { useNavigate } from 'react-router-dom';
+// REMOVIDO: import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 
 interface User {
@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (token: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
+  login: (usernameOrToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   authenticatedClient: any;
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null); // Supabase session
 
   const stableAuth = useStableAuth(); // Hook para gerenciar o estado nativo do Supabase Auth
-  const navigate = useNavigate();
+  // REMOVIDO: const navigate = useNavigate();
 
   // Efeito para a verificação inicial de autenticação (localStorage e useStableAuth)
   useEffect(() => {
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(adminUser);
           setSession(stableAuth.session); // Sincroniza a sessão Supabase
           clearCartorioAuthContext(); // Limpa qualquer contexto de cartório existente
-          logger.info('�� [AuthContextFixed] Usuário admin sincronizado do stableAuth.');
+          logger.info('👤 [AuthContextFixed] Usuário admin sincronizado do stableAuth.');
         }
       } else {
         // Nenhuma sessão Supabase ativa ou não é admin
@@ -111,27 +111,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [stableAuth.isInitialized, stableAuth.session, stableAuth.isAdmin]); // Dependências
 
-  // Efeito para gerenciar redirecionamento automático após autenticação
+  // Efeito para redirecionamento automático após autenticação
+  // ESTA LÓGICA DE REDIRECIONAMENTO DEVE SER TRATADA NOS COMPONENTES DE ROTA (Login.tsx, Dashboard.tsx)
+  // PARA EVITAR O USO DE useNavigate() FORA DO CONTEXTO DO ROUTER.
   useEffect(() => {
-    // Só executa se a autenticação estiver inicializada e não estivermos carregando
-    if (isLoadingAuth) return;
-
-    logger.debug('🔍 DEBUG: AuthContextFixed - Verificando redirecionamento com:', {
+    // Apenas para logs de depuração, a navegação real será nas páginas.
+    logger.debug('🔍 DEBUG: AuthContextFixed - Estado atual para potencial redirecionamento:', {
       userPresent: !!user,
       userType: user?.type,
-      currentPath: window.location.pathname
+      isLoadingAuth: isLoadingAuth
     });
+  }, [isLoadingAuth, user]); // A navegação real agora dependerá dos componentes de rota.
 
-    // Se temos um usuário e estamos na página de login/admin-login, redirecionar
-    if (user && (window.location.pathname === '/login' || window.location.pathname === '/admin-login')) {
-      logger.info('🔄 [AuthContextFixed] Redirecionando após login bem-sucedido...');
-      if (user.type === 'admin') {
-        navigate('/admin');
-      } else if (user.type === 'cartorio') {
-        navigate('/dashboard');
-      }
-    }
-  }, [isLoadingAuth, user, navigate]);
 
   const login = async (usernameOrToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>): Promise<void> => {
     setIsLoadingAuth(true); // Ativa o carregamento para a ação de login
