@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, AlertCircle, User, RefreshCw, Settings } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -76,15 +76,8 @@ const Login: React.FC = () => {
 
       console.log('✅ [Login] Authentication successful:', data);
 
-      // Chamar o método login do contexto com os dados do usuário
-      login(formData.login_token, 'cartorio', {
-        id: data.user.id,
-        name: data.user.cartorio_name || formData.username,
-        cartorio_id: data.user.cartorio_id,
-        cartorio_name: data.user.cartorio_name,
-        username: formData.username,
-        email: data.user.email
-      });
+      // Chamar o método login do contexto com apenas o token e tipo
+      login(formData.login_token, 'cartorio');
 
       console.log('🔄 [Login] Redirecting to dashboard...');
       
