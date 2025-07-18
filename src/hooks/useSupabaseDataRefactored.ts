@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { logger } from '@/utils/logger';
 import { toast } from '@/hooks/use-toast';
 
@@ -383,7 +383,6 @@ export const useCreateVideoAula = () => {
       url_thumbnail?: string;
     }) => {
       logger.info('🏗️ [useCreateVideoAula] Creating video aula:', { titulo: videoAulaData.titulo });
-      
       const { data, error } = await supabase
         .from('video_aulas')
         .insert(videoAulaData)
