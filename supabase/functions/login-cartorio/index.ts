@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -17,12 +18,19 @@ serve(async (req) => {
     console.log('🔍 [LOGIN] Iniciando processo de autenticação...');
     
     // Parse request body
-    const { username, login_token } = await req.json();
-    console.log('🔍 [LOGIN] Tentativa de login para username:', username);
-    console.log('🔍 [LOGIN] Token recebido (presença):', login_token ? 'sim' : 'não');
+    const body = await req.text();
+    console.log('🔍 [DEBUG] Body raw:', body);
+    
+    const { username, login_token } = JSON.parse(body);
+    console.log('🔍 [DEBUG] Data parsed:', { username, login_token });
+    console.log('🔍 [DEBUG] username:', JSON.stringify(username));
+    console.log('🔍 [DEBUG] login_token:', JSON.stringify(login_token));
+    console.log('🔍 [DEBUG] username exists:', !!username);
+    console.log('🔍 [DEBUG] login_token exists:', !!login_token);
 
     if (!username || !login_token) {
       console.log('❌ [LOGIN] Username ou login_token não fornecidos');
+      console.log('❌ [DEBUG] username:', JSON.stringify(username), 'login_token:', JSON.stringify(login_token));
       return new Response(JSON.stringify({
         success: false,
         error: 'Username e login_token são obrigatórios'
@@ -31,6 +39,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    console.log('🔍 [LOGIN] Tentativa de login para username:', username);
+    console.log('🔍 [LOGIN] Token recebido (presença):', login_token ? 'sim' : 'não');
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -54,8 +65,9 @@ serve(async (req) => {
       }
     });
 
-    // Buscar token de acesso válido
     console.log('🔍 [LOGIN] Verificando token de acesso na tabela acessos_cartorio...');
+    
+    // Buscar token de acesso válido
     const { data: tokenData, error: tokenError } = await supabase
       .from('acessos_cartorio')
       .select('*, cartorios!inner(*)')
