@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+// Importa useAuth da versão FIXA
+import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { logger } from '@/utils/logger';
 
 export const useSistemasCartorio = () => {
