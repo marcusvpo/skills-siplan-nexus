@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.0'; // <<< LINHA ATUALIZADA AQUI
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,10 +20,9 @@ serve(async (req)=>{
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Agora a função espera 'username' e 'login_token' do frontend
     const { username, login_token } = await req.json();
     console.log('🔍 [LOGIN] Tentativa de login para username:', username);
-    console.log('🔍 [LOGIN] Token recebido (presença):', login_token ? 'sim' : 'não'); // Não logar o token completo por segurança
+    console.log('🔍 [LOGIN] Token recebido (presença):', login_token ? 'sim' : 'não'); 
 
     if (!username || !login_token) {
       console.log('❌ [LOGIN] Username ou login_token ausente.');
@@ -39,7 +38,6 @@ serve(async (req)=>{
       });
     }
 
-    // 1. Buscar usuário na tabela cartorio_usuarios
     const { data: usuario, error: userError } = await supabaseClient.from('cartorio_usuarios').select(`
         id, 
         cartorio_id, 
@@ -53,7 +51,7 @@ serve(async (req)=>{
           nome, 
           is_active
         )
-      `).eq('username', username).eq('is_active', true) // Garante que o usuário do cartório esteja ativo
+      `).eq('username', username).eq('is_active', true)
     .single();
 
     if (userError || !usuario) {
@@ -70,7 +68,6 @@ serve(async (req)=>{
       });
     }
 
-    // 2. Verificar se o cartório associado ao usuário está ativo
     if (!usuario.cartorios.is_active) {
       console.log('❌ [LOGIN] Cartório associado ao usuário inativo.');
       return new Response(JSON.stringify({
@@ -86,11 +83,10 @@ serve(async (req)=>{
     }
     console.log('✅ [LOGIN] Usuário e cartório ativos encontrados:', usuario.username);
 
-    // 3. Validar o login_token na tabela acessos_cartorio
-    const { data: acesso, error: acessoError } = await supabaseClient.from('acessos_cartorio').select('id, cartorio_id, login_token, data_expiracao, ativo').eq('cartorio_id', usuario.cartorio_id) // Match com o ID do cartório do usuário
-    .eq('login_token', login_token) // Match com o token fornecido pelo frontend
-    .eq('ativo', true) // Token deve estar ativo
-    .gte('data_expiracao', new Date().toISOString()) // Token não deve estar expirado
+    const { data: acesso, error: acessoError } = await supabaseClient.from('acessos_cartorio').select('id, cartorio_id, login_token, data_expiracao, ativo').eq('cartorio_id', usuario.cartorio_id)
+    .eq('login_token', login_token)
+    .eq('ativo', true)
+    .gte('data_expiracao', new Date().toISOString())
     .single();
 
     if (acessoError || !acesso) {
@@ -108,7 +104,6 @@ serve(async (req)=>{
     }
     console.log('✅ [LOGIN] Token de acesso validado com sucesso na tabela acessos_cartorio.');
 
-    // 4. Gerar ou obter auth_user_id no Supabase Auth e criar sessão
     let authUser;
     if (usuario.auth_user_id) {
       const { data: existingAuthUser, error: getAuthUserError } = await supabaseClient.auth.admin.getUserById(usuario.auth_user_id);
@@ -117,15 +112,14 @@ serve(async (req)=>{
         console.log('✅ [LOGIN] Usuário existente no Supabase Auth:', authUser.id);
       } else {
         console.log('⚠️ [LOGIN] auth_user_id inválido ou usuário inexistente no Supabase Auth. Criando novo...');
-        // Cria um novo usuário no Supabase Auth se o ID existente não for válido
         const { data: newAuthUser, error: createError } = await supabaseClient.auth.admin.createUser({
           email: usuario.email,
-          password: login_token, // Usando token como senha temp, pode ser qualquer string
+          password: login_token,
           email_confirm: true,
           user_metadata: {
             username: usuario.username,
             cartorio_id: usuario.cartorio_id,
-            db_user_id: usuario.id // Referência ao ID do usuário na sua tabela 'cartorio_usuarios'
+            db_user_id: usuario.id
           }
         });
         if (createError || !newAuthUser?.user) {
@@ -142,17 +136,15 @@ serve(async (req)=>{
           });
         }
         authUser = newAuthUser.user;
-        // Atualiza o auth_user_id na sua tabela 'cartorio_usuarios'
         await supabaseClient.from('cartorio_usuarios').update({
           auth_user_id: authUser.id
         }).eq('id', usuario.id);
       }
     } else {
-      console.log('�� [LOGIN] auth_user_id não presente. Criando usuário no Supabase Auth...');
-      // Cria um novo usuário no Supabase Auth
+      console.log('🔄 [LOGIN] auth_user_id não presente. Criando usuário no Supabase Auth...');
       const { data: newAuthUser, error: createError } = await supabaseClient.auth.admin.createUser({
         email: usuario.email,
-        password: login_token, // Usando token como senha temp, pode ser qualquer string
+        password: login_token,
         email_confirm: true,
         user_metadata: {
           username: usuario.username,
@@ -179,17 +171,16 @@ serve(async (req)=>{
       }).eq('id', usuario.id);
     }
     
-    // 5. Gerar tokens de sessão para o usuário autenticado do Supabase Auth
     console.log('🔑 [LOGIN] Gerando tokens de sessão para o usuário Supabase Auth:', authUser.id);
     
-    // *** MUDANÇA CRÍTICA AQUI: Usar generateSession em vez de generateLink ***
+    // *** CORREÇÃO: Usando generateSession ***
     const { data: sessionData, error: sessionError } = await supabaseClient.auth.admin.generateSession(authUser.id);
 
     if (sessionError || !sessionData?.session) {
       console.error('❌ [LOGIN] Erro ao gerar tokens de sessão com generateSession:', sessionError?.message);
       return new Response(JSON.stringify({
         success: false,
-        message: 'Erro interno na geração de tokens de sessão' // Mensagem de erro mais clara
+        message: 'Erro interno na geração de tokens de sessão'
       }), {
         status: 500,
         headers: {
@@ -226,10 +217,10 @@ serve(async (req)=>{
         email: usuario.email,
         cartorio_id: usuario.cartorio_id,
         cartorio_nome: usuario.cartorios.nome,
-        auth_user_id: authUser.id // ID do usuário no Supabase Auth
+        auth_user_id: authUser.id
       },
-      access_token: accessToken, // Agora vêm diretamente de sessionData.session
-      refresh_token: refreshToken // Agora vêm diretamente de sessionData.session
+      access_token: accessToken,
+      refresh_token: refreshToken
     }), {
       status: 200,
       headers: {
