@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { AuthDebugPanel } from '@/components/debug/AuthDebugPanel';
+import AuthDebugPanel from '@/components/debug/AuthDebugPanel';
 
 const Debug: React.FC = () => {
   return (

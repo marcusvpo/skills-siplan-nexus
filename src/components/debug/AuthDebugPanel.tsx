@@ -312,5 +312,4 @@ const AuthDebugPanel: React.FC = () => { // AGORA DEFINIDO SEM 'export' AQUI
     </Card>
   );
 };
-// Adicionada a linha de exportação correta aqui no final do arquivo
-export { AuthDebugPanel }; 
+export default AuthDebugPanel;

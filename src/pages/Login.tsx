@@ -113,11 +113,13 @@ const Login: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
-                type="text" // Alterado para text pois username pode não ser email
+                type="text"
+                name="username"
                 placeholder="Nome de usuário"
                 value={formData.username}
                 onChange={handleInputChange}
                 className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
+                disabled={false}
                 required
               />
             </div>
@@ -126,10 +128,12 @@ const Login: React.FC = () => {
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
+                  name="login_token"
                   placeholder="Token de Login"
                   value={formData.login_token}
                   onChange={handleInputChange}
                   className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
+                  disabled={false}
                   required
                 />
                 <Button
