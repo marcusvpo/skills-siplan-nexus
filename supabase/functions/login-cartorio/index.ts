@@ -71,73 +71,133 @@ serve(async (req) => {
 
     console.log(`ℹ️ [LOGIN] Usuário encontrado: ${userData.nome} (${userData.email})`);
 
-    // 3. Gerar tokens de autenticação usando signInWithPassword
-    console.log(`ℹ️ [LOGIN] Tentando fazer signIn com email: ${userData.email}`);
+    // 3. Gerar ou obter email de autenticação (authEmail)
+    let authEmail = userData.email;
+    let emailUpdated = false;
     
-    // Primeiro, tentar fazer signIn
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: userData.email,
-      password: `cartorio_${userData.cartorio_id}_${userData.id}` // Senha padrão baseada nos IDs
+    // Se não há email ou email é inválido, gerar placeholder determinístico
+    if (!authEmail || authEmail.trim() === '') {
+      // Gerar email placeholder único: username@cartorio-id.siplan.internal
+      const cleanCartrioId = userData.cartorio_id.replace(/-/g, '');
+      authEmail = `${userData.username.toLowerCase()}@${cleanCartrioId}.siplan.internal`;
+      console.log(`ℹ️ [LOGIN] Email placeholder gerado: ${authEmail}`);
+      
+      // Atualizar o email na tabela cartorio_usuarios para consistência futura
+      const { error: updateEmailError } = await supabase
+        .from('cartorio_usuarios')
+        .update({ email: authEmail })
+        .eq('id', userData.id);
+        
+      if (updateEmailError) {
+        console.error("❌ [LOGIN] Erro ao atualizar email placeholder:", updateEmailError);
+      } else {
+        console.log(`✅ [LOGIN] Email placeholder salvo na tabela cartorio_usuarios`);
+        emailUpdated = true;
+      }
+    }
+
+    // 4. Definir senha determinística
+    const generatedPassword = `cartorio_${userData.cartorio_id}_${userData.id}`;
+    
+    // 5. Fluxo de autenticação robusto
+    console.log(`ℹ️ [LOGIN] Tentando fazer signIn com email: ${authEmail}`);
+    
+    let authResult = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: generatedPassword
     });
 
-    let accessToken, refreshToken;
-
-    if (signInError) {
-      console.log(`ℹ️ [LOGIN] SignIn falhou, tentando criar usuário: ${signInError.message}`);
+    // Se o primeiro signIn falhou, verificar/sincronizar com auth.users
+    if (authResult.error) {
+      console.log(`ℹ️ [LOGIN] SignIn falhou: ${authResult.error.message}. Verificando usuário em auth.users...`);
       
-      // Se o signIn falhar, tentar criar o usuário
-      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: `cartorio_${userData.cartorio_id}_${userData.id}`,
-        email_confirm: true,
-        user_metadata: {
-          cartorio_id: userData.cartorio_id,
-          user_id: userData.id,
-          username: userData.username,
-          nome: userData.nome
+      // Verificar se usuário existe no auth.users
+      const { data: existingAuthUser, error: getAuthUserError } = await supabase.auth.admin.listUsers();
+      
+      if (getAuthUserError) {
+        console.error("❌ [LOGIN] Erro ao verificar usuários existentes:", getAuthUserError);
+        return new Response(
+          JSON.stringify({ error: "Erro na verificação de usuários existentes" }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Procurar usuário pelo email
+      const existingUser = existingAuthUser.users.find(user => user.email === authEmail);
+      
+      if (existingUser) {
+        // Usuário existe mas senha não bate - atualizar senha
+        console.log(`ℹ️ [LOGIN] Usuário ${authEmail} existe em auth.users. Atualizando senha...`);
+        
+        const { error: updateError } = await supabase.auth.admin.updateUser(existingUser.id, {
+          password: generatedPassword,
+          email_confirm: true
+        });
+        
+        if (updateError) {
+          console.error("❌ [LOGIN] Erro ao atualizar senha do usuário:", updateError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao atualizar senha do usuário" }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
-      });
-
-      if (signUpError) {
-        console.error("❌ [LOGIN] Erro ao criar usuário:", signUpError);
-        return new Response(
-          JSON.stringify({ error: "Erro ao criar usuário no sistema de autenticação" }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        
+        console.log(`✅ [LOGIN] Senha para ${authEmail} atualizada com sucesso em auth.users`);
+        
+      } else {
+        // Usuário não existe - criar novo
+        console.log(`ℹ️ [LOGIN] Usuário ${authEmail} não existe em auth.users. Criando...`);
+        
+        const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
+          email: authEmail,
+          password: generatedPassword,
+          email_confirm: true,
+          user_metadata: {
+            cartorio_id: userData.cartorio_id,
+            user_id: userData.id,
+            username: userData.username,
+            nome: userData.nome
+          }
+        });
+        
+        if (createError) {
+          console.error("❌ [LOGIN] Erro ao criar usuário:", createError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao criar usuário no sistema de autenticação" }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log(`✅ [LOGIN] Usuário ${authEmail} criado em auth.users`);
       }
-
-      console.log(`ℹ️ [LOGIN] Usuário criado com sucesso, gerando tokens...`);
       
-      // Agora fazer signIn com o usuário criado
-      const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
-        email: userData.email,
-        password: `cartorio_${userData.cartorio_id}_${userData.id}`
+      // Retentar signIn após sincronização
+      console.log(`ℹ️ [LOGIN] Retentando signIn após sincronização...`);
+      authResult = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: generatedPassword
       });
-
-      if (newSignInError || !newSignInData.session) {
-        console.error("❌ [LOGIN] Erro ao fazer signIn após criar usuário:", newSignInError);
-        return new Response(
-          JSON.stringify({ error: "Erro ao autenticar usuário recém-criado" }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      accessToken = newSignInData.session.access_token;
-      refreshToken = newSignInData.session.refresh_token;
       
-    } else {
-      // SignIn foi bem-sucedido
-      if (!signInData.session) {
-        console.error("❌ [LOGIN] Session não encontrada após signIn bem-sucedido");
+      if (authResult.error || !authResult.data.session) {
+        console.error("❌ [LOGIN] Erro na retentativa de signIn:", authResult.error);
         return new Response(
-          JSON.stringify({ error: "Erro ao gerar sessão de autenticação" }),
+          JSON.stringify({ error: "Erro final na autenticação após sincronização" }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      accessToken = signInData.session.access_token;
-      refreshToken = signInData.session.refresh_token;
     }
+
+    // Verificar se temos uma sessão válida
+    if (!authResult.data.session) {
+      console.error("❌ [LOGIN] Session não encontrada após autenticação");
+      return new Response(
+        JSON.stringify({ error: "Erro ao gerar sessão de autenticação" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const accessToken = authResult.data.session.access_token;
+    const refreshToken = authResult.data.session.refresh_token;
 
     if (!accessToken || !refreshToken) {
       console.error("❌ [LOGIN] Tokens de autenticação não gerados");
