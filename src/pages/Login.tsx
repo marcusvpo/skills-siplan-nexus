@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContextFixed'; // Importação corrigida para AuthContextFixed
-import { Button } from '@/components/ui/button'; // Importações necessárias
+import { useAuth } from '../contexts/AuthContextFixed'; 
+import { Button } from '@/components/ui/button'; 
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react'; // Ícones necessários
-import { toast } from '@/hooks/use-toast'; // Hook de toast
-import { supabase } from '@/integrations/supabase/client'; // Importação do cliente Supabase para login direto
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'; 
+import { toast } from '@/hooks/use-toast'; 
+import { supabase } from '@/integrations/supabase/client'; 
 
 interface LoginFormData {
   username: string;
@@ -15,15 +15,14 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  // Pega o isLoading global do AuthContextFixed e outras informações do usuário
   const { login, isLoading: isAuthGlobalLoading, isAuthenticated, user, isAdmin } = useAuth(); 
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     login_token: ''
   });
-  const [isFormSubmitting, setIsFormSubmitting] = useState(false); // Estado local para o formulário
-  const [error, setError] = useState(''); // Limpa erros anteriores
-  const [showPassword, setShowPassword] = useState(false); // Estado para mostrar/ocultar senha
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false); 
+  const [error, setError] = useState(''); 
+  const [showPassword, setShowPassword] = useState(false); 
 
   // --- CONSTANTES DO USUÁRIO DE CONTORNO (test.user) ---
   // Utilize os valores REAIS que você copiou do Passo 1.
@@ -31,7 +30,7 @@ const Login: React.FC = () => {
   const ID_DO_CARTORIO_DO_TEST_USER = '6bee8971-43ab-4e11-9f4e-558242227cbb'; 
   const ID_DO_USUARIO_TEST_USER = '3e0cba60-99d1-4e04-a74c-730fb918aee5'; 
 
-  // --- FUNÇÃO AUXILIAR PARA GERAR SHA-256 NO FRONTEND ---
+  // --- FUNÇÃO AUXILIAR PARA GERAR SHA-256 NO FRONTEND (MANTIDA PARA OUTROS FLUXOS, MAS NÃO USADA AQUI) ---
   async function gerarSha256Frontend(str: string): Promise<string> {
     const textEncoder = new TextEncoder();
     const data = textEncoder.encode(str);
@@ -44,7 +43,6 @@ const Login: React.FC = () => {
   // Efeito para redirecionar após autenticação bem-sucedida
   useEffect(() => {
     if (isAuthGlobalLoading) {
-      // Ainda carregando o estado inicial de autenticação, não redirecionar ainda
       return; 
     }
 
@@ -68,41 +66,40 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsFormSubmitting(true); // Ativa o loading do formulário
-    setError(''); // Limpa erros anteriores
+    setIsFormSubmitting(true); 
+    setError(''); 
     
     try {
       // --- LÓGICA DE CONTORNO: LOGIN DIRETO PARA test.user ---
+      // Para o 'test.user', usamos a senha digitada diretamente, sem SHA-256
       if (formData.username === USUARIO_CONTORNO_USERNAME) {
         console.log(`ℹ️ [Login] Tentando login direto para ${USUARIO_CONTORNO_USERNAME}`);
 
         const emailParaLogin = `${USUARIO_CONTORNO_USERNAME.toLowerCase()}@${ID_DO_CARTORIO_DO_TEST_USER.replace(/-/g, '')}.siplan.internal`;
-        const stringParaHash = `${ID_DO_CARTORIO_DO_TEST_USER}-${ID_DO_USUARIO_TEST_USER}`;
-        const senhaParaLogin = await gerarSha256Frontend(stringParaHash);
+        
+        // AQUI ESTÁ A MUDANÇA CRÍTICA: Usamos a senha digitada no campo 'login_token' diretamente.
+        // O Supabase Auth vai hashá-la e comparar com o que está no banco (que agora é 'senha123').
+        const senhaDigitadaNoForm = formData.login_token; 
 
-        // Chamar a API de autenticação do Supabase diretamente
         const { data: authResponse, error: authError } = await supabase.auth.signInWithPassword({
           email: emailParaLogin,
-          password: senhaParaLogin,
+          password: senhaDigitadaNoForm, // <-- MUDANÇA AQUI
         });
 
         if (authError) {
           console.error('❌ [Login] Erro no login direto:', authError);
           setError(authError.message || 'Credenciais inválidas para o usuário de contorno.');
-          return; // Sair da função se houver erro
+          return; 
         }
         
-        // Se o login direto for bem-sucedido, o AuthContextFixed detectará a sessão
-        // e o useEffect cuidará do redirecionamento.
         console.log(`✅ [Login] Login direto de ${USUARIO_CONTORNO_USERNAME} bem-sucedido.`);
-        return; // Sair da função, pois o login foi tratado
+        return; 
       }
 
       // --- LÓGICA EXISTENTE: LOGIN COM A EDGE FUNCTION PARA OUTROS USUÁRIOS ---
       // Esta parte será executada se o username NÃO for 'test.user'.
       // Esta lógica continuará chamando sua Edge Function 'login-cartorio'.
       console.log(`ℹ️ [Login] Chamando Edge Function para usuário: ${formData.username}`);
-      // A função 'login' do seu AuthContextFixed já lida com o isLoading global e a chamada à Edge Function
       await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username }); 
       console.log(`✅ [Login] Autenticação via Edge Function bem-sucedida para ${formData.username} (aguardando redirecionamento)`);
 
@@ -110,12 +107,10 @@ const Login: React.FC = () => {
       console.error('❌ [Login] Erro no fluxo de autenticação:', err);
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
-      setIsFormSubmitting(false); // Desativa o loading do formulário
+      setIsFormSubmitting(false); 
     }
   };
 
-  // Se o carregamento global de autenticação estiver ativo, mostra "Autenticando..."
-  // Isso cobre a verificação inicial e o tempo que leva para o AuthContext processar o login.
   if (isAuthGlobalLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 page-transition">
@@ -129,9 +124,8 @@ const Login: React.FC = () => {
     );
   }
 
-  // Se já está autenticado, não mostra o formulário de login. O useEffect acima fará o redirecionamento.
   if (isAuthenticated && user) {
-    return null; // ou um spinner, se preferir
+    return null; 
   }
 
   return (
@@ -161,7 +155,7 @@ const Login: React.FC = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                disabled={isFormSubmitting} // Desabilita o campo durante a submissão
+                disabled={isFormSubmitting} 
                 required
               />
             </div>
@@ -175,7 +169,7 @@ const Login: React.FC = () => {
                   value={formData.login_token}
                   onChange={handleInputChange}
                   className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                  disabled={isFormSubmitting} // Desabilita o campo durante a submissão
+                  disabled={isFormSubmitting} 
                   required
                 />
                 <Button
@@ -184,7 +178,7 @@ const Login: React.FC = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isFormSubmitting} // Desabilita o botão durante a submissão
+                  disabled={isFormSubmitting} 
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -194,7 +188,7 @@ const Login: React.FC = () => {
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
-              disabled={isFormSubmitting} // Desabilita o botão apenas durante a submissão do formulário
+              disabled={isFormSubmitting} 
             >
               {isFormSubmitting ? (
                 <div className="flex items-center">
@@ -209,7 +203,7 @@ const Login: React.FC = () => {
           
           <div className="space-y-4 pt-4 border-t border-gray-700/50">
             <Link 
-              to="/admin-login" // Link para o login de admin
+              to="/admin-login" 
               className="block text-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
             >
               Acessar como Administrador
