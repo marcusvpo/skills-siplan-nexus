@@ -1,12 +1,3 @@
-Com certeza! Entendido. O objetivo é fornecer o código `Login.tsx` totalmente atualizado e corrigido, refletindo a decisão de usar a senha em texto puro (como `senha123`) para o `test.user` no fluxo de contorno.
-
-A principal mudança é que, para o `test.user`, a senha enviada ao `supabase.auth.signInWithPassword()` **NÃO será mais o hash SHA-256**, mas sim a **string literal** que o usuário digitar no campo "Token de Login" (`formData.login_token`).
-
----
-
-### **Código Completo e Atualizado do `Login.tsx`:**
-
-```typescript
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContextFixed'; // Importação corrigida para AuthContextFixed
@@ -126,7 +117,7 @@ const Login: React.FC = () => {
     }
   };
 
-  // Se o carregamento global de autenticação estiver ativo, mostra \"Autenticando...\"
+  // Se o carregamento global de autenticação estiver ativo, mostra "Autenticando..."
   // Isso cobre a verificação inicial e o tempo que leva para o AuthContext processar o login.
   if (isAuthGlobalLoading) {
     return (
@@ -163,54 +154,54 @@ const Login: React.FC = () => {
           </p>
         </CardHeader>
         
-        <CardContent className="space-y-6\">
-          <form onSubmit={handleSubmit} className=\"space-y-4\">
-            <div className=\"space-y-2\">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
               <Input
-                type=\"text\"
-                name=\"username\"
-                placeholder=\"Nome de usuário\"
+                type="text"
+                name="username"
+                placeholder="Nome de usuário"
                 value={formData.username}
                 onChange={handleInputChange}
-                className=\"glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern\"
+                className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                 disabled={isFormSubmitting} 
                 required
               />
             </div>
             
-            <div className=\"space-y-2\">
-              <div className=\"relative\">
+            <div className="space-y-2">
+              <div className="relative">
                 <Input
-                  type={showPassword ? \"text\" : \"password\"}
-                  name=\"login_token\"
-                  placeholder=\"Token de Login\"
+                  type={showPassword ? "text" : "password"}
+                  name="login_token"
+                  placeholder="Token de Login"
                   value={formData.login_token}
                   onChange={handleInputChange}
-                  className=\"glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern\"
+                  className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                   disabled={isFormSubmitting} 
                   required
                 />
                 <Button
-                  type=\"button\"
-                  variant=\"ghost\"
-                  size=\"sm\"
-                  className=\"absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent\"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isFormSubmitting} 
                 >
-                  {showPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
             
             <Button 
-              type=\"submit\" 
-              className=\"w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern\"
+              type="submit" 
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
               disabled={isFormSubmitting} 
             >
               {isFormSubmitting ? (
-                <div className=\"flex items-center\">
-                  <div className=\"animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2\"></div>
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Entrando...
                 </div>
               ) : (
@@ -219,19 +210,19 @@ const Login: React.FC = () => {
             </Button>
           </form>
           
-          <div className=\"space-y-4 pt-4 border-t border-gray-700/50\">
+          <div className="space-y-4 pt-4 border-t border-gray-700/50">
             <Link 
-              to=\"/admin-login\" 
-              className=\"block text-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift\"
+              to="/admin-login" 
+              className="block text-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
             >
               Acessar como Administrador
             </Link>
             
             <Link 
-              to=\"/\"
-              className=\"flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift\"
+              to="/"
+              className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
             >
-              <ArrowLeft className=\"h-4 w-4 mr-2\" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar ao Início
             </Link>
           </div>
@@ -242,4 +233,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-```
