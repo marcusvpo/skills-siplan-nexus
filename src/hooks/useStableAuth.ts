@@ -41,7 +41,7 @@ export const useStableAuth = () => {
     }
 
     try {
-      logger.debug(`�� [useStableAuth] checkAdminStatus: Verificando status admin para ${user.email} no DB.`);
+      logger.debug(`🔍 [useStableAuth] checkAdminStatus: Verificando status admin para ${user.email} no DB.`);
       const { data: adminData, error } = await supabase
         .from('admins')
         .select('id')
@@ -99,7 +99,6 @@ export const useStableAuth = () => {
     }
     
     const isAdmin = currentSession?.user ? await checkAdminStatus(currentSession.user) : false;
-    // Adicionado log para ver o isAdmin determinado antes de setar o estado
     logger.debug(`🎯 [useStableAuth] updateAuthState: isAdmin determinado: ${isAdmin} para usuário email: ${currentSession?.user?.email || 'N/A'}`);
 
     const newState: AuthState = {
@@ -141,7 +140,7 @@ export const useStableAuth = () => {
     if (initializationRef.current) return; // Garante que só roda uma vez
     
     initializationRef.current = true;
-    logger.info('�� [useStableAuth] Iniciando verificação de autenticação...');
+    logger.info('🚀 [useStableAuth] Iniciando verificação de autenticação...');
 
     const initAuth = async () => {
       try {
@@ -171,7 +170,7 @@ export const useStableAuth = () => {
     // Garante que o listener só é configurado se a inicialização já ocorreu e não há um listener ativo
     if (!initializationRef.current || listenerRef.current) return;
 
-    logger.info('�� [useStableAuth] Configurando listener de mudanças de autenticação...');
+    logger.info('👂 [useStableAuth] Configurando listener de mudanças de autenticação...');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
@@ -194,7 +193,7 @@ export const useStableAuth = () => {
   // Função para fazer logout do Supabase Auth nativo
   const logout = useCallback(async () => {
     try {
-      logger.info('�� [useStableAuth] Realizando logout...');
+      logger.info('🚪 [useStableAuth] Realizando logout...');
       await supabase.auth.signOut();
       sessionStorage.clear(); // Limpa o cache de status de admin
       localStorage.removeItem('supabase.auth.token'); // Remove a sessão do localStorage
@@ -207,6 +206,7 @@ export const useStableAuth = () => {
   // Retorna o estado atual e a função de logout
   return {
     ...authState,
-    logout
+    logout,
+    updateAuthState // ESTA LINHA É CRÍTICA! ELA ESTAVA FALTANDO.
   };
 };
