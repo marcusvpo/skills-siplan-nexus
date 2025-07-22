@@ -4,6 +4,7 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 interface User {
   id: string;
@@ -75,8 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // 3. Sincroniza com o estado do stableAuth (Supabase Auth)
-        logger.debug('�� [AuthContextFixed] Sincronizando com stableAuth...');
-        logger.debug('�� [AuthContextFixed] stableAuth state:', {
+        logger.debug('🔄 [AuthContextFixed] Sincronizando com stableAuth...');
+        logger.debug('🔍 [AuthContextFixed] stableAuth state:', {
           session: stableAuth.session,
           isAdmin: stableAuth.isAdmin,
           user: stableAuth.user
@@ -146,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(null);
             clearCartorioAuthContext();
             localStorage.removeItem('siplan-user');
-            logger.info('�� [AuthContextFixed] Nenhuma sessão Supabase ativa no stableAuth.');
+            logger.info('📴 [AuthContextFixed] Nenhuma sessão Supabase ativa no stableAuth.');
           }
         }
       } catch (error: unknown) { // CORREÇÃO AQUI
@@ -181,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (window.location.pathname === '/login' || window.location.pathname === '/admin-login') {
-      logger.info('�� [AuthContextFixed] Redirecionando após login bem-sucedido...');
+      logger.info('➡️ [AuthContextFixed] Redirecionando após login bem-sucedido...');
       if (user.type === 'admin') {
         logger.info('➡️ [AuthContextFixed] Redirecionando para /admin (usuário admin).');
         navigate('/admin');
@@ -198,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (type === 'cartorio') {
-        logger.debug('⚙️ [AuthContextFixed] Iniciando login de cartório (via Edge Function)...'); 
+        logger.debug('⚙️ [AuthContextFixed] Iniciando login de cartório (via Edge Function com OTP)...'); 
         
         let response: Response;
         try {
@@ -221,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logger.error('❌ [AuthContextFixed] Resposta da Edge Function NÃO OK.', { status: response.status });
           const errorData = await response.json().catch(() => ({ error: 'Erro HTTP ou JSON não parseável' }));
           logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData instanceof Error ? errorData : { details: errorData }); 
+          setIsLoadingAuth(false);
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
@@ -236,58 +238,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (!data.success) {
           logger.error('❌ [AuthContextFixed] Falha de lógica no login da Edge Function (data.success é false):', { message: data.error });
+          setIsLoadingAuth(false);
           throw new Error(data.error || 'Erro na autenticação');
         }
 
-        logger.debug('⚙️ [AuthContextFixed] Preparando para chamar supabase.auth.setSession com tokens...');
-        let sessionError = null;
-        try {
-            const { error } = await supabase.auth.setSession({
-                access_token: data.access_token,
-                refresh_token: data.refresh_token,
-            });
-            sessionError = error;
-            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError instanceof Error ? sessionError : { details: sessionError }); 
-        } catch (e: unknown) { 
-            logger.error('❌ [AuthContextFixed] EXCEÇÃO CAPTURADA ao chamar setSession:', e instanceof Error ? e : new Error(String(e)));
-            sessionError = e; 
-        }
+        // Exibir mensagem para o usuário verificar o email
+        toast({
+          title: "Verificação enviada",
+          description: data.message || "Um código de verificação foi enviado para o seu email. Verifique sua caixa de entrada.",
+          duration: 10000,
+        });
 
-        // NOVO LOG CRÍTICO AQUI, para verificar a sessão logo após o setSession
-        try {
-            const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
-            logger.debug('🔍 [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
-        } catch (getSessionError: unknown) { 
-            logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError instanceof Error ? getSessionError : new Error(String(getSessionError)));
-        }
+        // A sessão será definida automaticamente após o usuário confirmar o OTP via email
+        // O useEffect de sincronização cuidará de atualizar o estado quando a sessão for detectada
 
-        if (sessionError) {
-          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError instanceof Error ? sessionError : { details: sessionError }); 
-          throw new Error('Erro ao configurar sessão');
-        }
-
-        // FORÇAR ATUALIZAÇÃO DO ESTADO APÓS setSession
-        const currentSession = (await supabase.auth.getSession()).data.session;
-        logger.debug('⚡ [AuthContextFixed] Forçando atualização do estado via stableAuth.updateAuthState.');
-        await stableAuth.updateAuthState(currentSession, 'forced-after-login'); 
-        console.log('🔄 [AuthContextFixed] Estado de autenticação atualizado via updateAuthState.');
-
-        // NOVO: Verificar se user é undefined e criar temporário
-        let finalUser = data.user;
-        if (!finalUser || finalUser.id === undefined) {
-          logger.warn('⚠️ [AuthContextFixed] User undefined na resposta - criando temporário');
-          finalUser = {
-            id: currentSession?.user?.id || 'temp-id',
-            username: usernameOrToken,
-            email: currentSession?.user?.email || 'temp@email.com',
-            cartorio_id: '6bee8971-43ab-4e11-9f4e-558242227cbb', // Do log
-            type: 'cartorio'
-          };
-        }
-
-        setUser(finalUser);
-        setIsLoadingAuth(false);
-        logger.info('✅ [AuthContextFixed] LOGIN CONCLUÍDO. User setado:', finalUser);
+        logger.info('✅ [AuthContextFixed] Solicitação de OTP enviada com sucesso. Aguardando confirmação do usuário.');
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
@@ -296,7 +261,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logger.error('❌ [AuthContextFixed] ERRO GERAL durante o processo de login:', error instanceof Error ? error : new Error(String(error)));
       setIsLoadingAuth(false); 
       throw error; 
-    } 
+    } finally {
+      setIsLoadingAuth(false); 
+    }
   };
 
   const logout = async (): Promise<void> => {
