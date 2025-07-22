@@ -9,8 +9,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
-      host: "::",
+      host: true, // Escuta em todas as interfaces
       port: 8080,
+      hmr: {
+        protocol: 'ws', // Força WebSocket sem token customizado
+        host: 'localhost', // Ajuste para o host local se necessário
+      },
     },
     plugins: [
       react(),
@@ -27,7 +31,13 @@ export default defineConfig(({ mode }) => {
     define: {
       'global': 'globalThis', // Corrige referências globais
       'process.env': env, // Expõe variáveis de ambiente
-      '__WS_TOKEN__': '""', // Define token de WebSocket como vazio para evitar erro
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: 'globalThis', // Reforça para esbuild
+        },
+      },
     },
   };
 });
