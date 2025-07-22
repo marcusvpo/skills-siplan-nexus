@@ -210,33 +210,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             },
             body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
           });
-          logger.debug('⚙️ [AuthContextFixed] FETCH BEM-SUCEDIDO. Status:', { status: response.status, ok: response.ok });
-        } catch (fetchError: unknown) { // CORREÇÃO AQUI
+          console.log('📡 [AuthContextFixed] Resposta fetch recebida. Status:', response.status);
+        } catch (fetchError: unknown) { 
           logger.error('❌ [AuthContextFixed] ERRO na chamada fetch para Edge Function:', fetchError instanceof Error ? fetchError : new Error(String(fetchError)));
           setIsLoadingAuth(false);
           throw new Error('Erro de rede na autenticação.');
         }
 
         if (!response.ok) {
-          // CORREÇÃO AQUI: Empacota response.status em um objeto
           logger.error('❌ [AuthContextFixed] Resposta da Edge Function NÃO OK.', { status: response.status });
           const errorData = await response.json().catch(() => ({ error: 'Erro HTTP ou JSON não parseável' }));
-          logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData instanceof Error ? errorData : { details: errorData }); // CORREÇÃO AQUI
+          logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData instanceof Error ? errorData : { details: errorData }); 
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
         let data: any;
         try {
           data = await response.json();
-          logger.debug('✅ [AuthContextFixed] JSON DA RESPOSTA PARSEADO COM SUCESSO:', data); 
-        } catch (jsonError: unknown) { // CORREÇÃO AQUI
+          console.log('✅ [AuthContextFixed] Resposta JSON parseada:', data);
+        } catch (jsonError: unknown) { 
           logger.error('❌ [AuthContextFixed] ERRO ao parsear JSON da resposta da Edge Function:', jsonError instanceof Error ? jsonError : new Error(String(jsonError)));
           setIsLoadingAuth(false);
           throw new Error('Formato de resposta inválido da autenticação.');
         }
 
         if (!data.success) {
-          // CORREÇÃO AQUI: Empacota data.error em um objeto
           logger.error('❌ [AuthContextFixed] Falha de lógica no login da Edge Function (data.success é false):', { message: data.error });
           throw new Error(data.error || 'Erro na autenticação');
         }
@@ -249,8 +247,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 refresh_token: data.refresh_token,
             });
             sessionError = error;
-            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError instanceof Error ? sessionError : { details: sessionError }); // CORREÇÃO AQUI
-        } catch (e: unknown) { // CORREÇÃO AQUI
+            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError instanceof Error ? sessionError : { details: sessionError }); 
+        } catch (e: unknown) { 
             logger.error('❌ [AuthContextFixed] EXCEÇÃO CAPTURADA ao chamar setSession:', e instanceof Error ? e : new Error(String(e)));
             sessionError = e; 
         }
@@ -259,12 +257,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
             logger.debug('🔍 [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
-        } catch (getSessionError: unknown) { // CORREÇÃO AQUI
+        } catch (getSessionError: unknown) { 
             logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError instanceof Error ? getSessionError : new Error(String(getSessionError)));
         }
 
         if (sessionError) {
-          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError instanceof Error ? sessionError : { details: sessionError }); // CORREÇÃO AQUI
+          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError instanceof Error ? sessionError : { details: sessionError }); 
           throw new Error('Erro ao configurar sessão');
         }
 
@@ -275,13 +273,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.debug('⚡ [AuthContextFixed] Forçando atualização do estado via stableAuth.updateAuthState.');
         // ESTA LINHA ESTAVA FALTANDO! Passamos o `stableAuth` no retorno do hook useStableAuth, por isso essa chamada é possível
         await stableAuth.updateAuthState(currentSession, 'forced-after-login'); 
+        console.log('🔄 [AuthContextFixed] Estado de autenticação atualizado via updateAuthState.');
 
         logger.info('✅ [AuthContextFixed] LOGIN DE CARTÓRIO CONCLUÍDO COM SUCESSO. Estado forçado a atualizar.');
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
       }
-    } catch (error: unknown) { // CORREÇÃO AQUI
+    } catch (error: unknown) { 
       logger.error('❌ [AuthContextFixed] ERRO GERAL durante o processo de login:', error instanceof Error ? error : new Error(String(error)));
       setIsLoadingAuth(false); 
       throw error; 
@@ -298,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('siplan-user'); 
       
       logger.info('✅ [AuthContextFixed] Logout concluído com sucesso.');
-    } catch (error: unknown) { // CORREÇÃO AQUI
+    } catch (error: unknown) { 
       logger.error('❌ [AuthContextFixed] Erro durante o logout:', error instanceof Error ? error : new Error(String(error)));
       throw error; 
     } finally {
