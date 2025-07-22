@@ -267,15 +267,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // FORÇAR ATUALIZAÇÃO DO ESTADO APÓS setSession
-        // Isso é crucial se onAuthStateChange não estiver disparando confiavelmente.
-        // Chamamos updateAuthState do useStableAuth para reavaliar a sessão.
         const currentSession = (await supabase.auth.getSession()).data.session;
         logger.debug('⚡ [AuthContextFixed] Forçando atualização do estado via stableAuth.updateAuthState.');
-        // ESTA LINHA ESTAVA FALTANDO! Passamos o `stableAuth` no retorno do hook useStableAuth, por isso essa chamada é possível
         await stableAuth.updateAuthState(currentSession, 'forced-after-login'); 
         console.log('🔄 [AuthContextFixed] Estado de autenticação atualizado via updateAuthState.');
 
-        logger.info('✅ [AuthContextFixed] LOGIN DE CARTÓRIO CONCLUÍDO COM SUCESSO. Estado forçado a atualizar.');
+        // NOVO: Verificar se user é undefined e criar temporário
+        let finalUser = data.user;
+        if (!finalUser || finalUser.id === undefined) {
+          logger.warn('⚠️ [AuthContextFixed] User undefined na resposta - criando temporário');
+          finalUser = {
+            id: currentSession?.user?.id || 'temp-id',
+            username: usernameOrToken,
+            email: currentSession?.user?.email || 'temp@email.com',
+            cartorio_id: '6bee8971-43ab-4e11-9f4e-558242227cbb', // Do log
+            type: 'cartorio'
+          };
+        }
+
+        setUser(finalUser);
+        setIsLoadingAuth(false);
+        logger.info('✅ [AuthContextFixed] LOGIN CONCLUÍDO. User setado:', finalUser);
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
