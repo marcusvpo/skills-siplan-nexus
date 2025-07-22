@@ -28,18 +28,20 @@ export const useStableAuth = () => {
   // Função para verificar status de admin com cache
   const checkAdminStatus = useCallback(async (user: User | null): Promise<boolean> => {
     if (!user?.email) {
+      // Adicionado log para clareza
+      logger.debug('🔍 [useStableAuth] checkAdminStatus: Usuário sem email, retornando false para admin.');
       return false;
     }
 
     const cacheKey = `admin_status_${user.email}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached !== null) {
-      logger.debug(`[useStableAuth] Admin status for ${user.email} from cache: ${cached}`);
+      logger.debug(`⚙️ [useStableAuth] checkAdminStatus: Status admin para ${user.email} do cache: ${cached}`);
       return cached === 'true';
     }
 
     try {
-      logger.debug(`[useStableAuth] Checking admin status for ${user.email} from DB.`);
+      logger.debug(`�� [useStableAuth] checkAdminStatus: Verificando status admin para ${user.email} no DB.`);
       const { data: adminData, error } = await supabase
         .from('admins')
         .select('id')
@@ -47,16 +49,16 @@ export const useStableAuth = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 é 'Not found'
-        logger.error('❌ [useStableAuth] Error checking admin status:', { error });
+        logger.error('❌ [useStableAuth] Erro ao verificar status admin:', { error });
         return false;
       }
 
       const isAdmin = !!adminData;
       sessionStorage.setItem(cacheKey, isAdmin.toString()); // Salva no cache
-      logger.debug(`[useStableAuth] Admin status for ${user.email} from DB: ${isAdmin}`);
+      logger.debug(`✅ [useStableAuth] checkAdminStatus: Status admin para ${user.email} do DB: ${isAdmin}`);
       return isAdmin;
     } catch (err) {
-      logger.error('❌ [useStableAuth] Unexpected error checking admin:', { error: err });
+      logger.error('❌ [useStableAuth] Erro inesperado ao verificar admin:', { error: err });
       return false;
     }
   }, []);
@@ -97,7 +99,9 @@ export const useStableAuth = () => {
     }
     
     const isAdmin = currentSession?.user ? await checkAdminStatus(currentSession.user) : false;
-    
+    // Adicionado log para ver o isAdmin determinado antes de setar o estado
+    logger.debug(`🎯 [useStableAuth] updateAuthState: isAdmin determinado: ${isAdmin} para usuário email: ${currentSession?.user?.email || 'N/A'}`);
+
     const newState: AuthState = {
       session: currentSession,
       user: currentSession?.user || null,
@@ -107,7 +111,7 @@ export const useStableAuth = () => {
       error: null // Limpa qualquer erro anterior após a atualização
     };
 
-    logger.debug('�� [useStableAuth] Novo estado auth:', {
+    logger.debug('📝 [useStableAuth] Novo estado auth antes de setar:', {
       hasSession: !!newState.session,
       hasUser: !!newState.user,
       loading: newState.loading,
@@ -137,7 +141,7 @@ export const useStableAuth = () => {
     if (initializationRef.current) return; // Garante que só roda uma vez
     
     initializationRef.current = true;
-    logger.info('🚀 [useStableAuth] Iniciando verificação de autenticação...');
+    logger.info('�� [useStableAuth] Iniciando verificação de autenticação...');
 
     const initAuth = async () => {
       try {
@@ -151,7 +155,7 @@ export const useStableAuth = () => {
         }
 
         logger.debug('✅ [useStableAuth] Sessão inicial obtida:', { hasSession: !!session });
-        await updateAuthState(session, 'init'); // Atualiza o estado com a sessão inicial
+        await updateAuthState(session, 'init'); // Atualiza o estado com o session inicial
 
       } catch (error) {
         logger.error('❌ [useStableAuth] Erro durante a inicialização do auth:', error);
@@ -171,7 +175,7 @@ export const useStableAuth = () => {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        logger.debug(`�� [useStableAuth] Evento Auth recebido: ${event}`, { hasSession: !!session });
+        logger.debug(`🔔 [useStableAuth] Evento Auth recebido: ${event}`, { hasSession: !!session });
         // Sempre atualiza o estado em resposta a qualquer evento de autenticação
         await updateAuthState(session, `event-${event}`);
       }
@@ -190,7 +194,7 @@ export const useStableAuth = () => {
   // Função para fazer logout do Supabase Auth nativo
   const logout = useCallback(async () => {
     try {
-      logger.info('🚪 [useStableAuth] Realizando logout...');
+      logger.info('�� [useStableAuth] Realizando logout...');
       await supabase.auth.signOut();
       sessionStorage.clear(); // Limpa o cache de status de admin
       localStorage.removeItem('supabase.auth.token'); // Remove a sessão do localStorage
