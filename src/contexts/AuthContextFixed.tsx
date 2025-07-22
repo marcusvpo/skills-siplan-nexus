@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true; 
 
     const synchronizeAuthState = async () => {
-      logger.debug('�� [AuthContextFixed] Iniciando sincronização do estado de autenticação...');
+      logger.debug('🚀 [AuthContextFixed] Iniciando sincronização do estado de autenticação...');
       setIsLoadingAuth(true); // Garante que o estado de carregamento está ativo
 
       try {
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               logger.debug('🗑️ [AuthContextFixed] Usuário inválido no localStorage, removendo.');
             }
           } catch (err) {
-            logger.error('❌ [AuthContextFixed] Erro ao parsear usuário do localStorage:', err);
+            logger.error('❌ [AuthContextFixed] Erro ao parsear usuário do localStorage:', err instanceof Error ? err : new Error(String(err)));
             localStorage.removeItem('siplan-user');
           }
         }
@@ -75,8 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // 3. Sincroniza com o estado do stableAuth (Supabase Auth)
-        logger.debug('🔄 [AuthContextFixed] Sincronizando com stableAuth...');
-        logger.debug('🔍 [AuthContextFixed] stableAuth state:', {
+        logger.debug('�� [AuthContextFixed] Sincronizando com stableAuth...');
+        logger.debug('�� [AuthContextFixed] stableAuth state:', {
           session: stableAuth.session,
           isAdmin: stableAuth.isAdmin,
           user: stableAuth.user
@@ -130,8 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await stableAuth.logout(); 
               }
             }
-          } catch (e) {
-            logger.error('❌ [AuthContextFixed] Erro ao decodificar JWT do stableAuth.session:', e);
+          } catch (e: unknown) { // CORREÇÃO AQUI
+            logger.error('❌ [AuthContextFixed] Erro ao decodificar JWT do stableAuth.session:', e instanceof Error ? e : new Error(String(e)));
             if (isMounted) {
               setUser(null);
               setSession(null);
@@ -149,8 +149,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             logger.info('�� [AuthContextFixed] Nenhuma sessão Supabase ativa no stableAuth.');
           }
         }
-      } catch (error) { 
-        logger.error('❌ [AuthContextFixed] Erro inesperado durante a sincronização inicial de autenticação:', error);
+      } catch (error: unknown) { // CORREÇÃO AQUI
+        logger.error('❌ [AuthContextFixed] Erro inesperado durante a sincronização inicial de autenticação:', error instanceof Error ? error : new Error(String(error)));
       } finally { 
         if (isMounted && stableAuth.isInitialized) { 
           setIsLoadingAuth(false); 
@@ -181,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (window.location.pathname === '/login' || window.location.pathname === '/admin-login') {
-      logger.info('🔄 [AuthContextFixed] Redirecionando após login bem-sucedido...');
+      logger.info('�� [AuthContextFixed] Redirecionando após login bem-sucedido...');
       if (user.type === 'admin') {
         logger.info('➡️ [AuthContextFixed] Redirecionando para /admin (usuário admin).');
         navigate('/admin');
@@ -211,16 +211,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
           });
           logger.debug('⚙️ [AuthContextFixed] FETCH BEM-SUCEDIDO. Status:', { status: response.status, ok: response.ok });
-        } catch (fetchError) {
-          logger.error('❌ [AuthContextFixed] ERRO na chamada fetch para Edge Function:', fetchError);
+        } catch (fetchError: unknown) { // CORREÇÃO AQUI
+          logger.error('❌ [AuthContextFixed] ERRO na chamada fetch para Edge Function:', fetchError instanceof Error ? fetchError : new Error(String(fetchError)));
           setIsLoadingAuth(false);
           throw new Error('Erro de rede na autenticação.');
         }
 
         if (!response.ok) {
-          logger.error('❌ [AuthContextFixed] Resposta da Edge Function NÃO OK. Status:', response.status);
+          // CORREÇÃO AQUI: Empacota response.status em um objeto
+          logger.error('❌ [AuthContextFixed] Resposta da Edge Function NÃO OK.', { status: response.status });
           const errorData = await response.json().catch(() => ({ error: 'Erro HTTP ou JSON não parseável' }));
-          logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData);
+          logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData instanceof Error ? errorData : { details: errorData }); // CORREÇÃO AQUI
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
@@ -228,14 +229,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           data = await response.json();
           logger.debug('✅ [AuthContextFixed] JSON DA RESPOSTA PARSEADO COM SUCESSO:', data); 
-        } catch (jsonError) {
-          logger.error('❌ [AuthContextFixed] ERRO ao parsear JSON da resposta da Edge Function:', jsonError);
+        } catch (jsonError: unknown) { // CORREÇÃO AQUI
+          logger.error('❌ [AuthContextFixed] ERRO ao parsear JSON da resposta da Edge Function:', jsonError instanceof Error ? jsonError : new Error(String(jsonError)));
           setIsLoadingAuth(false);
           throw new Error('Formato de resposta inválido da autenticação.');
         }
 
         if (!data.success) {
-          logger.error('❌ [AuthContextFixed] Falha de lógica no login da Edge Function (data.success é false):', data.error);
+          // CORREÇÃO AQUI: Empacota data.error em um objeto
+          logger.error('❌ [AuthContextFixed] Falha de lógica no login da Edge Function (data.success é false):', { message: data.error });
           throw new Error(data.error || 'Erro na autenticação');
         }
 
@@ -247,22 +249,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 refresh_token: data.refresh_token,
             });
             sessionError = error;
-            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError); 
-        } catch (e) {
-            logger.error('❌ [AuthContextFixed] EXCEÇÃO CAPTURADA ao chamar setSession:', e);
+            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError instanceof Error ? sessionError : { details: sessionError }); // CORREÇÃO AQUI
+        } catch (e: unknown) { // CORREÇÃO AQUI
+            logger.error('❌ [AuthContextFixed] EXCEÇÃO CAPTURADA ao chamar setSession:', e instanceof Error ? e : new Error(String(e)));
             sessionError = e; 
         }
 
         // NOVO LOG CRÍTICO AQUI, para verificar a sessão logo após o setSession
         try {
             const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
-            logger.debug('�� [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
-        } catch (getSessionError) {
-            logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError);
+            logger.debug('🔍 [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
+        } catch (getSessionError: unknown) { // CORREÇÃO AQUI
+            logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError instanceof Error ? getSessionError : new Error(String(getSessionError)));
         }
 
         if (sessionError) {
-          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError);
+          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError instanceof Error ? sessionError : { details: sessionError }); // CORREÇÃO AQUI
           throw new Error('Erro ao configurar sessão');
         }
 
@@ -279,8 +281,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
       }
-    } catch (error) {
-      logger.error('❌ [AuthContextFixed] ERRO GERAL durante o processo de login:', error);
+    } catch (error: unknown) { // CORREÇÃO AQUI
+      logger.error('❌ [AuthContextFixed] ERRO GERAL durante o processo de login:', error instanceof Error ? error : new Error(String(error)));
       setIsLoadingAuth(false); 
       throw error; 
     } 
@@ -296,8 +298,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('siplan-user'); 
       
       logger.info('✅ [AuthContextFixed] Logout concluído com sucesso.');
-    } catch (error) {
-      logger.error('❌ [AuthContextFixed] Erro durante o logout:', error);
+    } catch (error: unknown) { // CORREÇÃO AQUI
+      logger.error('❌ [AuthContextFixed] Erro durante o logout:', error instanceof Error ? error : new Error(String(error)));
       throw error; 
     } finally {
       setIsLoadingAuth(false); 
@@ -310,7 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const authenticatedClient = supabase;
 
   useEffect(() => {
-    logger.debug('�� [AuthContextFixed] Estado atual do contexto:', {
+    logger.debug('📊 [AuthContextFixed] Estado atual do contexto:', {
       userPresent: !!user,
       userType: user?.type,
       hasSupabaseSession: !!session, 
