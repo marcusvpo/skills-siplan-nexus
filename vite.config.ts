@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    sourcemap: true, // Ativa source maps para depuração nas DevTools
+    sourcemap: true, // Já ativado para depuração
+  },
+  define: {
+    global: "window", // Corrige referências globais
+    __WS_TOKEN__: "JSON.stringify(process.env.VITE_WS_TOKEN || '')", // Define token de WebSocket
   },
 }));
