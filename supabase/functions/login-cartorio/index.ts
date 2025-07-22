@@ -97,8 +97,14 @@ serve(async (req) => {
       }
     }
 
-    // 4. Definir senha determinística
-    const generatedPassword = `cartorio_${userData.cartorio_id}_${userData.id}`;
+    // 4. Definir senha determinística (limitada a 64 caracteres para bcrypt)
+    const rawPassword = `cartorio_${userData.cartorio_id}_${userData.id}`;
+    // Gerar hash SHA-256 da senha bruta e truncar para 64 caracteres
+    const encoder = new TextEncoder();
+    const data = encoder.encode(rawPassword);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const generatedPassword = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 64);
     
     // 5. Fluxo de autenticação robusto
     console.log(`ℹ️ [LOGIN] Tentando fazer signIn com email: ${authEmail}`);
