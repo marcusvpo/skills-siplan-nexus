@@ -34,10 +34,9 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* O AuthProvider deve envolver todas as rotas que usarão useAuth */}
-      <AuthProvider>
-        <ProgressProvider>
-          <Router>
+      <Router> {/* O Router DEVE envolver TUDO que usa rotas */}
+        <AuthProvider> {/* O AuthProvider AGORA está dentro do Router */}
+          <ProgressProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -56,10 +55,10 @@ function App() {
               <Route path="/debug" element={<Debug />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <Toaster />
-          </Router>
-        </ProgressProvider>
-      </AuthProvider>
+          </ProgressProvider>
+        </AuthProvider>
+      </Router>
+      <Toaster /> {/* O Toaster pode ficar aqui, fora do Router, pois geralmente ele cria portais globais */}
     </QueryClientProvider>
   );
 }
