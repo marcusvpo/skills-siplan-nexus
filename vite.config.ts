@@ -25,8 +25,9 @@ export default defineConfig(({ mode }) => {
       sourcemap: true, // Ativa source maps para depuração
     },
     define: {
-      'global': 'globalThis', // Corrige referências globais e tokens como __WS_TOKEN__
-      'process.env': env, // Expõe variáveis de ambiente via import.meta.env
+      'global': 'globalThis', // Corrige referências globais
+      'process.env': env, // Expõe variáveis de ambiente
+      '__WS_TOKEN__': '""', // Define token de WebSocket como vazio para evitar erro
     },
   };
 });
