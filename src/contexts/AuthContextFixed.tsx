@@ -165,18 +165,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Configura contexto customizado do cartório (para RLS)
         setCartorioAuthContext(data.login_token);
 
-        // Atualiza estado local do usuário e localStorage
+        // Atualiza estado local do usuário
         const newUser: User = {
           id: data.user.id,
           name: data.cartorio?.nome || data.user.username,
           type: 'cartorio',
-          token: data.login_token, // O token customizado do cartório
+          token: data.login_token,
           cartorio_id: data.user.cartorio_id,
           cartorio_name: data.cartorio?.nome,
           username: data.user.username,
           email: data.user.email
         };
         setUser(newUser);
+        setSession(data.session || null); // Atualiza a sessão local também
         localStorage.setItem('siplan-user', JSON.stringify(newUser));
 
         logger.info('✅ [AuthContextFixed] Login de cartório concluído com sucesso.');
@@ -246,13 +247,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session: stableAuth.session, // Sempre usa a sessão do stableAuth como fonte da verdade
+      session: session || stableAuth.session, // Usa sessão local primeiro, depois stableAuth
       login, 
       logout, 
       isAuthenticated, 
       authenticatedClient,
-      isLoading, // Usa o flag principal de loading
-      isAdmin: stableAuth.isAdmin // Usa o flag de admin do stableAuth
+      isLoading, 
+      isAdmin: user?.type === 'admin' || stableAuth.isAdmin // Considera admin se user é admin OU stableAuth é admin
     }}>
       {children}
     </AuthContext.Provider>

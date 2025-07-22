@@ -15,33 +15,14 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  // Pega o isLoading global do AuthContextFixed e outras informações do usuário
   const { login, isLoading: isAuthGlobalLoading, isAuthenticated, user, isAdmin } = useAuth(); 
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     login_token: ''
   });
-  const [isFormSubmitting, setIsFormSubmitting] = useState(false); // Estado local para o formulário
-  const [error, setError] = useState(''); // Limpa erros anteriores
-  const [showPassword, setShowPassword] = useState(false); // Estado para mostrar/ocultar senha
-
-  // --- CONSTANTES DO USUÁRIO DE CONTORNO (test.user) ---
-  // ATENÇÃO: Utilize os valores REAIS que você copiou do Passo 1.
-  const USUARIO_CONTORNO_USERNAME = 'test.user'; 
-  const ID_DO_CARTORIO_DO_TEST_USER = '6bee8971-43ab-4e11-9f4e-558242227cbb'; 
-  const ID_DO_USUARIO_TEST_USER = '3e0cba60-99d1-4e04-a74c-730fb918aee5'; 
-
-  // --- FUNÇÃO AUXILIAR PARA GERAR SHA-256 NO FRONTEND (MANTIDA, MAS NÃO USADA NO CONTORNO DO test.user) ---
-  // Esta função é útil para outros fluxos onde a senha é gerada ou derivada de um hash.
-  // Para o 'test.user', a senha agora será a string literal digitada.
-  async function gerarSha256Frontend(str: string): Promise<string> {
-    const textEncoder = new TextEncoder();
-    const data = textEncoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hexHash;
-  }
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Efeito para redirecionar após autenticação bem-sucedida
   useEffect(() => {
@@ -74,39 +55,9 @@ const Login: React.FC = () => {
     setError(''); // Limpa erros anteriores
     
     try {
-      // --- LÓGICA DE CONTORNO: LOGIN DIRETO PARA test.user ---
-      // Para o 'test.user', usamos o e-mail placeholder e a senha digitada diretamente.
-      if (formData.username === USUARIO_CONTORNO_USERNAME) {
-        console.log(`ℹ️ [Login] Tentando login direto para ${USUARIO_CONTORNO_USERNAME}`);
-
-        const emailParaLogin = `${USUARIO_CONTORNO_USERNAME.toLowerCase()}@${ID_DO_CARTORIO_DO_TEST_USER.replace(/-/g, '')}.siplan.internal`;
-        
-        // AQUI ESTÁ A MUDANÇA CRÍTICA: A senha é a string literal digitada no campo 'login_token'.
-        // O Supabase Auth vai hashar essa string e comparar com o que está no banco.
-        const senhaLiteralDigitada = formData.login_token; 
-
-        const { data: authResponse, error: authError } = await supabase.auth.signInWithPassword({
-          email: emailParaLogin,
-          password: senhaLiteralDigitada, // <-- AQUI USAMOS A STRING LITERAL DIGITADA.
-        });
-
-        if (authError) {
-          console.error('❌ [Login] Erro no login direto:', authError);
-          setError(authError.message || 'Credenciais inválidas para o usuário de contorno.');
-          return; // Sair da função se houver erro
-        }
-        
-        // Se o login direto for bem-sucedido, o AuthContextFixed detectará a sessão
-        // e o useEffect cuidará do redirecionamento.
-        console.log(`✅ [Login] Login direto de ${USUARIO_CONTORNO_USERNAME} bem-sucedido.`);
-        return; // Sair da função, pois o login foi tratado
-      }
-
-      // --- LÓGICA EXISTENTE: LOGIN COM A EDGE FUNCTION PARA OUTROS USUÁRIOS ---
-      // Esta parte será executada se o username NÃO for 'test.user'.
-      // Esta lógica continuará chamando sua Edge Function 'login-cartorio'.
+      // Todos os usuários usam a Edge Function - não há login direto
       console.log(`ℹ️ [Login] Chamando Edge Function para usuário: ${formData.username}`);
-      await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username }); 
+      await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username });
       console.log(`✅ [Login] Autenticação via Edge Function bem-sucedida para ${formData.username} (aguardando redirecionamento)`);
 
     } catch (err: any) {
