@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContextFixed';
@@ -23,6 +22,7 @@ const Login: React.FC = () => {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   // Effect to redirect after successful authentication
   useEffect(() => {
@@ -67,7 +67,14 @@ const Login: React.FC = () => {
     try {
       console.log(`ℹ️ [Login] Calling Edge Function for user: ${formData.username}`);
       await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username });
-      console.log(`✅ [Login] Edge Function authentication successful for ${formData.username} (awaiting redirect)`);
+      console.log(`✅ [Login] OTP request successful for ${formData.username}. Waiting for user to confirm via email.`);
+      
+      setOtpSent(true);
+      toast({
+        title: "Verificação enviada",
+        description: "Um link de login foi enviado para o seu email. Verifique sua caixa de entrada e spam.",
+        duration: 10000,
+      });
 
     } catch (err: any) {
       console.error('❌ [Login] Error in authentication flow:', err);
@@ -134,60 +141,78 @@ const Login: React.FC = () => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                name="username"
-                placeholder="Nome de usuário"
-                value={formData.username}
-                onChange={handleInputChange}
-                className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                disabled={isFormSubmitting}
-                required
-              />
+          {otpSent ? (
+            <div className="text-center space-y-4">
+              <div className="bg-green-900/20 border border-green-500/50 rounded-md p-4 text-green-200 text-sm">
+                Um link de login foi enviado para o seu email. Verifique sua caixa de entrada e pasta de spam.
+              </div>
+              <p className="text-gray-300">
+                Após clicar no link do email, você será redirecionado automaticamente para o dashboard.
+              </p>
+              <Button 
+                onClick={() => setOtpSent(false)} 
+                variant="outline"
+                className="w-full"
+              >
+                Tentar outro login
+              </Button>
             </div>
-            
-            <div className="space-y-2">
-              <div className="relative">
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
                 <Input
-                  type={showPassword ? "text" : "password"}
-                  name="login_token"
-                  placeholder="Token de Login"
-                  value={formData.login_token}
+                  type="text"
+                  name="username"
+                  placeholder="Nome de usuário"
+                  value={formData.username}
                   onChange={handleInputChange}
-                  className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
+                  className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
                   disabled={isFormSubmitting}
                   required
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isFormSubmitting}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
               </div>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
-              disabled={isFormSubmitting}
-            >
-              {isFormSubmitting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Entrando...
+              
+              <div className="space-y-2">
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    name="login_token"
+                    placeholder="Token de Login"
+                    value={formData.login_token}
+                    onChange={handleInputChange}
+                    className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
+                    disabled={isFormSubmitting}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isFormSubmitting}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
-              ) : (
-                'Entrar na Plataforma'
-              )}
-            </Button>
-          </form>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
+                disabled={isFormSubmitting}
+              >
+                {isFormSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Enviando verificação...
+                  </div>
+                ) : (
+                  'Enviar link de login'
+                )}
+              </Button>
+            </form>
+          )}
           
           <div className="space-y-4 pt-4 border-t border-gray-700/50">
             <Link 
