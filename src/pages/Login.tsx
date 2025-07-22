@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContextFixed'; // Importação corrigida para AuthContextFixed
-import { Button } from '@/components/ui/button'; // Importações necessárias
+import { useAuth } from '../contexts/AuthContextFixed';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react'; // Ícones necessários
-import { toast } from '@/hooks/use-toast'; // Hook de toast
-import { supabase } from '@/integrations/supabase/client'; // Importação do cliente Supabase para login direto
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface LoginFormData {
   username: string;
@@ -15,7 +15,7 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading: isAuthGlobalLoading, isAuthenticated, user, isAdmin } = useAuth(); 
+  const { login, isLoading: isAuthGlobalLoading, isAuthenticated, user, isAdmin } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     login_token: ''
@@ -24,20 +24,30 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Efeito para redirecionar após autenticação bem-sucedida
+  // Effect to redirect after successful authentication
   useEffect(() => {
+    console.log('Login.tsx useEffect: Checking state for redirect. isAuthenticated:', isAuthenticated, 'user:', user, 'isAuthGlobalLoading:', isAuthGlobalLoading);
+
+    // Don't redirect while still loading
     if (isAuthGlobalLoading) {
-      // Ainda carregando o estado inicial de autenticação, não redirecionar ainda
-      return; 
+      console.log('Login.tsx: Still loading auth state, waiting...');
+      return;
     }
 
+    // Redirect if authenticated
     if (isAuthenticated && user) {
-      console.log('✅ [Login Page] Usuário autenticado, redirecionando...');
-      if (isAdmin) {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
-      }
+      console.log('✅ [Login Page] User authenticated, redirecting...', { userType: user.type, isAdmin });
+      
+      // Small delay to ensure state is fully settled
+      setTimeout(() => {
+        if (isAdmin) {
+          console.log('🔄 [Login Page] Redirecting to admin dashboard');
+          navigate('/admin');
+        } else {
+          console.log('🔄 [Login Page] Redirecting to user dashboard');
+          navigate('/dashboard');
+        }
+      }, 100);
     }
   }, [isAuthenticated, user, isAdmin, navigate, isAuthGlobalLoading]);
 
@@ -51,25 +61,28 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsFormSubmitting(true); // Ativa o loading do formulário
-    setError(''); // Limpa erros anteriores
+    setIsFormSubmitting(true);
+    setError('');
     
     try {
-      // Todos os usuários usam a Edge Function - não há login direto
-      console.log(`ℹ️ [Login] Chamando Edge Function para usuário: ${formData.username}`);
+      console.log(`ℹ️ [Login] Calling Edge Function for user: ${formData.username}`);
       await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username });
-      console.log(`✅ [Login] Autenticação via Edge Function bem-sucedida para ${formData.username} (aguardando redirecionamento)`);
+      console.log(`✅ [Login] Edge Function authentication successful for ${formData.username} (awaiting redirect)`);
 
     } catch (err: any) {
-      console.error('❌ [Login] Erro no fluxo de autenticação:', err);
-      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      console.error('❌ [Login] Error in authentication flow:', err);
+      setError(err.message || 'Login error. Please check your credentials.');
+      toast({
+        title: "Login Error",
+        description: err.message || 'Please check your credentials and try again.',
+        variant: "destructive",
+      });
     } finally {
-      setIsFormSubmitting(false); 
+      setIsFormSubmitting(false);
     }
   };
 
-  // Se o carregamento global de autenticação estiver ativo, mostra "Autenticando..."
-  // Isso cobre a verificação inicial e o tempo que leva para o AuthContext processar o login.
+  // Show loading screen while auth is being determined
   if (isAuthGlobalLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 page-transition">
@@ -83,9 +96,18 @@ const Login: React.FC = () => {
     );
   }
 
-  // Se já está autenticado, não mostra o formulário de login. O useEffect acima fará o redirecionamento.
+  // Don't show login form if already authenticated (redirect will happen via useEffect)
   if (isAuthenticated && user) {
-    return null; 
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 page-transition">
+        <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-white text-enhanced">Redirecionando...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -106,6 +128,12 @@ const Login: React.FC = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/50 rounded-md p-3 text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
@@ -115,7 +143,7 @@ const Login: React.FC = () => {
                 value={formData.username}
                 onChange={handleInputChange}
                 className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                disabled={isFormSubmitting} 
+                disabled={isFormSubmitting}
                 required
               />
             </div>
@@ -129,7 +157,7 @@ const Login: React.FC = () => {
                   value={formData.login_token}
                   onChange={handleInputChange}
                   className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                  disabled={isFormSubmitting} 
+                  disabled={isFormSubmitting}
                   required
                 />
                 <Button
@@ -138,7 +166,7 @@ const Login: React.FC = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isFormSubmitting} 
+                  disabled={isFormSubmitting}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -148,7 +176,7 @@ const Login: React.FC = () => {
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
-              disabled={isFormSubmitting} 
+              disabled={isFormSubmitting}
             >
               {isFormSubmitting ? (
                 <div className="flex items-center">
