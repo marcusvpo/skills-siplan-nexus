@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: true, // Ativa source maps para depuração
     },
     define: {
-      global: "window", // Corrige referências globais no browser
+      'global': 'globalThis', // Corrige referências globais e tokens como __WS_TOKEN__
       'process.env': env, // Expõe variáveis de ambiente via import.meta.env
     },
   };
