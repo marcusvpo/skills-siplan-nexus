@@ -3,7 +3,7 @@ import { supabase, setCartorioAuthContext, clearCartorioAuthContext } from '@/in
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
-import { useNavigate } from 'react-router-dom'; // IMPORTANTE: Importar useNavigate
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Efeito principal para sincronizar o estado de autenticação do AuthContextFixed
   // com base no stableAuth e no localStorage.
   useEffect(() => {
-    let isMounted = true; // Flag para evitar atualizações de estado em componentes desmontados
+    let isMounted = true; 
 
     const synchronizeAuthState = async () => {
       logger.debug('🚀 [AuthContextFixed] Iniciando sincronização do estado de autenticação...');
@@ -56,11 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (isMounted) {
                 setUser(userData);
                 setCartorioAuthContext(userData.token);
-                logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage.');
+                logger.info('�� [AuthContextFixed] Usuário cartório restaurado do localStorage.');
               }
             } else {
               localStorage.removeItem('siplan-user'); 
-              logger.debug('��️ [AuthContextFixed] Usuário inválido no localStorage, removendo.');
+              logger.debug('🗑️ [AuthContextFixed] Usuário inválido no localStorage, removendo.');
             }
           } catch (err) {
             logger.error('❌ [AuthContextFixed] Erro ao parsear usuário do localStorage:', err);
@@ -71,15 +71,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 2. Aguarda stableAuth finalizar sua própria inicialização
         if (!stableAuth.isInitialized) {
           logger.debug('⏳ [AuthContextFixed] Aguardando stableAuth inicializar para completar a sincronização...');
-          // Não define isLoadingAuth como false aqui, pois a inicialização ainda não terminou.
-          // O `finally` será executado, mas o `stableAuth.isInitialized` ainda será false,
-          // o que manterá o `isLoadingAuth` em `true` até que `stableAuth` esteja pronto.
           return; 
         }
 
         // 3. Sincroniza com o estado do stableAuth (Supabase Auth)
-        logger.debug('🔄 [AuthContextFixed] Sincronizando com stableAuth...');
-        logger.debug('🔍 [AuthContextFixed] stableAuth state:', {
+        logger.debug('�� [AuthContextFixed] Sincronizando com stableAuth...');
+        logger.debug('�� [AuthContextFixed] stableAuth state:', {
           session: stableAuth.session,
           isAdmin: stableAuth.isAdmin,
           user: stableAuth.user
@@ -109,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.setItem('siplan-user', JSON.stringify(cartorioUser));
                 logger.info('🎯 [AuthContextFixed] Usuário cartório configurado via stableAuth.');
               }
-            } else if (stableAuth.isAdmin) { // Se não é cartório, verifica se stableAuth o marcou como admin
+            } else if (stableAuth.isAdmin) { 
               const adminUser: User = {
                 id: stableAuth.session.user.id,
                 name: 'Administrador',
@@ -124,14 +121,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 logger.info('👤 [AuthContextFixed] Usuário admin configurado via stableAuth.');
               }
             } else {
-              // Sessão Supabase ativa, mas não é cartório nem admin (usuário comum do Supabase Auth)
               logger.warn('⚠️ [AuthContextFixed] Sessão Supabase ativa, mas tipo de usuário não identificado (nem cartório, nem admin). Deslogando para evitar estado inconsistente.');
               if (isMounted) {
                 setUser(null);
                 setSession(null);
                 clearCartorioAuthContext();
                 localStorage.removeItem('siplan-user');
-                // Força o logout para limpar a sessão inconsistente no Supabase Auth
                 await stableAuth.logout(); 
               }
             }
@@ -142,12 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setSession(null);
               clearCartorioAuthContext();
               localStorage.removeItem('siplan-user');
-              // Força o logout
               await stableAuth.logout(); 
             }
           }
         } else {
-          // Nenhuma sessão Supabase ativa no stableAuth
           if (isMounted) {
             setUser(null);
             setSession(null);
@@ -159,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) { 
         logger.error('❌ [AuthContextFixed] Erro inesperado durante a sincronização inicial de autenticação:', error);
       } finally { 
-        if (isMounted && stableAuth.isInitialized) { // Só define isLoadingAuth como false se stableAuth já estiver inicializado
+        if (isMounted && stableAuth.isInitialized) { 
           setIsLoadingAuth(false); 
           logger.debug('✅ [AuthContextFixed] Sincronização finalizada e isLoadingAuth setado para false.');
         } else if (isMounted) {
@@ -177,7 +170,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Efeito para redirecionamento automático após autenticação
   useEffect(() => {
-    // Só executa se o carregamento inicial terminou e temos um usuário
     if (isLoadingAuth || !user) {
       logger.debug('🚦 [AuthContextFixed] Redirecionamento: Condições não atendidas (isLoadingAuth ou sem user).', { isLoadingAuth, hasUser: !!user });
       return;
@@ -188,7 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentPath: window.location.pathname
     });
 
-    // Se o usuário está logado e na página de login/admin-login, redireciona
     if (window.location.pathname === '/login' || window.location.pathname === '/admin-login') {
       logger.info('🔄 [AuthContextFixed] Redirecionando após login bem-sucedido...');
       if (user.type === 'admin') {
@@ -199,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/dashboard');
       }
     }
-  }, [isLoadingAuth, user, navigate]); // Depende de isLoadingAuth e user
+  }, [isLoadingAuth, user, navigate]); 
 
   const login = async (usernameOrToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>): Promise<void> => {
     setIsLoadingAuth(true); 
@@ -208,58 +199,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (type === 'cartorio') {
         logger.debug('⚙️ [AuthContextFixed] Iniciando login de cartório (via Edge Function)...'); 
-        const response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`
-          },
-          body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
-        });
+        
+        let response: Response;
+        try {
+          response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE`
+            },
+            body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
+          });
+          logger.debug('⚙️ [AuthContextFixed] FETCH BEM-SUCEDIDO. Status:', { status: response.status, ok: response.ok });
+        } catch (fetchError) {
+          logger.error('❌ [AuthContextFixed] ERRO na chamada fetch para Edge Function:', fetchError);
+          setIsLoadingAuth(false);
+          throw new Error('Erro de rede na autenticação.');
+        }
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Erro HTTP' }));
-          logger.error('❌ [AuthContextFixed] Erro na Edge Function de login:', errorData);
+          logger.error('❌ [AuthContextFixed] Resposta da Edge Function NÃO OK. Status:', response.status);
+          const errorData = await response.json().catch(() => ({ error: 'Erro HTTP ou JSON não parseável' }));
+          logger.error('❌ [AuthContextFixed] Detalhes do erro da Edge Function:', errorData);
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
-        const data = await response.json();
-        logger.debug('✅ [AuthContextFixed] Resposta da Edge Function recebida:', data); 
+        let data: any;
+        try {
+          data = await response.json();
+          logger.debug('✅ [AuthContextFixed] JSON DA RESPOSTA PARSEADO COM SUCESSO:', data); 
+        } catch (jsonError) {
+          logger.error('❌ [AuthContextFixed] ERRO ao parsear JSON da resposta da Edge Function:', jsonError);
+          setIsLoadingAuth(false);
+          throw new Error('Formato de resposta inválido da autenticação.');
+        }
 
         if (!data.success) {
-          logger.error('❌ [AuthContextFixed] Falha no login da Edge Function:', data.error);
+          logger.error('❌ [AuthContextFixed] Falha de lógica no login da Edge Function (data.success é false):', data.error);
           throw new Error(data.error || 'Erro na autenticação');
         }
 
-        // Apenas seta a sessão Supabase. O stableAuth.onAuthStateChange (no useStableAuth)
-        // é quem vai atualizar o estado do user/session local neste contexto.
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
+        logger.debug('⚙️ [AuthContextFixed] Preparando para chamar supabase.auth.setSession com tokens...');
+        let sessionError = null;
+        try {
+            const { error } = await supabase.auth.setSession({
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+            });
+            sessionError = error;
+            logger.debug('✅ [AuthContextFixed] supabase.auth.setSession CONCLUÍDO. Erro retornado:', sessionError); 
+        } catch (e) {
+            logger.error('❌ [AuthContextFixed] EXCEÇÃO CAPTURADA ao chamar setSession:', e);
+            sessionError = e; 
+        }
 
-        logger.debug('✅ [AuthContextFixed] supabase.auth.setSession concluído. Erro:', sessionError); 
+        // NOVO LOG CRÍTICO AQUI, para verificar a sessão logo após o setSession
+        try {
+            const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
+            logger.debug('🔍 [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
+        } catch (getSessionError) {
+            logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError);
+        }
 
         if (sessionError) {
-          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase:', sessionError);
+          logger.error('❌ [AuthContextFixed] Erro ao configurar sessão Supabase (erro != null):', sessionError);
           throw new Error('Erro ao configurar sessão');
         }
 
-        logger.info('✅ [AuthContextFixed] Login de cartório concluído com sucesso. O stableAuth e seus listeners irão atualizar o estado.');
+        logger.info('✅ [AuthContextFixed] LOGIN DE CARTÓRIO CONCLUÍDO COM SUCESSO. O stableAuth e seus listeners irão atualizar o estado.');
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
-        // Para login de admin, o fluxo é diferente e geralmente envolve signInWithPassword
-        // ou outro método do Supabase Auth. Este `login` do contexto não o trata diretamente.
-        // O `stableAuth` já lida com isso.
       }
     } catch (error) {
-      logger.error('❌ [AuthContextFixed] Erro durante o processo de login:', error);
-      setIsLoadingAuth(false); // Garante que o carregamento é desativado em caso de erro
+      logger.error('❌ [AuthContextFixed] ERRO GERAL durante o processo de login:', error);
+      setIsLoadingAuth(false); 
       throw error; 
     } 
-    // O bloco finally não é mais estritamente necessário aqui, pois o onAuthStateChange
-    // (via useStableAuth) será acionado e definirá isLoadingAuth(false)
   };
 
   const logout = async (): Promise<void> => {
@@ -267,12 +283,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logger.info('🚪 [AuthContextFixed] Logout chamado.');
 
     try {
-      // Sempre usa o stableAuth.logout() para garantir a limpeza correta da sessão Supabase
       await stableAuth.logout(); 
-      clearCartorioAuthContext(); // Garante que o contexto RLS é limpo
-      localStorage.removeItem('siplan-user'); // Garante que o localStorage do usuário cartório é limpo
+      clearCartorioAuthContext(); 
+      localStorage.removeItem('siplan-user'); 
       
-      // O restante do estado (user, session) será limpo pelo onAuthStateChange via stableAuth
       logger.info('✅ [AuthContextFixed] Logout concluído com sucesso.');
     } catch (error) {
       logger.error('❌ [AuthContextFixed] Erro durante o logout:', error);
@@ -282,12 +296,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAuthenticated = !!user; // A autenticação é baseada na existência de um 'user' no contexto
+  const isAuthenticated = !!user; 
   const isLoading = isLoadingAuth;
 
   const authenticatedClient = supabase;
 
-  // Debug log do estado atual do AuthContextFixed
   useEffect(() => {
     logger.debug('�� [AuthContextFixed] Estado atual do contexto:', {
       userPresent: !!user,
@@ -310,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated, 
       authenticatedClient,
       isLoading, 
-      isAdmin: user?.type === 'admin' // A determinação de admin deve vir do 'user' do contexto
+      isAdmin: user?.type === 'admin' 
     }}>
       {children}
     </AuthContext.Provider>
