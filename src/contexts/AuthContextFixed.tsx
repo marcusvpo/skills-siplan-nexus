@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true; 
 
     const synchronizeAuthState = async () => {
-      logger.debug('🚀 [AuthContextFixed] Iniciando sincronização do estado de autenticação...');
+      logger.debug('�� [AuthContextFixed] Iniciando sincronização do estado de autenticação...');
       setIsLoadingAuth(true); // Garante que o estado de carregamento está ativo
 
       try {
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (isMounted) {
                 setUser(userData);
                 setCartorioAuthContext(userData.token);
-                logger.info('�� [AuthContextFixed] Usuário cartório restaurado do localStorage.');
+                logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage.');
               }
             } else {
               localStorage.removeItem('siplan-user'); 
@@ -75,8 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // 3. Sincroniza com o estado do stableAuth (Supabase Auth)
-        logger.debug('�� [AuthContextFixed] Sincronizando com stableAuth...');
-        logger.debug('�� [AuthContextFixed] stableAuth state:', {
+        logger.debug('🔄 [AuthContextFixed] Sincronizando com stableAuth...');
+        logger.debug('🔍 [AuthContextFixed] stableAuth state:', {
           session: stableAuth.session,
           isAdmin: stableAuth.isAdmin,
           user: stableAuth.user
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(null);
             clearCartorioAuthContext();
             localStorage.removeItem('siplan-user');
-            logger.info('🚫 [AuthContextFixed] Nenhuma sessão Supabase ativa no stableAuth.');
+            logger.info('�� [AuthContextFixed] Nenhuma sessão Supabase ativa no stableAuth.');
           }
         }
       } catch (error) { 
@@ -256,7 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // NOVO LOG CRÍTICO AQUI, para verificar a sessão logo após o setSession
         try {
             const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
-            logger.debug('🔍 [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
+            logger.debug('�� [AuthContextFixed] Sessão Supabase atual APÓS setSession (confirmado):', { hasSession: !!currentSupabaseSession, userEmail: currentSupabaseSession?.user?.email, user_id: currentSupabaseSession?.user?.id });
         } catch (getSessionError) {
             logger.error('❌ [AuthContextFixed] ERRO ao obter sessão Supabase após setSession:', getSessionError);
         }
@@ -266,7 +266,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Erro ao configurar sessão');
         }
 
-        logger.info('✅ [AuthContextFixed] LOGIN DE CARTÓRIO CONCLUÍDO COM SUCESSO. O stableAuth e seus listeners irão atualizar o estado.');
+        // FORÇAR ATUALIZAÇÃO DO ESTADO APÓS setSession
+        // Isso é crucial se onAuthStateChange não estiver disparando confiavelmente.
+        // Chamamos updateAuthState do useStableAuth para reavaliar a sessão.
+        const currentSession = (await supabase.auth.getSession()).data.session;
+        logger.debug('⚡ [AuthContextFixed] Forçando atualização do estado via stableAuth.updateAuthState.');
+        // ESTA LINHA ESTAVA FALTANDO! Passamos o `stableAuth` no retorno do hook useStableAuth, por isso essa chamada é possível
+        await stableAuth.updateAuthState(currentSession, 'forced-after-login'); 
+
+        logger.info('✅ [AuthContextFixed] LOGIN DE CARTÓRIO CONCLUÍDO COM SUCESSO. Estado forçado a atualizar.');
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');
