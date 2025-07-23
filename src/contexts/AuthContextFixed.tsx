@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (type === 'cartorio') {
-        logger.debug('⚙️ [AuthContextFixed] Iniciando login de cartório (via Edge Function com OTP)...'); 
+        logger.debug('⚙️ [AuthContextFixed] Iniciando login direto de cartório via Edge Function...'); 
         
         let response: Response;
         try {
@@ -211,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             },
             body: JSON.stringify({ username: usernameOrToken, login_token: userData?.token || '' })
           });
-          console.log('📡 [AuthContextFixed] Resposta fetch recebida. Status:', response.status);
+          logger.debug('📡 [AuthContextFixed] Resposta fetch recebida. Status:', { status: response.status });
         } catch (fetchError: unknown) { 
           logger.error('❌ [AuthContextFixed] ERRO na chamada fetch para Edge Function:', fetchError instanceof Error ? fetchError : new Error(String(fetchError)));
           setIsLoadingAuth(false);
@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let data: any;
         try {
           data = await response.json();
-          console.log('✅ [AuthContextFixed] Resposta JSON parseada:', data);
+          logger.debug('✅ [AuthContextFixed] Resposta JSON parseada:', data);
         } catch (jsonError: unknown) { 
           logger.error('❌ [AuthContextFixed] ERRO ao parsear JSON da resposta da Edge Function:', jsonError instanceof Error ? jsonError : new Error(String(jsonError)));
           setIsLoadingAuth(false);
@@ -242,26 +242,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(data.error || 'Erro na autenticação');
         }
 
-        // Configurar JWT customizado direto no cliente
+        // Configurar JWT customizado e login direto
         const customJWT = data.access_token;
         setCartorioAuthContext(customJWT);
         
-        // Opcional: Configurar também como sessão Supabase para compatibilidade
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
+        // Armazenar JWT no localStorage para persistência
+        localStorage.setItem('siplan-auth-token', customJWT);
         
-        if (sessionError) {
-          logger.warn('⚠️ [AuthContextFixed] Aviso ao configurar sessão Supabase (usando JWT customizado):', sessionError);
-        }
+        // Configurar usuário direto com dados da resposta
+        const cartorioUser: User = {
+          id: data.user.id,
+          name: data.user.username,
+          type: 'cartorio',
+          token: customJWT,
+          cartorio_id: data.user.cartorio_id,
+          cartorio_name: data.user.cartorio_name || '',
+          username: data.user.username,
+          email: data.user.email || ''
+        };
 
-        logger.debug('AuthContext: JWT customizado configurado', { tokenPrefix: customJWT.substring(0, 50) + '...' });
-
-        // A sessão será definida automaticamente após o usuário confirmar o OTP via email
-        // O useEffect de sincronização cuidará de atualizar o estado quando a sessão for detectada
-
-        logger.info('✅ [AuthContextFixed] Solicitação de OTP enviada com sucesso. Aguardando confirmação do usuário.');
+        setUser(cartorioUser);
+        setSession(null); // Não usar sessão Supabase com JWT customizado
+        localStorage.setItem('siplan-user', JSON.stringify(cartorioUser));
+        logger.info('✅ [AuthContextFixed] Login direto bem-sucedido. Usuário configurado.');
 
       } else {
         logger.warn('⚠️ [AuthContextFixed] Login direto de admin chamado. Este contexto não lida diretamente com o login de admin, ele é gerenciado pelo fluxo padrão do Supabase Auth e useStableAuth.');

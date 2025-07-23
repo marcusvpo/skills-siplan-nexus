@@ -22,7 +22,7 @@ const Login: React.FC = () => {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   // Effect to redirect after successful authentication
   useEffect(() => {
@@ -65,23 +65,23 @@ const Login: React.FC = () => {
     setError('');
     
     try {
-      console.log(`ℹ️ [Login] Calling Edge Function for user: ${formData.username}`);
+      console.log(`ℹ️ [Login] Fazendo login direto para usuário: ${formData.username}`);
       await login(formData.username, 'cartorio', { token: formData.login_token, username: formData.username });
-      console.log(`✅ [Login] OTP request successful for ${formData.username}. Waiting for user to confirm via email.`);
+      console.log(`✅ [Login] Login direto bem-sucedido para ${formData.username}.`);
       
-      setOtpSent(true);
+      setLoginSuccess(true);
       toast({
-        title: "Verificação enviada",
-        description: "Um link de login foi enviado para o seu email. Verifique sua caixa de entrada e spam.",
-        duration: 10000,
+        title: "Login realizado",
+        description: "Login efetuado com sucesso! Redirecionando...",
+        duration: 3000,
       });
 
     } catch (err: any) {
       console.error('❌ [Login] Error in authentication flow:', err);
       setError(err.message || 'Login error. Please check your credentials.');
       toast({
-        title: "Login Error",
-        description: err.message || 'Please check your credentials and try again.',
+        title: "Erro no Login",
+        description: err.message || 'Verifique suas credenciais e tente novamente.',
         variant: "destructive",
       });
     } finally {
@@ -141,21 +141,12 @@ const Login: React.FC = () => {
             </div>
           )}
           
-          {otpSent ? (
+          {loginSuccess ? (
             <div className="text-center space-y-4">
               <div className="bg-green-900/20 border border-green-500/50 rounded-md p-4 text-green-200 text-sm">
-                Um link de login foi enviado para o seu email. Verifique sua caixa de entrada e pasta de spam.
+                Login efetuado com sucesso! Redirecionando para o dashboard...
               </div>
-              <p className="text-gray-300">
-                Após clicar no link do email, você será redirecionado automaticamente para o dashboard.
-              </p>
-              <Button 
-                onClick={() => setOtpSent(false)} 
-                variant="outline"
-                className="w-full"
-              >
-                Tentar outro login
-              </Button>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -205,10 +196,10 @@ const Login: React.FC = () => {
                 {isFormSubmitting ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Enviando verificação...
+                    Fazendo login...
                   </div>
                 ) : (
-                  'Enviar link de login'
+                  'Fazer Login'
                 )}
               </Button>
             </form>
