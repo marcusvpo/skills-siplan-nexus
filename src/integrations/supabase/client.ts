@@ -4,7 +4,7 @@ import type { Database } from './types';
 import { debugSupabaseClient } from '@/utils/authDebug';
 
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
 // Singleton pattern: Uma única instância do cliente Supabase
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
