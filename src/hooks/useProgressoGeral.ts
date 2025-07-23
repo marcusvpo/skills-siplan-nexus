@@ -41,11 +41,17 @@ export const useProgressoGeral = () => {
       setIsLoading(true);
       setError(null);
 
-      // Buscar todas as videoaulas com seus produtos
+      const token = localStorage.getItem('siplan-auth-token');
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado');
+      }
+
+      // Buscar todas as videoaulas com seus produtos com header Authorization
       const { data: videoAulas, error: videoError } = await supabase
         .from('video_aulas')
         .select('id, produto_id')
-        .order('produto_id');
+        .order('produto_id')
+        .setHeader('Authorization', `Bearer ${token}`);
 
       if (videoError) throw videoError;
 
@@ -65,7 +71,8 @@ export const useProgressoGeral = () => {
         .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
         .eq('completo', true)
-        .range(0, 1000); // Força uma nova query sempre
+        .range(0, 1000) // Força uma nova query sempre
+        .setHeader('Authorization', `Bearer ${token}`);
 
       if (visualError) {
         console.error('❌ [useProgressoGeral] Erro ao buscar visualizações:', visualError);
