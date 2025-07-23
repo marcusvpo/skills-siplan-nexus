@@ -196,48 +196,6 @@ export type Database = {
         }
         Relationships: []
       }
-      document_chunks: {
-        Row: {
-          chunk_order: number | null
-          content: string
-          created_at: string | null
-          embedding: string
-          id: string
-          metadata: Json | null
-          page_number: number | null
-          product_id: string
-          source_type: string
-          timestamp_start: number | null
-          video_lesson_id: string | null
-        }
-        Insert: {
-          chunk_order?: number | null
-          content: string
-          created_at?: string | null
-          embedding: string
-          id?: string
-          metadata?: Json | null
-          page_number?: number | null
-          product_id: string
-          source_type: string
-          timestamp_start?: number | null
-          video_lesson_id?: string | null
-        }
-        Update: {
-          chunk_order?: number | null
-          content?: string
-          created_at?: string | null
-          embedding?: string
-          id?: string
-          metadata?: Json | null
-          page_number?: number | null
-          product_id?: string
-          source_type?: string
-          timestamp_start?: number | null
-          video_lesson_id?: string | null
-        }
-        Relationships: []
-      }
       favoritos_cartorio: {
         Row: {
           cartorio_id: string
@@ -270,92 +228,6 @@ export type Database = {
             columns: ["video_aula_id"]
             isOneToOne: false
             referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      knowledge_base: {
-        Row: {
-          chunk_index: number | null
-          chunk_texto: string | null
-          created_at: string | null
-          embedding: string | null
-          id: string
-          metadata: Json | null
-          produto_id: string | null
-          video_aula_id: string | null
-        }
-        Insert: {
-          chunk_index?: number | null
-          chunk_texto?: string | null
-          created_at?: string | null
-          embedding?: string | null
-          id?: string
-          metadata?: Json | null
-          produto_id?: string | null
-          video_aula_id?: string | null
-        }
-        Update: {
-          chunk_index?: number | null
-          chunk_texto?: string | null
-          created_at?: string | null
-          embedding?: string | null
-          id?: string
-          metadata?: Json | null
-          produto_id?: string | null
-          video_aula_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "knowledge_base_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "knowledge_base_video_aula_id_fkey"
-            columns: ["video_aula_id"]
-            isOneToOne: false
-            referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      produto_conhecimento_base: {
-        Row: {
-          conteudo_completo: string | null
-          created_at: string | null
-          id: string
-          produto_id: string | null
-          titulo: string | null
-          updated_at: string | null
-          versao: string | null
-        }
-        Insert: {
-          conteudo_completo?: string | null
-          created_at?: string | null
-          id?: string
-          produto_id?: string | null
-          titulo?: string | null
-          updated_at?: string | null
-          versao?: string | null
-        }
-        Update: {
-          conteudo_completo?: string | null
-          created_at?: string | null
-          id?: string
-          produto_id?: string | null
-          titulo?: string | null
-          updated_at?: string | null
-          versao?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produto_conhecimento_base_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -499,44 +371,6 @@ export type Database = {
           },
         ]
       }
-      video_embeddings: {
-        Row: {
-          chunk_index: number
-          content: string
-          embedding: string
-          id: string
-          timestamp_fim_segundos: number | null
-          timestamp_inicio_segundos: number | null
-          video_aula_id: string
-        }
-        Insert: {
-          chunk_index: number
-          content: string
-          embedding: string
-          id?: string
-          timestamp_fim_segundos?: number | null
-          timestamp_inicio_segundos?: number | null
-          video_aula_id: string
-        }
-        Update: {
-          chunk_index?: number
-          content?: string
-          embedding?: string
-          id?: string
-          timestamp_fim_segundos?: number | null
-          timestamp_inicio_segundos?: number | null
-          video_aula_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "video_embeddings_fk"
-            columns: ["video_aula_id"]
-            isOneToOne: false
-            referencedRelation: "video_aulas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       visualizacoes_cartorio: {
         Row: {
           cartorio_id: string
@@ -608,6 +442,10 @@ export type Database = {
         }[]
       }
       get_current_cartorio_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_cartorio_id_from_custom_jwt: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

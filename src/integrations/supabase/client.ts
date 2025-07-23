@@ -36,36 +36,68 @@ const getSupabaseInstance = () => {
 };
 
 // Export da instância única
-export const supabase = getSupabaseInstance();
-
 // Sistema de gerenciamento de contexto de autenticação para cartórios
 class AuthContextManager {
   private currentToken: string | null = null;
   private currentHeaders: Record<string, string> = {};
 
   setCartorioContext(token: string) {
-    console.log('🔐 [AuthContext] Setting cartorio context with token type:', token.startsWith('CART-') ? 'CART token' : 'Other token');
+    console.log('🔐 [AuthContext] Setting cartorio context with token type:', token.startsWith('CART-') ? 'CART token' : 'JWT token');
     
     this.currentToken = token;
     this.currentHeaders = {};
     
-    // Para tokens de cartório, configurar headers customizados
-    if (token.startsWith('CART-')) {
-      this.currentHeaders = {
-        'Authorization': `Bearer ${token}`,
-        'X-Custom-Auth': token,
-      };
-    } else {
-      this.currentHeaders = {
-        'Authorization': `Bearer ${token}`,
-      };
-    }
+    // Para JWT customizado ou tokens de cartório
+    this.currentHeaders = {
+      'Authorization': `Bearer ${token}`,
+    };
+    
+    // Interceptar todas as requisições do Supabase para incluir o JWT
+    this.interceptSupabaseRequests(token);
+  }
+
+  private interceptSupabaseRequests(token: string) {
+    const client = getSupabaseInstance();
+    
+    // Interceptar requisições usando a funcionalidade nativa do Supabase
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (!session || session.access_token !== token) {
+        // Se não há sessão ativa ou o token é diferente, configurar o token customizado
+        // Configurar o token no cabeçalho global do cliente
+        const originalFetch = global.fetch;
+        global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url = typeof input === 'string' ? input : input.toString();
+          
+          // Interceptar apenas requisições para o Supabase
+          if (url.includes('bnulocsnxiffavvabfdj.supabase.co')) {
+            const headers = new Headers(init?.headers);
+            
+            // Se já não tem Authorization header ou é diferente, usar o token customizado
+            if (!headers.get('Authorization') || headers.get('Authorization') !== `Bearer ${token}`) {
+              headers.set('Authorization', `Bearer ${token}`);
+            }
+            
+            return originalFetch(input, {
+              ...init,
+              headers
+            });
+          }
+          
+          return originalFetch(input, init);
+        };
+      }
+    });
   }
 
   clearContext() {
     console.log('🔐 [AuthContext] Clearing cartorio context');
     this.currentToken = null;
     this.currentHeaders = {};
+    
+    // Restaurar fetch original se foi interceptado
+    if (global.fetch && (global.fetch as any).__originalFetch) {
+      global.fetch = (global.fetch as any).__originalFetch;
+    }
   }
 
   getHeaders(): Record<string, string> {
@@ -83,6 +115,9 @@ class AuthContextManager {
 
 // Instância única do gerenciador de contexto
 const authContextManager = new AuthContextManager();
+
+// Export da instância única do Supabase com interceptação configurada
+export const supabase = getSupabaseInstance();
 
 // Função para configurar o contexto de autenticação de cartório
 export const setCartorioAuthContext = (token: string) => {

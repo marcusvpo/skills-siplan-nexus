@@ -242,12 +242,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(data.error || 'Erro na autenticação');
         }
 
-        // Exibir mensagem para o usuário verificar o email
-        toast({
-          title: "Verificação enviada",
-          description: data.message || "Um código de verificação foi enviado para o seu email. Verifique sua caixa de entrada.",
-          duration: 10000,
+        // Configurar JWT customizado direto no cliente
+        const customJWT = data.access_token;
+        setCartorioAuthContext(customJWT);
+        
+        // Opcional: Configurar também como sessão Supabase para compatibilidade
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
         });
+        
+        if (sessionError) {
+          logger.warn('⚠️ [AuthContextFixed] Aviso ao configurar sessão Supabase (usando JWT customizado):', sessionError);
+        }
+
+        logger.debug('AuthContext: JWT customizado configurado', { tokenPrefix: customJWT.substring(0, 50) + '...' });
 
         // A sessão será definida automaticamente após o usuário confirmar o OTP via email
         // O useEffect de sincronização cuidará de atualizar o estado quando a sessão for detectada
