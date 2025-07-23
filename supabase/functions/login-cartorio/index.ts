@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SignJWT } from "https://esm.sh/jose@4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,7 +165,7 @@ serve(async (req) => {
       const existingUser = existingAuthUser.users.find((user) => user.email === authEmail);
       if (existingUser) {
         console.log(`ℹ️ [LOGIN] Usuário ${authEmail} existe em auth.users. Atualizando senha...`);
-        const { error: updateError } = await supabase.auth.admin.updateUser(existingUser.id, {
+        const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {  // Corrigido para updateUserById
           password: generatedPassword,
           email_confirm: true
         });
