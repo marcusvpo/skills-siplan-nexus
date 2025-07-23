@@ -29,6 +29,15 @@ const VideoLesson: React.FC = () => {
     }
   }, [videoId, systemId, productId]);
 
+  // Verificação de token antes de carregar
+  useEffect(() => {
+    const token = localStorage.getItem('siplan-auth-token');
+    if (!token) {
+      logger.error('❌ [VideoLesson] Token de autenticação não encontrado - redirecionando para login');
+      navigate('/login');
+    }
+  }, [navigate]);
+
   if (!videoId) {
     logger.error('❌ [VideoLesson] Missing video ID');
     return (
