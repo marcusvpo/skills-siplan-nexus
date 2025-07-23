@@ -6,35 +6,31 @@ import { debugSupabaseClient } from '@/utils/authDebug';
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 
-// Singleton pattern: Uma única instância do cliente Supabase para toda a aplicação
+// Singleton pattern: Uma única instância do cliente Supabase
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
 
-// Função para obter a instância única do cliente Supabase com interceptor global
+// Função para obter a instância única com interceptor global
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
     console.log('🔧 [Supabase] Creating single client instance');
     
-    // Sobrescrever global.fetch para interceptar requests e adicionar JWT
+    // Override global fetch para adicionar JWT a todos os requests para Supabase
     const originalFetch = global.fetch;
     global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       
-      // Interceptar apenas requests para Supabase (incluindo Edge Functions)
       if (url.includes('bnulocsnxiffavvabfdj.supabase.co')) {
-        const token = localStorage.getItem('siplan-auth-token');  // Token armazenado após login
+        const token = localStorage.getItem('siplan-auth-token');
         const headers = new Headers(init?.headers);
         
-        if (token && !headers.get('Authorization')) {
+        if (token) {
           headers.set('Authorization', `Bearer ${token}`);
-          console.log('🔐 [Supabase Fetch] Adding Authorization header with JWT');
-        } else if (!token) {
-          console.warn('⚠️ [Supabase Fetch] No JWT found in localStorage - request may fail authorization');
+          console.log('🔐 [Supabase Fetch] Added Authorization header with JWT for URL:', url);
+        } else {
+          console.warn('⚠️ [Supabase Fetch] No JWT in localStorage for URL:', url);
         }
         
-        return originalFetch(input, {
-          ...init,
-          headers
-        });
+        return originalFetch(input, { ...init, headers });
       }
       
       return originalFetch(input, init);
@@ -42,11 +38,9 @@ const getSupabaseInstance = () => {
     
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
-        persistSession: false,  // Desativado, pois usamos JWT customizado
+        persistSession: false,  // Desativado para JWT customizado
         autoRefreshToken: false,
         detectSessionInUrl: false,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'siplan-auth-token',  // Chave para JWT customizado
       },
       global: {
         headers: {
@@ -55,7 +49,6 @@ const getSupabaseInstance = () => {
       },
     });
     
-    // Debug apenas em desenvolvimento
     debugSupabaseClient();
   }
   return supabaseInstance;
@@ -64,7 +57,7 @@ const getSupabaseInstance = () => {
 // Export da instância única
 export const supabase = getSupabaseInstance();
 
-// Funções auxiliares para gerenciar token (use no AuthContext)
+// Funções para gerenciar token
 export const setAuthToken = (token: string) => {
   console.log('🔐 [AuthToken] Setting JWT in localStorage');
   localStorage.setItem('siplan-auth-token', token);
@@ -75,17 +68,17 @@ export const clearAuthToken = () => {
   localStorage.removeItem('siplan-auth-token');
 };
 
-// Funções de compatibilidade (mantidas para não quebrar código existente)
+// Funções de compatibilidade
 export const setCartorioAuthContext = (token: string) => {
-  setAuthToken(token);  // Redireciona para setAuthToken
+  setAuthToken(token);
 };
 
 export const clearCartorioAuthContext = () => {
-  clearAuthToken();  // Redireciona para clearAuthToken
+  clearAuthToken();
 };
 
 export const getAuthenticatedClient = () => {
-  return getSupabaseInstance();  // Retorna a instância com interceptor
+  return getSupabaseInstance();
 };
 
 export const createAuthenticatedClient = (token: string) => {
