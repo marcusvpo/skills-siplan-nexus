@@ -70,12 +70,18 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
       console.log('🟡 [useProgressoReativo] Iniciando carregamento...');
       setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Verificar se o produto existe
+      const token = localStorage.getItem('siplan-auth-token');
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado');
+      }
+
+      // Verificar se o produto existe com header Authorization
       const { data: produto, error: produtoError } = await supabase
         .from('produtos')
         .select('id, nome')
         .eq('id', produtoId)
-        .single();
+        .single()
+        .setHeader('Authorization', `Bearer ${token}`);
 
       if (produtoError || !produto) {
         console.log('❌ [useProgressoReativo] Produto não encontrado:', produtoId);
@@ -90,12 +96,13 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         return;
       }
 
-      // Buscar todas as videoaulas do produto
+      // Buscar todas as videoaulas do produto com header Authorization
       const { data: videoAulas, error: videoError } = await supabase
         .from('video_aulas')
         .select('id')
         .eq('produto_id', produtoId)
-        .order('ordem');
+        .order('ordem')
+        .setHeader('Authorization', `Bearer ${token}`);
 
       if (videoError) throw videoError;
 
@@ -116,7 +123,7 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         return;
       }
 
-      // ✅ CORREÇÃO: Buscar visualizações completas com query direta incluindo user_id
+      // ✅ CORREÇÃO: Buscar visualizações completas com query direta incluindo user_id e header Authorization
       console.log('🔍 [useProgressoReativo] Buscando visualizações para cartório:', cartorioId, 'usuário:', user.id);
       
       // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
@@ -130,7 +137,8 @@ export const useProgressoReativo = (produtoId?: string, forceRefresh?: number) =
         .eq('cartorio_id', cartorioId)
         .eq('user_id', user.id)
         .eq('completo', true)
-        .in('video_aula_id', videoIds);
+        .in('video_aula_id', videoIds)
+        .setHeader('Authorization', `Bearer ${token}`);
 
       if (visualError) throw visualError;
 
