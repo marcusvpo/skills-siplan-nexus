@@ -33,6 +33,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    console.log(`🔧 [LOGIN] Using service key: ${supabaseServiceKey ? 'Present' : 'Missing'}`);
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -114,124 +115,12 @@ serve(async (req) => {
       console.log(`ℹ️ [LOGIN] Usuário encontrado com filtros exatos: ${userData.nome} (${userData.email})`);
     }
 
-    // 3. Gerar ou obter email de autenticação (authEmail)
-    let authEmail = userData.email;
-    let emailUpdated = false;
-    if (!authEmail || authEmail.trim() === '') {
-      const cleanCartrioId = userData.cartorio_id.replace(/-/g, '');
-      authEmail = `${userData.username.toLowerCase()}@${cleanCartrioId}.siplan.internal`;
-      console.log(`ℹ️ [LOGIN] Email placeholder gerado: ${authEmail}`);
-      const { error: updateEmailError } = await supabase.from('cartorio_usuarios').update({
-        email: authEmail
-      }).eq('id', userData.id);
-      if (updateEmailError) {
-        console.error("❌ [LOGIN] Erro ao atualizar email placeholder:", updateEmailError);
-      } else {
-        console.log(`✅ [LOGIN] Email placeholder salvo na tabela cartorio_usuarios`);
-        emailUpdated = true;
-      }
-    }
-
-    // 4. Definir senha determinística (limitada a 64 caracteres para bcrypt)
-    const rawPassword = `cartorio_${userData.cartorio_id}_${userData.id}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(rawPassword);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const generatedPassword = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 64);
-
-    // 5. Fluxo de autenticação robusto
-    console.log(`ℹ️ [LOGIN] Tentando fazer signIn com email: ${authEmail}`);
-    let authResult = await supabase.auth.signInWithPassword({
-      email: authEmail,
-      password: generatedPassword
-    });
-
-    if (authResult.error) {
-      console.log(`ℹ️ [LOGIN] SignIn falhou: ${authResult.error.message}. Verificando usuário em auth.users...`);
-      const { data: existingAuthUser, error: getAuthUserError } = await supabase.auth.admin.listUsers();
-      if (getAuthUserError) {
-        console.error("❌ [LOGIN] Erro ao verificar usuários existentes:", getAuthUserError);
-        return new Response(JSON.stringify({
-          error: "Erro na verificação de usuários existentes"
-        }), {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-      const existingUser = existingAuthUser.users.find((user) => user.email === authEmail);
-      if (existingUser) {
-        console.log(`ℹ️ [LOGIN] Usuário ${authEmail} existe em auth.users. Atualizando senha...`);
-        const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {  // Corrigido para updateUserById
-          password: generatedPassword,
-          email_confirm: true
-        });
-        if (updateError) {
-          console.error("❌ [LOGIN] Erro ao atualizar senha do usuário:", updateError);
-          return new Response(JSON.stringify({
-            error: "Erro ao atualizar senha do usuário"
-          }), {
-            status: 500,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
-          });
-        }
-        console.log(`✅ [LOGIN] Senha para ${authEmail} atualizada com sucesso em auth.users`);
-      } else {
-        console.log(`ℹ️ [LOGIN] Usuário ${authEmail} não existe em auth.users. Criando...`);
-        const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
-          email: authEmail,
-          password: generatedPassword,
-          email_confirm: true,
-          user_metadata: {
-            cartorio_id: userData.cartorio_id,
-            user_id: userData.id,
-            username: userData.username,
-            nome: userData.nome
-          }
-        });
-        if (createError) {
-          console.error("❌ [LOGIN] Erro ao criar usuário:", createError);
-          return new Response(JSON.stringify({
-            error: "Erro ao criar usuário no sistema de autenticação"
-          }), {
-            status: 500,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
-          });
-        }
-        console.log(`✅ [LOGIN] Usuário ${authEmail} criado em auth.users`);
-      }
-      console.log(`ℹ️ [LOGIN] Retentando signIn após sincronização...`);
-      authResult = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password: generatedPassword
-      });
-      if (authResult.error || !authResult.data.session) {
-        console.error("❌ [LOGIN] Erro na retentativa de signIn:", authResult.error);
-        return new Response(JSON.stringify({
-          error: "Erro final na autenticação após sincronização"
-        }), {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-    }
-
-    if (!authResult.data.session) {
-      console.error("❌ [LOGIN] Session não encontrada após autenticação");
+    // 3. Gerar JWT customizado (substituindo completamente o Supabase Auth)
+    const jwtSecret = Deno.env.get('JWT_SECRET');
+    if (!jwtSecret) {
+      console.error("❌ [LOGIN] JWT_SECRET não configurado");
       return new Response(JSON.stringify({
-        error: "Erro ao gerar sessão de autenticação"
+        error: "Configuração de JWT não encontrada"
       }), {
         status: 500,
         headers: {
@@ -241,32 +130,36 @@ serve(async (req) => {
       });
     }
 
-    const accessToken = authResult.data.session.access_token;
-    const refreshToken = authResult.data.session.refresh_token;
-    if (!accessToken || !refreshToken) {
-      console.error("❌ [LOGIN] Tokens de autenticação não gerados");
-      return new Response(JSON.stringify({
-        error: "Tokens de autenticação não gerados ou inválidos"
-      }), {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+    console.log(`ℹ️ [LOGIN] Gerando JWT customizado para usuário: ${userData.nome}`);
+    
+    // Criar JWT com claims customizados
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + (24 * 60 * 60); // 24 horas
+    
+    const jwt = await new SignJWT({
+      cartorio_id: userData.cartorio_id,
+      user_id: userData.id,
+      username: userData.username,
+      email: userData.email || `${userData.username}@${userData.cartorio_id.replace(/-/g, '')}.siplan.internal`,
+      nome: userData.nome,
+      iss: 'siplan-app',
+      aud: 'siplan-users'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt(now)
+      .setExpirationTime(exp)
+      .sign(new TextEncoder().encode(jwtSecret));
 
-    console.log(`✅ [LOGIN] Tokens gerados com sucesso para usuário: ${userData.nome}`);
+    console.log(`✅ [LOGIN] JWT gerado com sucesso para usuário: ${userData.nome}`);
 
     return new Response(JSON.stringify({
       success: true,
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      access_token: jwt,
       user: {
         id: userData.id,
         username: userData.username,
         nome: userData.nome,
-        email: userData.email,
+        email: userData.email || `${userData.username}@${userData.cartorio_id.replace(/-/g, '')}.siplan.internal`,
         cartorio_id: userData.cartorio_id
       }
     }), {
