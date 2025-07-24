@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setAuthToken, clearAuthToken } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
+import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
 
-// ✅ Interface de usuário simplificada
 interface User {
   id: string;
   name: string;
@@ -29,106 +29,57 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ✅ Configuração de Edge Function usando variável de ambiente
+// ✅ Configurações da Edge Function
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
 const EDGE_FUNCTION_URL = "https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [cartorioUser, setCartorioUser] = useState<User | null>(null);
+  const [isLoadingCartorio, setIsLoadingCartorio] = useState(true);
+  
+  // ✅ Usa o hook para gerenciar admin
+  const stableAuth = useStableAuth();
   const navigate = useNavigate();
 
-  // ✅ Inicialização simplificada
+  // ✅ Inicialização do usuário cartório
   useEffect(() => {
-    const initializeAuth = async () => {
-      logger.info('🚀 [AuthContextFixed] Inicializando autenticação...');
+    const initCartorioUser = () => {
+      logger.info('🏢 [AuthContextFixed] Inicializando usuário cartório...', {});
       
       try {
-        // ✅ 1. Verificar usuário salvo no localStorage
         const savedUser = localStorage.getItem('siplan-user');
         if (savedUser) {
-          try {
-            const userData = JSON.parse(savedUser);
-            if (userData.type === 'cartorio' && userData.token) {
-              setUser(userData);
-              setAuthToken(userData.token);
-              logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage');
-            }
-          } catch (err) {
-            logger.error('❌ [AuthContextFixed] Erro ao restaurar usuário:', err);
-            localStorage.removeItem('siplan-user');
+          const userData = JSON.parse(savedUser);
+          if (userData.type === 'cartorio' && userData.token) {
+            setCartorioUser(userData);
+            setAuthToken(userData.token);
+            logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage', {
+              username: userData.username,
+              cartorioId: userData.cartorio_id
+            });
           }
         }
-
-        // ✅ 2. Verificar sessão Supabase para admin
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession?.user) {
-          try {
-            // ✅ Decodificar JWT para verificar se é admin
-            const payload = JSON.parse(
-              atob(currentSession.access_token.split('.')[1])
-            );
-            
-            if (payload.role === 'authenticated' && currentSession.user.email) {
-              // ✅ Assumir que é admin se tem sessão Supabase válida
-              const adminUser: User = {
-                id: currentSession.user.id,
-                name: 'Administrador',
-                type: 'admin',
-                email: currentSession.user.email
-              };
-              
-              setUser(adminUser);
-              setSession(currentSession);
-              clearAuthToken(); // ✅ Admin não usa JWT customizado
-              logger.info('👤 [AuthContextFixed] Usuário admin configurado');
-            }
-          } catch (err) {
-            logger.error('❌ [AuthContextFixed] Erro ao decodificar JWT admin:', err);
-            await supabase.auth.signOut();
-          }
-        }
-
-        // ✅ 3. Configurar listener para mudanças de auth
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            logger.info('🔄 [AuthContextFixed] Auth state changed:', event);
-            
-            if (event === 'SIGNED_OUT' || !newSession) {
-              setUser(null);
-              setSession(null);
-              clearAuthToken();
-              localStorage.removeItem('siplan-user');
-            } else if (newSession?.user) {
-              // ✅ Nova sessão admin
-              const adminUser: User = {
-                id: newSession.user.id,
-                name: 'Administrador',
-                type: 'admin',
-                email: newSession.user.email || ''
-              };
-              
-              setUser(adminUser);
-              setSession(newSession);
-              clearAuthToken();
-            }
-          }
-        );
-
-        return () => {
-          subscription.unsubscribe();
-        };
-        
       } catch (error) {
-        logger.error('❌ [AuthContextFixed] Erro na inicialização:', error);
+        logger.error('❌ [AuthContextFixed] Erro ao restaurar usuário cartório:', { error });
+        localStorage.removeItem('siplan-user');
       } finally {
-        setIsLoading(false);
+        setIsLoadingCartorio(false);
       }
     };
 
-    initializeAuth();
+    initCartorioUser();
   }, []);
+
+  // ✅ Usuário consolidado (cartório ou admin) 
+  const user: User | null = cartorioUser || (stableAuth.session?.user ? {
+    id: stableAuth.session.user.id,
+    name: 'Administrador',
+    type: 'admin',
+    email: stableAuth.session.user.email || ''
+  } : null);
+
+  // ✅ Estado de loading consolidado
+  const isLoading = isLoadingCartorio || stableAuth.loading;
 
   // ✅ Redirecionamento após login
   useEffect(() => {
@@ -136,6 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const currentPath = window.location.pathname;
     if (currentPath === '/login' || currentPath === '/admin-login') {
+      logger.info('➡️ [AuthContextFixed] Redirecionando após login:', {
+        userType: user.type,
+        currentPath
+      });
+      
       if (user.type === 'admin') {
         navigate('/admin');
       } else if (user.type === 'cartorio') {
@@ -144,18 +100,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, isLoading, navigate]);
 
-  // ✅ Função de login simplificada
+  // ✅ Função de login
   const login = async (
     usernameOrToken: string, 
     type: 'cartorio' | 'admin', 
     userData?: Partial<User>
   ): Promise<void> => {
-    setIsLoading(true);
-    logger.info('🔐 [AuthContextFixed] Iniciando login:', { type });
+    if (type === 'cartorio') {
+      setIsLoadingCartorio(true);
+      logger.info('🔐 [AuthContextFixed] Iniciando login cartório:', {
+        username: usernameOrToken
+      });
 
-    try {
-      if (type === 'cartorio') {
-        // ✅ Login cartório via Edge Function
+      try {
         const response = await fetch(EDGE_FUNCTION_URL, {
           method: 'POST',
           headers: {
@@ -172,16 +129,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const errorData = await response.json().catch(
             () => ({ error: 'Erro de comunicação' })
           );
+          logger.error('❌ [AuthContextFixed] Erro na resposta da Edge Function:', {
+            status: response.status,
+            error: errorData.error
+          });
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
         const data = await response.json();
         if (!data.success) {
+          logger.error('❌ [AuthContextFixed] Login rejeitado pela Edge Function:', {
+            error: data.error
+          });
           throw new Error(data.error || 'Erro na autenticação');
         }
 
-        // ✅ Configurar usuário cartório
-        const cartorioUser: User = {
+        const newCartorioUser: User = {
           id: data.user.id,
           name: data.user.username,
           type: 'cartorio',
@@ -192,54 +155,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.user.email || ''
         };
 
-        setUser(cartorioUser);
-        setSession(null);
+        setCartorioUser(newCartorioUser);
         setAuthToken(data.access_token);
-        localStorage.setItem('siplan-user', JSON.stringify(cartorioUser));
+        localStorage.setItem('siplan-user', JSON.stringify(newCartorioUser));
         
-        logger.info('✅ [AuthContextFixed] Login cartório bem-sucedido');
+        logger.info('✅ [AuthContextFixed] Login cartório bem-sucedido:', {
+          username: newCartorioUser.username,
+          cartorioId: newCartorioUser.cartorio_id,
+          cartorioName: newCartorioUser.cartorio_name
+        });
         
-      } else {
-        // ✅ Login admin será gerenciado pelo Supabase Auth diretamente
-        logger.info('ℹ️ [AuthContextFixed] Login admin deve ser feito via Supabase Auth');
+      } catch (error) {
+        logger.error('❌ [AuthContextFixed] Erro no login cartório:', { error });
+        throw error;
+      } finally {
+        setIsLoadingCartorio(false);
       }
-    } catch (error) {
-      logger.error('❌ [AuthContextFixed] Erro no login:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+    } else {
+      logger.info('ℹ️ [AuthContextFixed] Login admin deve ser feito via Supabase Auth', {});
     }
   };
 
-  // ✅ Função de logout simplificada
+  // ✅ Função de logout
   const logout = async (): Promise<void> => {
-    setIsLoading(true);
-    logger.info('🚪 [AuthContextFixed] Iniciando logout...');
-
     try {
-      // ✅ Logout Supabase se houver sessão
-      if (session) {
-        await supabase.auth.signOut();
+      logger.info('🚪 [AuthContextFixed] Iniciando logout...', {
+        hasCartorioUser: !!cartorioUser,
+        hasStableAuthSession: !!stableAuth.session
+      });
+      
+      // ✅ Logout admin se houver sessão
+      if (stableAuth.session) {
+        await stableAuth.logout();
       }
       
-      // ✅ Limpar estados
-      setUser(null);
-      setSession(null);
+      // ✅ Limpar usuário cartório
+      setCartorioUser(null);
       clearAuthToken();
       localStorage.removeItem('siplan-user');
       
-      logger.info('✅ [AuthContextFixed] Logout concluído');
+      logger.info('✅ [AuthContextFixed] Logout concluído com sucesso', {});
+      
     } catch (error) {
-      logger.error('❌ [AuthContextFixed] Erro no logout:', error);
+      logger.error('❌ [AuthContextFixed] Erro no logout:', { error });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const contextValue: AuthContextType = {
     user,
-    session,
+    session: stableAuth.session,
     login,
     logout,
     isAuthenticated: !!user,
