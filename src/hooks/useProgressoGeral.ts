@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { useProgressContext } from '@/contexts/ProgressContext';
+import { logger } from '@/utils/logger';
 
 // Helper hook to safely use progress context
 const useSafeProgressContext = () => {
@@ -12,6 +13,7 @@ const useSafeProgressContext = () => {
   }
 };
 
+// ✅ Interface para progresso geral
 export interface ProgressoGeral {
   [productId: string]: {
     total: number;
@@ -28,9 +30,11 @@ export const useProgressoGeral = () => {
   const [error, setError] = useState<string | null>(null);
 
   const calcularProgressos = async () => {
-    // ✅ Verificação consolidada de autenticação
     if (!user?.cartorio_id || !user?.id) {
-      console.log('⚠️ [useProgressoGeral] Aguardando autenticação completa...');
+      logger.debug('⚠️ [useProgressoGeral] Parâmetros insuficientes:', {
+        hasCartorioId: !!user?.cartorio_id,
+        hasUserId: !!user?.id
+      });
       setIsLoading(false);
       return;
     }
@@ -39,14 +43,14 @@ export const useProgressoGeral = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔍 [useProgressoGeral] Buscando dados para:', {
+      logger.debug('🔍 [useProgressoGeral] Buscando dados para:', {
         cartorioId: user.cartorio_id,
         userId: user.id
       });
 
-      // ✅ Buscar videoaulas e visualizações em paralelo para melhor performance
+      // ✅ Buscar videoaulas e visualizações em paralelo usando schema correto
       const [videoAulasResult, visualizacoesResult] = await Promise.all([
-        // Buscar todas as videoaulas com seus produtos
+        // Buscar todas as videoaulas com seus produtos (sem campos inexistentes)
         supabase
           .from('video_aulas')
           .select('id, produto_id')
@@ -63,12 +67,20 @@ export const useProgressoGeral = () => {
 
       // ✅ Verificar erros de forma consolidada
       if (videoAulasResult.error) {
-        console.error('❌ Erro ao buscar videoaulas:', videoAulasResult.error);
+        logger.error('❌ [useProgressoGeral] Erro ao buscar videoaulas:', { 
+          error: videoAulasResult.error.message,
+          cartorioId: user.cartorio_id,
+          userId: user.id
+        });
         throw new Error(`Erro ao carregar videoaulas: ${videoAulasResult.error.message}`);
       }
 
       if (visualizacoesResult.error) {
-        console.error('❌ Erro ao buscar visualizações:', visualizacoesResult.error);
+        logger.error('❌ [useProgressoGeral] Erro ao buscar visualizações:', { 
+          error: visualizacoesResult.error.message,
+          cartorioId: user.cartorio_id,
+          userId: user.id
+        });
         throw new Error(`Erro ao carregar progresso: ${visualizacoesResult.error.message}`);
       }
 
@@ -77,10 +89,18 @@ export const useProgressoGeral = () => {
 
       // ✅ Agrupar e calcular progressos
       const progressosPorProduto: ProgressoGeral = {};
-      const completedVideos = new Set(visualizacoes.map(v => v.video_aula_id));
+      
+      // ✅ CORREÇÃO CRÍTICA: Set tipado corretamente
+      const completedVideos = new Set<string>(
+        visualizacoes
+          .map(v => v.video_aula_id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      );
 
       // Inicializar contadores por produto
       videoAulas.forEach(video => {
+        if (!video.produto_id) return; // Skip se não tiver produto_id
+        
         if (!progressosPorProduto[video.produto_id]) {
           progressosPorProduto[video.produto_id] = {
             total: 0,
@@ -104,13 +124,13 @@ export const useProgressoGeral = () => {
           : 0;
       });
 
-      console.log('🎯 [useProgressoGeral] Progresso calculado:', {
+      logger.info('🎯 [useProgressoGeral] Progresso calculado com sucesso:', {
         cartorioId: user.cartorio_id,
         userId: user.id,
         totalVideoAulas: videoAulas.length,
         totalVisualizacoes: visualizacoes.length,
         produtosComProgresso: Object.keys(progressosPorProduto).length,
-        resumo: Object.entries(progressosPorProduto).map(([id, prog]) => ({
+        resumo: Object.entries(progressosPorProduto).slice(0, 3).map(([id, prog]) => ({
           produtoId: id,
           progresso: `${prog.completas}/${prog.total} (${prog.percentual}%)`
         }))
@@ -119,15 +139,21 @@ export const useProgressoGeral = () => {
       setProgressos(progressosPorProduto);
 
     } catch (error) {
-      console.error('❌ [useProgressoGeral] Erro:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao carregar progresso');
+      logger.error('❌ [useProgressoGeral] Erro inesperado:', { 
+        error,
+        cartorioId: user?.cartorio_id,
+        userId: user?.id
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar progresso';
+      setError(errorMessage);
       setProgressos({}); // Reset em caso de erro
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ Effect com dependências mais específicas
+  // ✅ Effect com dependências específicas
   useEffect(() => {
     if (user?.cartorio_id && user?.id) {
       calcularProgressos();
