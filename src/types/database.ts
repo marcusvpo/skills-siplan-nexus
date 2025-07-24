@@ -675,4 +675,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-2025/07/24 17:09:38 HTTP GET: https://api.github.com/repos/supabase/cli/releases/latest
