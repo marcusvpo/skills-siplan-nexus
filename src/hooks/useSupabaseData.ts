@@ -1,17 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
+import type { Database } from '@/types/database';
 
+type Sistema = Database['public']['Tables']['sistemas']['Row'];
+type Produto = Database['public']['Tables']['produtos']['Row'];
+type Modulo = Database['public']['Tables']['modulos'] extends { Row: infer R } ? R : any; // Caso exista
+type VideoAula = Database['public']['Tables']['video_aulas']['Row'];
+type VisualizacaoCartorio = Database['public']['Tables']['visualizacoes_cartorio']['Row'];
+type Favorito = Database['public']['Tables']['favoritos_cartorio']['Row'];
+
+// Hook para sistemas
 export const useSistemas = () => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
 
-  return useQuery({
+  return useQuery<Sistema[]>({
     queryKey: ['sistemas'],
     queryFn: async () => {
       if (!client) return [];
-
-      console.log('Fetching sistemas with client type:', user?.type);
 
       const { data, error } = await client
         .from('sistemas')
@@ -20,19 +27,15 @@ export const useSistemas = () => {
           produtos (
             *,
             modulos (
-              *,
+              *, 
               video_aulas (*)
             )
           )
         `)
         .order('ordem', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching sistemas:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Sistemas fetched successfully:', data);
       return data || [];
     },
     enabled: !!client,
@@ -41,14 +44,15 @@ export const useSistemas = () => {
   });
 };
 
-export const useVideoAulas = (moduloId: string) => {
+// Hook para video aulas de um módulo
+export const useVideoAulas = (moduloId?: string) => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
 
-  return useQuery({
+  return useQuery<VideoAula[]>({
     queryKey: ['video_aulas', moduloId],
     queryFn: async () => {
-      if (!client) return [];
+      if (!client || !moduloId) return [];
 
       const { data, error } = await client
         .from('video_aulas')
@@ -56,24 +60,23 @@ export const useVideoAulas = (moduloId: string) => {
         .eq('modulo_id', moduloId)
         .order('ordem', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching video aulas:', error);
-        throw error;
-      }
+      if (error) throw error;
+
       return data || [];
     },
     enabled: !!client && !!moduloId,
   });
 };
 
-export const useVisualizacoes = (cartorioUsuarioId?: string) => {
+// Hook para visualizações
+export const useVisualizacoes = (cartorioId?: string) => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
 
-  return useQuery({
-    queryKey: ['visualizacoes', cartorioUsuarioId],
+  return useQuery<VisualizacaoCartorio[]>({
+    queryKey: ['visualizacoes', cartorioId],
     queryFn: async () => {
-      if (!client) return [];
+      if (!client || !cartorioId) return [];
 
       let query = client
         .from('visualizacoes_cartorio')
@@ -92,27 +95,28 @@ export const useVisualizacoes = (cartorioUsuarioId?: string) => {
         `)
         .order('ultima_visualizacao', { ascending: false });
 
-      if (cartorioUsuarioId && user?.type === 'admin') {
-        query = query.eq('cartorio_usuario_id', cartorioUsuarioId);
+      if (cartorioId && user?.type === 'admin') {
+        query = query.eq('cartorio_usuario_id', cartorioId);
+      } else {
+        query = query.eq('cartorio_id', cartorioId);
       }
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error('Error fetching visualizacoes:', error);
-        return [];
-      }
+      if (error) throw error;
+
       return data || [];
     },
-    enabled: !!client,
+    enabled: !!client && !!cartorioId,
   });
 };
 
-export const useFavoritos = (cartorioId: string) => {
+// Hook para favoritos
+export const useFavoritos = (cartorioId?: string) => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
 
-  return useQuery({
+  return useQuery<Favorito[]>({
     queryKey: ['favoritos', cartorioId],
     queryFn: async () => {
       if (!client || !cartorioId) return [];
@@ -135,16 +139,15 @@ export const useFavoritos = (cartorioId: string) => {
         .eq('cartorio_id', cartorioId)
         .order('data_favoritado', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching favoritos:', error);
-        return [];
-      }
+      if (error) throw error;
+
       return data || [];
     },
     enabled: !!client && !!cartorioId,
   });
 };
 
+// Hook para atualizar progresso
 export const useUpdateProgress = () => {
   const queryClient = useQueryClient();
   const { authenticatedClient, user } = useAuth();
@@ -155,12 +158,14 @@ export const useUpdateProgress = () => {
       videoAulaId,
       progressoSegundos,
       completo,
-      cartorioUsuarioId,
+      cartorioId,
+      userId,
     }: {
       videoAulaId: string;
       progressoSegundos: number;
       completo: boolean;
-      cartorioUsuarioId: string;
+      cartorioId: string;
+      userId: string;
     }) => {
       if (!client) throw new Error('Client not available');
 
@@ -169,14 +174,13 @@ export const useUpdateProgress = () => {
         .upsert(
           {
             video_aula_id: videoAulaId,
-            user_id: cartorioUsuarioId, // <== corrigido para user_id
+            cartorio_id: cartorioId,
+            user_id: userId,
             progresso_segundos: progressoSegundos,
             completo,
             ultima_visualizacao: new Date().toISOString(),
           },
-          {
-            onConflict: 'video_aula_id,user_id', // chave composta correta
-          }
+          { onConflict: 'video_aula_id,cartorio_id,user_id' }
         )
         .select();
 
