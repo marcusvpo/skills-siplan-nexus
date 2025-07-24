@@ -1,24 +1,16 @@
-
 import React from 'react';
 import { ArrowRight, Users, Video, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-
 const Index = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen text-white page-transition">
+  return <div className="min-h-screen text-white page-transition">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <img 
-              src="/lovable-uploads/938cc4b0-f47e-4bb5-9eb9-1848eaade9af.png" 
-              alt="Siplan Logo" 
-              className="h-16 w-auto object-contain"
-            />
+            <img src="/lovable-uploads/938cc4b0-f47e-4bb5-9eb9-1848eaade9af.png" alt="Siplan Logo" className="h-16 w-auto object-contain" />
           </div>
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-enhanced text-zinc-50 md:text-8xl">
             Siplan Skills
@@ -90,19 +82,10 @@ const Index = () => {
 
         {/* Debug Link */}
         <div className="text-center mt-8">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-gray-400 border-gray-600 hover:bg-gray-800 hover:text-white"
-            onClick={() => navigate('/debug')}
-          >
-            Debug Panel
-          </Button>
+          
         </div>
 
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
