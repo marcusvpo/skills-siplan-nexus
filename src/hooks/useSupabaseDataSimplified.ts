@@ -1,62 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { Sistema, Produto, VideoAulaDetalhada } from '@/types/database';
 
-// ✅ Tipos específicos para melhor type safety
-export interface VideoAula {
-  id: string;
-  titulo: string;
-  descricao?: string;
-  url_video?: string;
-  duracao?: string;
-  ordem: number;
-  produto_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Produto {
-  id: string;
-  nome: string;
-  descricao?: string;
-  sistema_id: string;
-  ordem: number;
-  created_at: string;
-  updated_at: string;
-  video_aulas?: VideoAula[];
-}
-
-export interface Sistema {
-  id: string;
-  nome: string;
-  descricao?: string;
-  ordem: number;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-  produtos?: Produto[];
-}
-
-export interface VideoAulaDetalhada extends VideoAula {
-  produtos?: (Produto & {
-    sistemas?: Sistema;
-  });
-}
-
-// ✅ Configurações padrão do React Query para este módulo
+// ✅ Configurações do React Query
 const QUERY_CONFIG = {
-  retry: 2, // Aumentado para 2 tentativas
+  retry: 2,
   staleTime: 5 * 60 * 1000, // 5 minutos
-  gcTime: 10 * 60 * 1000, // 10 minutos (era cacheTime)
-  refetchOnWindowFocus: false, // Evita refetch desnecessário
+  gcTime: 10 * 60 * 1000, // 10 minutos
+  refetchOnWindowFocus: false,
 } as const;
 
-// Hook simplificado que confia inteiramente no RLS do Supabase
+// ✅ Hook para sistemas - usando apenas campos que existem
 export const useSistemasCartorio = () => {
   return useQuery({
     queryKey: ['sistemas-cartorio-rls'],
     queryFn: async (): Promise<Sistema[]> => {
-      logger.info('🏢 [useSistemasCartorio] Iniciando busca de sistemas via RLS');
+      logger.info('🏢 [useSistemasCartorio] Iniciando busca de sistemas via RLS', {});
 
       try {
         const { data: sistemas, error } = await supabase
@@ -66,31 +26,25 @@ export const useSistemasCartorio = () => {
             nome,
             descricao,
             ordem,
-            ativo,
-            created_at,
-            updated_at,
             produtos (
               id,
+              sistema_id,
               nome,
               descricao,
-              sistema_id,
               ordem,
-              created_at,
-              updated_at,
               video_aulas (
                 id,
                 titulo,
                 descricao,
-                url_video,
-                duracao,
                 ordem,
+                id_video_bunny,
+                url_video,
+                url_thumbnail,
                 produto_id,
-                created_at,
-                updated_at
+                transcricao_completa_texto
               )
             )
           `)
-          .eq('ativo', true) // ✅ Apenas sistemas ativos
           .order('ordem', { ascending: true });
 
         if (error) {
@@ -102,18 +56,18 @@ export const useSistemasCartorio = () => {
           throw new Error(`Erro ao carregar sistemas: ${error.message}`);
         }
 
-        const sistemasAtivos = sistemas || [];
+        const sistemasList = sistemas || [];
         
         logger.info('✅ [useSistemasCartorio] Sistemas carregados com sucesso:', { 
-          totalSistemas: sistemasAtivos.length,
-          sistemasComProdutos: sistemasAtivos.filter(s => s.produtos && s.produtos.length > 0).length,
-          totalProdutos: sistemasAtivos.reduce((acc, s) => acc + (s.produtos?.length || 0), 0),
-          totalVideoAulas: sistemasAtivos.reduce((acc, s) => 
+          totalSistemas: sistemasList.length,
+          sistemasComProdutos: sistemasList.filter(s => s.produtos && s.produtos.length > 0).length,
+          totalProdutos: sistemasList.reduce((acc, s) => acc + (s.produtos?.length || 0), 0),
+          totalVideoAulas: sistemasList.reduce((acc, s) => 
             acc + (s.produtos?.reduce((prodAcc, p) => 
               prodAcc + (p.video_aulas?.length || 0), 0) || 0), 0)
         });
 
-        return sistemasAtivos as Sistema[];
+        return sistemasList;
 
       } catch (error) {
         logger.error('❌ [useSistemasCartorio] Erro inesperado:', { error });
@@ -124,7 +78,7 @@ export const useSistemasCartorio = () => {
   });
 };
 
-// Hook para dados de videoaula específica
+// ✅ Hook para videoaula específica - usando campos reais
 export const useVideoAulaData = (videoAulaId?: string) => {
   return useQuery({
     queryKey: ['video-aula-data', videoAulaId],
@@ -144,28 +98,23 @@ export const useVideoAulaData = (videoAulaId?: string) => {
             id,
             titulo,
             descricao,
-            url_video,
-            duracao,
             ordem,
+            id_video_bunny,
+            url_video,
+            url_thumbnail,
             produto_id,
-            created_at,
-            updated_at,
+            transcricao_completa_texto,
             produtos (
               id,
+              sistema_id,
               nome,
               descricao,
-              sistema_id,
               ordem,
-              created_at,
-              updated_at,
               sistemas (
                 id,
                 nome,
                 descricao,
-                ordem,
-                ativo,
-                created_at,
-                updated_at
+                ordem
               )
             )
           `)
@@ -205,12 +154,12 @@ export const useVideoAulaData = (videoAulaId?: string) => {
         throw error;
       }
     },
-    enabled: !!videoAulaId, // ✅ Só executa se tiver ID
+    enabled: !!videoAulaId,
     ...QUERY_CONFIG,
   });
 };
 
-// ✅ Hook adicional para buscar apenas produtos de um sistema específico
+// ✅ Hook para produtos por sistema
 export const useProdutosPorSistema = (sistemaId?: string) => {
   return useQuery({
     queryKey: ['produtos-por-sistema', sistemaId],
@@ -226,22 +175,20 @@ export const useProdutosPorSistema = (sistemaId?: string) => {
           .from('produtos')
           .select(`
             id,
+            sistema_id,
             nome,
             descricao,
-            sistema_id,
             ordem,
-            created_at,
-            updated_at,
             video_aulas (
               id,
               titulo,
               descricao,
-              url_video,
-              duracao,
               ordem,
+              id_video_bunny,
+              url_video,
+              url_thumbnail,
               produto_id,
-              created_at,
-              updated_at
+              transcricao_completa_texto
             )
           `)
           .eq('sistema_id', sistemaId)
@@ -263,7 +210,7 @@ export const useProdutosPorSistema = (sistemaId?: string) => {
           totalVideoAulas: produtosList.reduce((acc, p) => acc + (p.video_aulas?.length || 0), 0)
         });
 
-        return produtosList as Produto[];
+        return produtosList;
 
       } catch (error) {
         logger.error('❌ [useProdutosPorSistema] Erro inesperado:', { error, sistemaId });
@@ -275,24 +222,20 @@ export const useProdutosPorSistema = (sistemaId?: string) => {
   });
 };
 
-// ✅ Hook para invalidar todas as queries relacionadas aos dados
+// ✅ Hook para invalidar cache - API correta
 export const useInvalidateData = () => {
-  const queryClient = useQuery.getQueryClient?.() || null;
+  const queryClient = useQueryClient();
 
   const invalidateAll = () => {
-    if (queryClient) {
-      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio-rls'] });
-      queryClient.invalidateQueries({ queryKey: ['video-aula-data'] });
-      queryClient.invalidateQueries({ queryKey: ['produtos-por-sistema'] });
-      logger.info('🔄 [useInvalidateData] Todas as queries invalidadas');
-    }
+    queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio-rls'] });
+    queryClient.invalidateQueries({ queryKey: ['video-aula-data'] });
+    queryClient.invalidateQueries({ queryKey: ['produtos-por-sistema'] });
+    logger.info('🔄 [useInvalidateData] Todas as queries invalidadas', {});
   };
 
   const invalidateSistemas = () => {
-    if (queryClient) {
-      queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio-rls'] });
-      logger.info('🔄 [useInvalidateData] Query de sistemas invalidada');
-    }
+    queryClient.invalidateQueries({ queryKey: ['sistemas-cartorio-rls'] });
+    logger.info('🔄 [useInvalidateData] Query de sistemas invalidada', {});
   };
 
   return {
