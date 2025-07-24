@@ -4,93 +4,119 @@ import type { Database } from './types';
 import { debugSupabaseClient } from '@/utils/authDebug';
 
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
-// 🔧 CORREÇÃO CRÍTICA: Usar apenas a publishable key (sem o JWT)
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J";
 
-// Singleton pattern: Uma única instância do cliente Supabase
+// ✅ Singleton pattern: Uma única instância do cliente Supabase
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+let isInterceptorConfigured = false;
 
-// Função para obter a instância única com interceptor global
-const getSupabaseInstance = () => {
-  if (!supabaseInstance) {
-    console.log('🔧 [Supabase] Creating single client instance');
+// ✅ Configuração do interceptor uma única vez
+const configureRequestInterceptor = () => {
+  if (isInterceptorConfigured) {
+    console.log('🔧 [Supabase] Interceptor já configurado, pulando...');
+    return;
+  }
+
+  console.log('🔧 [Supabase] Configurando interceptor de requisições...');
+  
+  // ✅ Salvar referência original do fetch apenas uma vez
+  const originalFetch = window.fetch;
+  
+  // ✅ Interceptor mais seguro - só para URLs do Supabase
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : 
+                input instanceof URL ? input.toString() : 
+                input.url;
     
-    // Override global fetch para adicionar JWT a todos os requests para Supabase
-    const originalFetch = global.fetch;
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input.toString();
+    // ✅ Só intercepta chamadas para sua instância do Supabase
+    if (url.includes('bnulocsnxiffavvabfdj.supabase.co/rest/') || 
+        url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
       
-      if (url.includes('bnulocsnxiffavvabfdj.supabase.co')) {
-        const token = localStorage.getItem('siplan-auth-token');
-        const headers = new Headers(init?.headers);
-        
-        if (token) {
-          headers.set('Authorization', `Bearer ${token}`);
-          console.log('🔐 [Supabase Fetch] Added Authorization header with JWT for URL:', url);
-        } else {
-          console.warn('⚠️ [Supabase Fetch] No JWT in localStorage for URL:', url);
-        }
-        
-        return originalFetch(input, { ...init, headers });
+      const token = localStorage.getItem('siplan-auth-token');
+      const headers = new Headers(init?.headers);
+      
+      if (token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+        console.log('🔐 [Supabase] JWT adicionado ao header para:', url.substring(0, 80) + '...');
       }
       
-      return originalFetch(input, init);
-    };
+      return originalFetch(input, { ...init, headers });
+    }
+    
+    // ✅ Para outras URLs, usar fetch original
+    return originalFetch(input, init);
+  };
+  
+  isInterceptorConfigured = true;
+  console.log('✅ [Supabase] Interceptor configurado com sucesso');
+};
+
+// ✅ Função para obter a instância única
+const getSupabaseInstance = () => {
+  if (!supabaseInstance) {
+    console.log('🔧 [Supabase] Criando instância única do cliente...');
+    
+    // ✅ Configurar interceptor apenas uma vez
+    configureRequestInterceptor();
     
     supabaseInstance = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
-        persistSession: false,  // Desativado para JWT customizado
+        persistSession: false,  // ✅ JWT customizado
         autoRefreshToken: false,
         detectSessionInUrl: false,
+        flowType: 'pkce', // ✅ Mais seguro para SPAs
       },
       global: {
         headers: {
-          'x-client-info': 'supabase-js-web/2.50.2'
+          'x-client-info': 'siplan-web-client/1.0.0', // ✅ Identificador customizado
+        },
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10, // ✅ Controle de performance
         },
       },
     });
     
     debugSupabaseClient();
+    console.log('✅ [Supabase] Cliente configurado com sucesso');
   }
   return supabaseInstance;
 };
 
-// Export da instância única
+// ✅ Export da instância única
 export const supabase = getSupabaseInstance();
 
-// Funções para gerenciar token
+// ✅ Funções de gestão de token simplificadas
 export const setAuthToken = (token: string) => {
-  console.log('🔐 [AuthToken] Setting JWT in localStorage');
+  console.log('🔐 [AuthToken] Salvando JWT no localStorage');
   localStorage.setItem('siplan-auth-token', token);
 };
 
 export const clearAuthToken = () => {
-  console.log('🔐 [AuthToken] Clearing JWT from localStorage');
+  console.log('🔐 [AuthToken] Removendo JWT do localStorage');
   localStorage.removeItem('siplan-auth-token');
 };
 
-// Funções de compatibilidade
-export const setCartorioAuthContext = (token: string) => {
-  setAuthToken(token);
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem('siplan-auth-token');
 };
 
-export const clearCartorioAuthContext = () => {
-  clearAuthToken();
-};
-
-export const getAuthenticatedClient = () => {
-  return getSupabaseInstance();
-};
-
+// ✅ Funções de compatibilidade (aliases)
+export const setCartorioAuthContext = setAuthToken;
+export const clearCartorioAuthContext = clearAuthToken;
+export const getAuthenticatedClient = getSupabaseInstance;
 export const createAuthenticatedClient = (token: string) => {
   setAuthToken(token);
-  return getAuthenticatedClient();
+  return getSupabaseInstance();
 };
+export const setCustomAuthToken = setAuthToken;
+export const clearCustomAuthToken = clearAuthToken;
 
-export const setCustomAuthToken = (token: string) => {
-  setAuthToken(token);
-};
-
-export const clearCustomAuthToken = () => {
+// ✅ Função para resetar completamente (útil para testes)
+export const resetSupabaseClient = () => {
+  console.log('🔄 [Supabase] Resetando cliente...');
+  supabaseInstance = null;
+  isInterceptorConfigured = false;
   clearAuthToken();
 };
