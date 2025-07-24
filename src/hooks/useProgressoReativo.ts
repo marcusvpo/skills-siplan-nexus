@@ -25,13 +25,17 @@ export interface ProgressoReativo {
   marcarCompleto: () => Promise<boolean>;
   desmarcarCompleto: () => Promise<boolean>;
   refetch: () => Promise<void>;
+  isVideoCompleto?: (videoId: string) => boolean; // opcional - caso use
 }
 
 export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
   const { user } = useAuth();
   const { refreshKey } = useSafeProgressContext();
 
-  const [progresso, setProgresso] = useState<Omit<ProgressoReativo, keyof Pick<ProgressoReativo, 'marcarCompleto' | 'desmarcarCompleto' | 'refetch'>>>({
+  const [progresso, setProgresso] = useState<Omit<
+    ProgressoReativo,
+    'marcarCompleto' | 'desmarcarCompleto' | 'refetch' | 'isVideoCompleto'
+  >>({
     videoId: videoId || '',
     completo: false,
     percentual: 0,
@@ -49,7 +53,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     try {
       setProgresso(prev => ({ ...prev, isLoading: true }));
 
-      // 1. Buscar o produto do video_aula
+      // 1. Buscar produto
       const { data: videoAula, error: errVideoAula } = await supabase
         .from('video_aulas')
         .select('id, produto_id')
@@ -63,7 +67,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
       const produtoId = videoAula.produto_id;
       if (!produtoId) throw new Error('Produto do vídeo não encontrado');
 
-      // 2. Total de aulas do produto
+      // 2. Total aulas do produto
       const { data: aulasProduto, error: errAulasProduto } = await supabase
         .from('video_aulas')
         .select('id')
@@ -73,7 +77,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
       const totalAulas = aulasProduto?.length ?? 0;
       const videoIdsProduto = aulasProduto?.map(a => a.id) ?? [];
 
-      // 3. Contar quantas aulas já estão concluídas para esse usuário e cartório
+      // 3. Aulas completadas para usuário/cartório
       let aulasCompletas = 0;
       if (videoIdsProduto.length > 0) {
         const { data: visualizacoesCompletas, error: errVisualizacoes } = await supabase
@@ -88,7 +92,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
         aulasCompletas = visualizacoesCompletas?.length ?? 0;
       }
 
-      // 4. Visualização específica da aula para saber se já está completa
+      // 4. Visualização específica
       const { data: visualizacao, error: errVisualizacao } = await supabase
         .from('visualizacoes_cartorio')
         .select('completo')
@@ -98,7 +102,6 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
         .single();
 
       if (errVisualizacao && errVisualizacao.code !== 'PGRST116') {
-        // PGRST116 = item não encontrado (aceitável)
         throw new Error(errVisualizacao.message);
       }
 
@@ -186,10 +189,17 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     buscarProgresso();
   }, [buscarProgresso, refreshKey]);
 
+  // Optional method to check if a video is complete
+  const isVideoCompleto = useCallback(
+    (id: string) => progresso.videoId === id ? progresso.completo : false,
+    [progresso]
+  );
+
   return {
     ...progresso,
     marcarCompleto,
     desmarcarCompleto,
     refetch: buscarProgresso,
+    isVideoCompleto
   };
 };
