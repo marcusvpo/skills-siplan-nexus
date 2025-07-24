@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-// Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { useProgressContext } from '@/contexts/ProgressContext';
 
@@ -29,11 +28,10 @@ export const useProgressoGeral = () => {
   const [error, setError] = useState<string | null>(null);
 
   const calcularProgressos = async () => {
-    if (!user?.cartorio_id) return;
-
-    // ✅ AGUARDAR autenticação estar disponível
-    if (!user?.id) {
-      console.log('⚠️ [useProgressoGeral] Aguardando autenticação do usuário...');
+    // ✅ Verificação consolidada de autenticação
+    if (!user?.cartorio_id || !user?.id) {
+      console.log('⚠️ [useProgressoGeral] Aguardando autenticação completa...');
+      setIsLoading(false);
       return;
     }
 
@@ -41,49 +39,48 @@ export const useProgressoGeral = () => {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('siplan-auth-token');
-      if (!token) {
-        throw new Error('Token de autenticação não encontrado');
+      console.log('🔍 [useProgressoGeral] Buscando dados para:', {
+        cartorioId: user.cartorio_id,
+        userId: user.id
+      });
+
+      // ✅ Buscar videoaulas e visualizações em paralelo para melhor performance
+      const [videoAulasResult, visualizacoesResult] = await Promise.all([
+        // Buscar todas as videoaulas com seus produtos
+        supabase
+          .from('video_aulas')
+          .select('id, produto_id')
+          .order('produto_id'),
+
+        // Buscar visualizações completas do usuário no cartório
+        supabase
+          .from('visualizacoes_cartorio')
+          .select('video_aula_id')
+          .eq('cartorio_id', user.cartorio_id)
+          .eq('user_id', user.id)
+          .eq('completo', true)
+      ]);
+
+      // ✅ Verificar erros de forma consolidada
+      if (videoAulasResult.error) {
+        console.error('❌ Erro ao buscar videoaulas:', videoAulasResult.error);
+        throw new Error(`Erro ao carregar videoaulas: ${videoAulasResult.error.message}`);
       }
 
-      // Buscar todas as videoaulas com seus produtos com header Authorization
-      const { data: videoAulas, error: videoError } = await supabase
-        .from('video_aulas')
-        .select('id, produto_id')
-        .order('produto_id')
-        .setHeader('Authorization', `Bearer ${token}`);
-
-      if (videoError) throw videoError;
-
-      // Buscar todas as visualizações do cartório - FORÇA REFRESH
-      const timestamp = Date.now();
-      
-      // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
+      if (visualizacoesResult.error) {
+        console.error('❌ Erro ao buscar visualizações:', visualizacoesResult.error);
+        throw new Error(`Erro ao carregar progresso: ${visualizacoesResult.error.message}`);
       }
 
-      console.log('🔍 [useProgressoGeral] Buscando visualizações para cartório:', user.cartorio_id, 'usuário:', user.id);
+      const videoAulas = videoAulasResult.data || [];
+      const visualizacoes = visualizacoesResult.data || [];
 
-      const { data: visualizacoes, error: visualError } = await supabase
-        .from('visualizacoes_cartorio')
-        .select('video_aula_id')
-        .eq('cartorio_id', user.cartorio_id)
-        .eq('user_id', user.id)
-        .eq('completo', true)
-        .range(0, 1000) // Força uma nova query sempre
-        .setHeader('Authorization', `Bearer ${token}`);
-
-      if (visualError) {
-        console.error('❌ [useProgressoGeral] Erro ao buscar visualizações:', visualError);
-        throw visualError;
-      }
-
-      // Agrupar por produto
+      // ✅ Agrupar e calcular progressos
       const progressosPorProduto: ProgressoGeral = {};
-      const completedVideos = new Set(visualizacoes?.map(v => v.video_aula_id) || []);
+      const completedVideos = new Set(visualizacoes.map(v => v.video_aula_id));
 
-      videoAulas?.forEach(video => {
+      // Inicializar contadores por produto
+      videoAulas.forEach(video => {
         if (!progressosPorProduto[video.produto_id]) {
           progressosPorProduto[video.produto_id] = {
             total: 0,
@@ -107,26 +104,37 @@ export const useProgressoGeral = () => {
           : 0;
       });
 
-      console.log('🎯 [useProgressoGeral] Progresso geral calculado:', {
+      console.log('🎯 [useProgressoGeral] Progresso calculado:', {
         cartorioId: user.cartorio_id,
-        totalVideoAulas: videoAulas?.length || 0,
-        totalVisualizacoes: visualizacoes?.length || 0,
-        produtosCount: Object.keys(progressosPorProduto).length,
-        timestamp,
-        sample: Object.entries(progressosPorProduto).slice(0, 2)
+        userId: user.id,
+        totalVideoAulas: videoAulas.length,
+        totalVisualizacoes: visualizacoes.length,
+        produtosComProgresso: Object.keys(progressosPorProduto).length,
+        resumo: Object.entries(progressosPorProduto).map(([id, prog]) => ({
+          produtoId: id,
+          progresso: `${prog.completas}/${prog.total} (${prog.percentual}%)`
+        }))
       });
 
       setProgressos(progressosPorProduto);
+
     } catch (error) {
-      console.error('Erro ao calcular progressos gerais:', error);
-      setError('Erro ao carregar progresso');
+      console.error('❌ [useProgressoGeral] Erro:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar progresso');
+      setProgressos({}); // Reset em caso de erro
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ✅ Effect com dependências mais específicas
   useEffect(() => {
-    calcularProgressos();
+    if (user?.cartorio_id && user?.id) {
+      calcularProgressos();
+    } else {
+      setIsLoading(false);
+      setProgressos({});
+    }
   }, [user?.cartorio_id, user?.id, refreshKey]);
 
   return {
