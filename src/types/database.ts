@@ -1,4 +1,3 @@
-2025/07/24 17:09:33 HTTP GET: https://api.supabase.com/v1/projects/bnulocsnxiffavvabfdj/types/typescript?included_schemas=public
 export type Json =
   | string
   | number
