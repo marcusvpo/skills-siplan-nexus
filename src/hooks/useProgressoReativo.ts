@@ -3,8 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { useProgressContext } from '@/contexts/ProgressContext';
 import { logger } from '@/utils/logger';
+import type { Database } from '@/types/database';
 
-// Helper para evitar crash se contexto não existir
+type VideoAula = Database['public']['Tables']['video_aulas']['Row'];
+type VisualizacaoCartorio = Database['public']['Tables']['visualizacoes_cartorio']['Row'];
+
 const useSafeProgressContext = () => {
   try {
     return useProgressContext();
@@ -25,7 +28,7 @@ export interface ProgressoReativo {
   marcarCompleto: () => Promise<boolean>;
   desmarcarCompleto: () => Promise<boolean>;
   refetch: () => Promise<void>;
-  isVideoCompleto?: (videoId: string) => boolean; // opcional - caso use
+  isVideoCompleto?: (videoId: string) => boolean;
 }
 
 export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
@@ -53,9 +56,9 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     try {
       setProgresso(prev => ({ ...prev, isLoading: true }));
 
-      // 1. Buscar produto
+      // Buscando o produto do video_aula
       const { data: videoAula, error: errVideoAula } = await supabase
-        .from('video_aulas')
+        .from<VideoAula>('video_aulas')
         .select('id, produto_id')
         .eq('id', videoId)
         .single();
@@ -67,21 +70,22 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
       const produtoId = videoAula.produto_id;
       if (!produtoId) throw new Error('Produto do vídeo não encontrado');
 
-      // 2. Total aulas do produto
+      // Total de aulas do produto
       const { data: aulasProduto, error: errAulasProduto } = await supabase
-        .from('video_aulas')
+        .from<VideoAula>('video_aulas')
         .select('id')
         .eq('produto_id', produtoId);
 
       if (errAulasProduto) throw new Error(errAulasProduto.message);
+
       const totalAulas = aulasProduto?.length ?? 0;
       const videoIdsProduto = aulasProduto?.map(a => a.id) ?? [];
 
-      // 3. Aulas completadas para usuário/cartório
+      // Contar quantas aulas já foram concluídas
       let aulasCompletas = 0;
       if (videoIdsProduto.length > 0) {
         const { data: visualizacoesCompletas, error: errVisualizacoes } = await supabase
-          .from('visualizacoes_cartorio')
+          .from<VisualizacaoCartorio>('visualizacoes_cartorio')
           .select('video_aula_id')
           .eq('cartorio_id', user.cartorio_id)
           .eq('user_id', user.id)
@@ -89,12 +93,13 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
           .in('video_aula_id', videoIdsProduto);
 
         if (errVisualizacoes) throw new Error(errVisualizacoes.message);
+
         aulasCompletas = visualizacoesCompletas?.length ?? 0;
       }
 
-      // 4. Visualização específica
+      // Visualização específica do vídeo
       const { data: visualizacao, error: errVisualizacao } = await supabase
-        .from('visualizacoes_cartorio')
+        .from<VisualizacaoCartorio>('visualizacoes_cartorio')
         .select('completo')
         .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
@@ -130,14 +135,17 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     try {
       const { error } = await supabase
         .from('visualizacoes_cartorio')
-        .upsert({
-          video_aula_id: videoId,
-          cartorio_id: user.cartorio_id,
-          user_id: user.id,
-          completo: true,
-          concluida: true,
-          data_conclusao: new Date().toISOString(),
-        }, { onConflict: 'video_aula_id,cartorio_id,user_id' });
+        .upsert(
+          {
+            video_aula_id: videoId,
+            cartorio_id: user.cartorio_id,
+            user_id: user.id,
+            completo: true,
+            concluida: true,
+            data_conclusao: new Date().toISOString(),
+          },
+          { onConflict: 'video_aula_id,cartorio_id,user_id' }
+        );
 
       if (error) throw new Error(error.message);
 
@@ -175,7 +183,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
         ...prev,
         completo: false,
         percentual: Math.max(0, prev.percentual - (100 / prev.totalAulas)),
-        aulasCompletas: Math.max(0, prev.aulasCompletas - 1)
+        aulasCompletas: Math.max(0, prev.aulasCompletas - 1),
       }));
 
       return true;
@@ -189,7 +197,6 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     buscarProgresso();
   }, [buscarProgresso, refreshKey]);
 
-  // Optional method to check if a video is complete
   const isVideoCompleto = useCallback(
     (id: string) => progresso.videoId === id ? progresso.completo : false,
     [progresso]
