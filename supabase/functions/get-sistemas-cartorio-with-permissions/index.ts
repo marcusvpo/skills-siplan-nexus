@@ -1,10 +1,23 @@
 
+// v2 - migrado para CUSTOM_SERVICE_KEY + jwtVerify
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { jwtVerify } from 'https://deno.land/x/jose@v4.14.6/index.ts';
+
+// Configuração de chaves - prioriza CUSTOM_SERVICE_KEY
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY');
+const legacyServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const jwtSecret = Deno.env.get('JWT_SECRET');
+
+// Log de inicialização
+console.log('🔧 [Edge Function Init] Using service key:', customServiceKey ? 'Present' : 'Missing');
+console.log('🔧 [Edge Function Init] Key source:', customServiceKey ? 'CUSTOM_SERVICE_KEY (NEW)' : 'LEGACY_FALLBACK');
+console.log('🔧 [Edge Function Init] JWT Secret:', jwtSecret ? 'Present' : 'Missing');
 
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  supabaseUrl,
+  customServiceKey || legacyServiceKey || ''
 );
 
 const corsHeaders = {
