@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContextFixed';
 import { useProgressContext } from '@/contexts/ProgressContext';
 import { logger } from '@/utils/logger';
 
-// Helper hook to safely use progress context
+// Helper para evitar crash se contexto não existir
 const useSafeProgressContext = () => {
   try {
     return useProgressContext();
@@ -13,121 +13,118 @@ const useSafeProgressContext = () => {
   }
 };
 
-interface ProgressoReativo {
+export interface ProgressoReativo {
   videoId: string;
   completo: boolean;
   percentual: number;
+  totalAulas: number;
+  aulasCompletas: number;
   isLoading: boolean;
   error: string | null;
+
+  marcarCompleto: () => Promise<boolean>;
+  desmarcarCompleto: () => Promise<boolean>;
+  refetch: () => Promise<void>;
 }
 
-export const useProgressoReativo = (videoId?: string) => {
+export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
   const { user } = useAuth();
   const { refreshKey } = useSafeProgressContext();
-  const [progresso, setProgresso] = useState<ProgressoReativo>({
+
+  const [progresso, setProgresso] = useState<Omit<ProgressoReativo, keyof Pick<ProgressoReativo, 'marcarCompleto' | 'desmarcarCompleto' | 'refetch'>>>({
     videoId: videoId || '',
     completo: false,
     percentual: 0,
+    totalAulas: 0,
+    aulasCompletas: 0,
     isLoading: true,
-    error: null
+    error: null,
   });
 
   const buscarProgresso = useCallback(async () => {
     if (!videoId || !user?.cartorio_id || !user?.id) {
-      logger.debug('⚠️ [useProgressoReativo] Parâmetros insuficientes:', { 
-        hasVideoId: !!videoId,
-        hasCartorioId: !!user?.cartorio_id,
-        hasUserId: !!user?.id
-      });
-      setProgresso(prev => ({
-        ...prev,
-        isLoading: false,
-        error: null
-      }));
+      setProgresso(prev => ({ ...prev, isLoading: false, error: null }));
       return;
     }
-
     try {
-      setProgresso(prev => ({ ...prev, isLoading: true, error: null }));
+      setProgresso(prev => ({ ...prev, isLoading: true }));
 
-      logger.debug('🔍 [useProgressoReativo] Buscando progresso para:', {
-        videoId,
-        cartorioId: user.cartorio_id,
-        userId: user.id
-      });
+      // 1. Buscar o produto do video_aula
+      const { data: videoAula, error: errVideoAula } = await supabase
+        .from('video_aulas')
+        .select('id, produto_id')
+        .eq('id', videoId)
+        .single();
 
-      // ✅ Buscar visualização específica usando campos corretos do schema
-      const { data: visualizacao, error } = await supabase
-        .from('visualizacoes_cartorio')
-        .select('id, completo, concluida, data_conclusao')
-        .eq('video_aula_id', videoId)
-        .eq('cartorio_id', user.cartorio_id) 
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        logger.error('❌ [useProgressoReativo] Erro ao buscar visualização:', { 
-          error: error.message,
-          videoId,
-          cartorioId: user.cartorio_id,
-          userId: user.id
-        });
-        throw new Error(`Erro ao carregar progresso: ${error.message}`);
+      if (errVideoAula || !videoAula) {
+        throw new Error(errVideoAula?.message || 'Videoaula não encontrada');
       }
 
-      const completo = visualizacao?.completo || visualizacao?.concluida || false;
-      const percentual = completo ? 100 : 0;
+      const produtoId = videoAula.produto_id;
+      if (!produtoId) throw new Error('Produto do vídeo não encontrado');
+
+      // 2. Total de aulas do produto
+      const { data: aulasProduto, error: errAulasProduto } = await supabase
+        .from('video_aulas')
+        .select('id')
+        .eq('produto_id', produtoId);
+
+      if (errAulasProduto) throw new Error(errAulasProduto.message);
+      const totalAulas = aulasProduto?.length ?? 0;
+      const videoIdsProduto = aulasProduto?.map(a => a.id) ?? [];
+
+      // 3. Contar quantas aulas já estão concluídas para esse usuário e cartório
+      let aulasCompletas = 0;
+      if (videoIdsProduto.length > 0) {
+        const { data: visualizacoesCompletas, error: errVisualizacoes } = await supabase
+          .from('visualizacoes_cartorio')
+          .select('video_aula_id')
+          .eq('cartorio_id', user.cartorio_id)
+          .eq('user_id', user.id)
+          .eq('completo', true)
+          .in('video_aula_id', videoIdsProduto);
+
+        if (errVisualizacoes) throw new Error(errVisualizacoes.message);
+        aulasCompletas = visualizacoesCompletas?.length ?? 0;
+      }
+
+      // 4. Visualização específica da aula para saber se já está completa
+      const { data: visualizacao, error: errVisualizacao } = await supabase
+        .from('visualizacoes_cartorio')
+        .select('completo')
+        .eq('cartorio_id', user.cartorio_id)
+        .eq('user_id', user.id)
+        .eq('video_aula_id', videoId)
+        .single();
+
+      if (errVisualizacao && errVisualizacao.code !== 'PGRST116') {
+        // PGRST116 = item não encontrado (aceitável)
+        throw new Error(errVisualizacao.message);
+      }
+
+      const completo = visualizacao?.completo ?? false;
+      const percentual = totalAulas > 0 ? Math.round((aulasCompletas / totalAulas) * 100) : 0;
 
       setProgresso({
         videoId,
         completo,
         percentual,
+        totalAulas,
+        aulasCompletas,
         isLoading: false,
         error: null
       });
 
-      logger.debug('✅ [useProgressoReativo] Progresso carregado:', {
-        videoId,
-        completo,
-        percentual,
-        hasVisualizacao: !!visualizacao
-      });
-
     } catch (error) {
-      logger.error('❌ [useProgressoReativo] Erro inesperado:', { 
-        error,
-        videoId,
-        cartorioId: user?.cartorio_id,
-        userId: user?.id
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setProgresso(prev => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage
-      }));
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      setProgresso(prev => ({ ...prev, isLoading: false, error: message }));
+      logger.error('[useProgressoReativo]', error);
     }
   }, [videoId, user?.cartorio_id, user?.id]);
 
   const marcarCompleto = useCallback(async () => {
-    if (!videoId || !user?.cartorio_id || !user?.id) {
-      logger.warn('⚠️ [useProgressoReativo] Não é possível marcar como completo - parâmetros insuficientes:', {
-        hasVideoId: !!videoId,
-        hasCartorioId: !!user?.cartorio_id,
-        hasUserId: !!user?.id
-      });
-      return false;
-    }
-
+    if (!videoId || !user?.cartorio_id || !user?.id) return false;
     try {
-      logger.info('📝 [useProgressoReativo] Marcando vídeo como completo:', {
-        videoId,
-        cartorioId: user.cartorio_id,
-        userId: user.id
-      });
-
-      // ✅ Upsert usando campos corretos do schema
       const { error } = await supabase
         .from('visualizacoes_cartorio')
         .upsert({
@@ -136,129 +133,55 @@ export const useProgressoReativo = (videoId?: string) => {
           user_id: user.id,
           completo: true,
           concluida: true,
-          data_conclusao: new Date().toISOString()
-        }, {
-          onConflict: 'video_aula_id,cartorio_id,user_id'
-        });
+          data_conclusao: new Date().toISOString(),
+        }, { onConflict: 'video_aula_id,cartorio_id,user_id' });
 
-      if (error) {
-        logger.error('❌ [useProgressoReativo] Erro ao marcar como completo:', {
-          error: error.message,
-          videoId,
-          cartorioId: user.cartorio_id,
-          userId: user.id
-        });
-        throw new Error(`Erro ao salvar progresso: ${error.message}`);
-      }
+      if (error) throw new Error(error.message);
 
-      // ✅ Atualizar estado local
       setProgresso(prev => ({
         ...prev,
         completo: true,
         percentual: 100,
-        error: null
+        aulasCompletas: prev.aulasCompletas + 1
       }));
-
-      logger.info('✅ [useProgressoReativo] Vídeo marcado como completo com sucesso:', {
-        videoId,
-        cartorioId: user.cartorio_id,
-        userId: user.id
-      });
 
       return true;
-
     } catch (error) {
-      logger.error('❌ [useProgressoReativo] Erro inesperado ao marcar completo:', {
-        error,
-        videoId,
-        cartorioId: user?.cartorio_id,
-        userId: user?.id
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao salvar progresso';
-      setProgresso(prev => ({
-        ...prev,
-        error: errorMessage
-      }));
-      
+      logger.error('[useProgressoReativo] marcarCompleto erro: ', error);
       return false;
     }
   }, [videoId, user?.cartorio_id, user?.id]);
 
   const desmarcarCompleto = useCallback(async () => {
-    if (!videoId || !user?.cartorio_id || !user?.id) {
-      logger.warn('⚠️ [useProgressoReativo] Não é possível desmarcar - parâmetros insuficientes:', {
-        hasVideoId: !!videoId,
-        hasCartorioId: !!user?.cartorio_id,
-        hasUserId: !!user?.id
-      });
-      return false;
-    }
-
+    if (!videoId || !user?.cartorio_id || !user?.id) return false;
     try {
-      logger.info('📝 [useProgressoReativo] Desmarcando vídeo como completo:', {
-        videoId,
-        cartorioId: user.cartorio_id,
-        userId: user.id
-      });
-
-      // ✅ Atualizar usando campos corretos do schema
       const { error } = await supabase
         .from('visualizacoes_cartorio')
         .update({
           completo: false,
           concluida: false,
-          data_conclusao: null
+          data_conclusao: null,
         })
         .eq('video_aula_id', videoId)
         .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id);
 
-      if (error) {
-        logger.error('❌ [useProgressoReativo] Erro ao desmarcar:', {
-          error: error.message,
-          videoId,
-          cartorioId: user.cartorio_id,
-          userId: user.id
-        });
-        throw new Error(`Erro ao atualizar progresso: ${error.message}`);
-      }
+      if (error) throw new Error(error.message);
 
-      // ✅ Atualizar estado local
       setProgresso(prev => ({
         ...prev,
         completo: false,
-        percentual: 0,
-        error: null
+        percentual: Math.max(0, prev.percentual - (100 / prev.totalAulas)),
+        aulasCompletas: Math.max(0, prev.aulasCompletas - 1)
       }));
-
-      logger.info('✅ [useProgressoReativo] Vídeo desmarcado como completo:', {
-        videoId,
-        cartorioId: user.cartorio_id,
-        userId: user.id
-      });
 
       return true;
-
     } catch (error) {
-      logger.error('❌ [useProgressoReativo] Erro inesperado ao desmarcar:', {
-        error,
-        videoId,
-        cartorioId: user?.cartorio_id,
-        userId: user?.id
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar progresso';
-      setProgresso(prev => ({
-        ...prev,
-        error: errorMessage
-      }));
-      
+      logger.error('[useProgressoReativo] desmarcarCompleto erro: ', error);
       return false;
     }
   }, [videoId, user?.cartorio_id, user?.id]);
 
-  // ✅ Effect para buscar progresso quando parâmetros mudarem
   useEffect(() => {
     buscarProgresso();
   }, [buscarProgresso, refreshKey]);
@@ -267,6 +190,6 @@ export const useProgressoReativo = (videoId?: string) => {
     ...progresso,
     marcarCompleto,
     desmarcarCompleto,
-    refetch: buscarProgresso
+    refetch: buscarProgresso,
   };
 };
