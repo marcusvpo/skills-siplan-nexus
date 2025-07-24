@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,15 +20,15 @@ interface VideoAulasListProps {
 }
 
 const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId }) => {
-  console.log('🔵 [VideoAulasList] Componente renderizado:', { 
-    videoAulasCount: videoAulas.length, 
-    systemId, 
-    productId 
+  console.log('🔵 [VideoAulasList] Componente renderizado:', {
+    videoAulasCount: videoAulas.length,
+    systemId,
+    productId
   });
-  
+
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Hook para obter o progresso do produto
   const { isVideoCompleto } = useProgressoReativo(productId);
 
@@ -38,7 +37,7 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
     if (!searchTerm.trim()) {
       return videoAulas;
     }
-    
+
     return videoAulas.filter(aula =>
       aula.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (aula.descricao && aula.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -60,9 +59,9 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
           <p className="text-gray-400 mb-6">
             As videoaulas para este produto serão disponibilizadas em breve.
           </p>
-          <Button 
-            onClick={() => navigate(`/system/${systemId}`)} 
-            variant="outline" 
+          <Button
+            onClick={() => navigate(`/system/${systemId}`)}
+            variant="outline"
             className="border-gray-600 text-gray-300 hover:bg-gray-700"
           >
             Voltar aos Produtos
@@ -115,14 +114,14 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {sortedVideoAulas.map((aula) => {
-            const isCompleted = isVideoCompleto(aula.id);
-            
+            const isCompleted = isVideoCompleto ? isVideoCompleto(aula.id) : false;
+
             return (
-              <Card 
-                key={aula.id} 
+              <Card
+                key={aula.id}
                 className={`bg-gray-800/50 transition-all duration-300 cursor-pointer group ${
-                  isCompleted 
-                    ? 'border-green-500/60 shadow-green-500/20 shadow-lg hover:border-green-400/80' 
+                  isCompleted
+                    ? 'border-green-500/60 shadow-green-500/20 shadow-lg hover:border-green-400/80'
                     : 'border-gray-600 hover:border-red-500/50'
                 }`}
                 onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
@@ -132,8 +131,8 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                     {/* Ícone e Ordem */}
                     <div className="flex items-center justify-between">
                       <div className={`p-2 rounded-lg transition-colors ${
-                        isCompleted 
-                          ? 'bg-green-600/20 group-hover:bg-green-600/30' 
+                        isCompleted
+                          ? 'bg-green-600/20 group-hover:bg-green-600/30'
                           : 'bg-red-600/20 group-hover:bg-red-600/30'
                       }`}>
                         {isCompleted ? (
@@ -151,25 +150,25 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                     {/* Título */}
                     <div>
                       <h3 className={`font-semibold transition-colors text-sm line-clamp-2 leading-tight ${
-                        isCompleted 
-                          ? 'text-green-100 group-hover:text-green-300' 
+                        isCompleted
+                          ? 'text-green-100 group-hover:text-green-300'
                           : 'text-white group-hover:text-red-400'
                       }`}>
                         {aula.titulo}
                       </h3>
                     </div>
 
-                     {/* Botão Assistir */}
-                     <div className="space-y-2">
-                       <Button
-                        size="sm" 
+                    {/* Botão Assistir */}
+                    <div className="space-y-2">
+                      <Button
+                        size="sm"
                         variant="outline"
                         className={`w-full text-xs transition-colors ${
-                          isCompleted 
-                            ? 'border-green-600 text-green-300 hover:bg-green-600/20' 
+                          isCompleted
+                            ? 'border-green-600 text-green-300 hover:bg-green-600/20'
                             : 'border-gray-600 text-gray-300 hover:bg-gray-700'
                         }`}
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
                         }}
