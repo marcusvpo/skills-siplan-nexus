@@ -29,175 +29,121 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ✅ Configurações da Edge Function
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
-const EDGE_FUNCTION_URL = "https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio";
+const EDGE_FUNCTION_URL = 'https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartorioUser, setCartorioUser] = useState<User | null>(null);
   const [isLoadingCartorio, setIsLoadingCartorio] = useState(true);
-  
-  // ✅ Usa o hook para gerenciar admin
+
   const stableAuth = useStableAuth();
   const navigate = useNavigate();
 
-  // ✅ Inicialização do usuário cartório
   useEffect(() => {
-    const initCartorioUser = () => {
-      logger.info('🏢 [AuthContextFixed] Inicializando usuário cartório...', {});
-      
-      try {
-        const savedUser = localStorage.getItem('siplan-user');
-        if (savedUser) {
-          const userData = JSON.parse(savedUser);
-          if (userData.type === 'cartorio' && userData.token) {
-            setCartorioUser(userData);
-            setAuthToken(userData.token);
-            logger.info('📦 [AuthContextFixed] Usuário cartório restaurado do localStorage', {
-              username: userData.username,
-              cartorioId: userData.cartorio_id
-            });
-          }
+    try {
+      logger.info('[AuthContextFixed] Restaurando usuário cartório do localStorage');
+      const savedUserStr = localStorage.getItem('siplan-user');
+      if (savedUserStr) {
+        const savedUser: User = JSON.parse(savedUserStr);
+        if (savedUser.type === 'cartorio' && savedUser.token) {
+          setCartorioUser(savedUser);
+          setAuthToken(savedUser.token);
+          logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}`);
+        } else {
+          localStorage.removeItem('siplan-user');
         }
-      } catch (error) {
-        logger.error('❌ [AuthContextFixed] Erro ao restaurar usuário cartório:', { error });
-        localStorage.removeItem('siplan-user');
-      } finally {
-        setIsLoadingCartorio(false);
       }
-    };
-
-    initCartorioUser();
+    } catch (error) {
+      logger.error('[AuthContextFixed] Erro ao restaurar user cartório:', error);
+      localStorage.removeItem('siplan-user');
+    } finally {
+      setIsLoadingCartorio(false);
+    }
   }, []);
 
-  // ✅ Usuário consolidado (cartório ou admin) 
   const user: User | null = cartorioUser || (stableAuth.session?.user ? {
     id: stableAuth.session.user.id,
     name: 'Administrador',
     type: 'admin',
-    email: stableAuth.session.user.email || ''
+    email: stableAuth.session.user.email || '',
   } : null);
 
-  // ✅ Estado de loading consolidado
   const isLoading = isLoadingCartorio || stableAuth.loading;
 
-  // ✅ Redirecionamento após login
+  // Redirecionamento pós-login
   useEffect(() => {
     if (isLoading || !user) return;
-
-    const currentPath = window.location.pathname;
-    if (currentPath === '/login' || currentPath === '/admin-login') {
-      logger.info('➡️ [AuthContextFixed] Redirecionando após login:', {
-        userType: user.type,
-        currentPath
-      });
-      
-      if (user.type === 'admin') {
-        navigate('/admin');
-      } else if (user.type === 'cartorio') {
-        navigate('/dashboard');
-      }
+    const path = window.location.pathname;
+    if (path === '/login' || path === '/admin-login') {
+      if (user.type === 'admin') navigate('/admin');
+      else if (user.type === 'cartorio') navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
 
-  // ✅ Função de login
-  const login = async (
-    usernameOrToken: string, 
-    type: 'cartorio' | 'admin', 
-    userData?: Partial<User>
-  ): Promise<void> => {
+  const login = async (usernameOrToken: string, type: 'cartorio' | 'admin', userData?: Partial<User>): Promise<void> => {
     if (type === 'cartorio') {
       setIsLoadingCartorio(true);
-      logger.info('🔐 [AuthContextFixed] Iniciando login cartório:', {
-        username: usernameOrToken
-      });
-
+      logger.info(`[AuthContextFixed] Tentando login cartório: ${usernameOrToken}`);
       try {
         const response = await fetch(EDGE_FUNCTION_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J` // Publishable Key
           },
-          body: JSON.stringify({ 
-            username: usernameOrToken, 
-            login_token: userData?.token || '' 
+          body: JSON.stringify({
+            username: usernameOrToken,
+            login_token: userData?.token || ''
           })
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(
-            () => ({ error: 'Erro de comunicação' })
-          );
-          logger.error('❌ [AuthContextFixed] Erro na resposta da Edge Function:', {
-            status: response.status,
-            error: errorData.error
-          });
+          const errorData = await response.json().catch(() => ({ error: 'Erro na autenticação' }));
           throw new Error(errorData.error || 'Erro na autenticação');
         }
 
         const data = await response.json();
+
         if (!data.success) {
-          logger.error('❌ [AuthContextFixed] Login rejeitado pela Edge Function:', {
-            error: data.error
-          });
-          throw new Error(data.error || 'Erro na autenticação');
+          throw new Error(data.error || 'Login falhou');
         }
 
-        const newCartorioUser: User = {
+        const newUser: User = {
           id: data.user.id,
           name: data.user.username,
           type: 'cartorio',
           token: data.access_token,
           cartorio_id: data.user.cartorio_id,
-          cartorio_name: data.user.cartorio_name || '',
+          cartorio_name: data.user.cartorio_name ?? '',
           username: data.user.username,
-          email: data.user.email || ''
+          email: data.user.email ?? ''
         };
 
-        setCartorioUser(newCartorioUser);
-        setAuthToken(data.access_token);
-        localStorage.setItem('siplan-user', JSON.stringify(newCartorioUser));
-        
-        logger.info('✅ [AuthContextFixed] Login cartório bem-sucedido:', {
-          username: newCartorioUser.username,
-          cartorioId: newCartorioUser.cartorio_id,
-          cartorioName: newCartorioUser.cartorio_name
-        });
-        
+        setCartorioUser(newUser);
+        setAuthToken(newUser.token!);
+        localStorage.setItem('siplan-user', JSON.stringify(newUser));
+
+        logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}`);
+
       } catch (error) {
-        logger.error('❌ [AuthContextFixed] Erro no login cartório:', { error });
+        logger.error('[AuthContextFixed] Erro no login cartório:', error);
         throw error;
       } finally {
         setIsLoadingCartorio(false);
       }
     } else {
-      logger.info('ℹ️ [AuthContextFixed] Login admin deve ser feito via Supabase Auth', {});
+      logger.info('[AuthContextFixed] Login admin via Supabase Auth');
     }
   };
 
-  // ✅ Função de logout
   const logout = async (): Promise<void> => {
     try {
-      logger.info('🚪 [AuthContextFixed] Iniciando logout...', {
-        hasCartorioUser: !!cartorioUser,
-        hasStableAuthSession: !!stableAuth.session
-      });
-      
-      // ✅ Logout admin se houver sessão
-      if (stableAuth.session) {
-        await stableAuth.logout();
-      }
-      
-      // ✅ Limpar usuário cartório
+      if (stableAuth.session) await stableAuth.logout();
       setCartorioUser(null);
       clearAuthToken();
       localStorage.removeItem('siplan-user');
-      
-      logger.info('✅ [AuthContextFixed] Logout concluído com sucesso', {});
-      
+      logger.info('[AuthContextFixed] Logout realizado com sucesso');
     } catch (error) {
-      logger.error('❌ [AuthContextFixed] Erro no logout:', { error });
+      logger.error('[AuthContextFixed] Erro no logout:', error);
       throw error;
     }
   };
@@ -210,20 +156,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     authenticatedClient: supabase,
     isLoading,
-    isAdmin: user?.type === 'admin'
+    isAdmin: user?.type === 'admin',
   };
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth deve ser usado dentro do AuthProvider');
   return context;
 };
