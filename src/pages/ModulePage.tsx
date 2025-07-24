@@ -9,15 +9,24 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Play, Star, Clock, CheckCircle } from 'lucide-react';
 import { useSistemas, useVideoAulas, useVisualizacoes, useFavoritos } from '@/hooks/useSupabaseData';
+import type { Database } from '@/types/database';
+
+type VideoAula = Database['public']['Tables']['video_aulas']['Row'];
+type VisualizacaoCartorio = Database['public']['Tables']['visualizacoes_cartorio']['Row'];
+type Favorito = Database['public']['Tables']['favoritos_cartorio']['Row'];
 
 const ModulePage = () => {
-  const { systemId, productId, moduleId } = useParams();
+  const { systemId, productId, moduleId } = useParams<{
+    systemId: string;
+    productId: string;
+    moduleId: string;
+  }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const { data: sistemas } = useSistemas();
-  const { data: videoAulas } = useVideoAulas(moduleId || '');
-  const { data: visualizacoes } = useVisualizacoes(user?.cartorio_id || '');
+  const { data: videoAulas } = useVideoAulas(moduleId);
+  const { data: visualizacoes } = useVisualizacoes(user?.cartorio_id);
   const { data: favoritos } = useFavoritos(user?.cartorio_id || '');
 
   useEffect(() => {
@@ -42,12 +51,14 @@ const ModulePage = () => {
     );
   }
 
-  const getVisualizacao = (aulaId: string) => {
-    return visualizacoes?.find(v => v.video_aula_id === aulaId);
+  const getVisualizacao = (aulaId: string): VisualizacaoCartorio | undefined => {
+    if (!visualizacoes) return undefined;
+    return visualizacoes.find(v => v.video_aula_id === aulaId);
   };
 
-  const isFavorito = (aulaId: string) => {
-    return favoritos?.some(f => f.video_aula_id === aulaId);
+  const isFavorito = (aulaId: string): boolean => {
+    if (!favoritos) return false;
+    return favoritos.some(f => f.video_aula_id === aulaId);
   };
 
   const calculateModuleProgress = () => {
@@ -76,7 +87,6 @@ const ModulePage = () => {
           <h1 className="text-3xl font-bold mb-2 text-white">{module.titulo}</h1>
           <p className="text-gray-400 mb-4">{module.descricao}</p>
 
-          {/* Module Progress */}
           <div className="bg-gray-900 rounded-lg p-6 border border-gray-700">
             <h3 className="text-lg font-semibold mb-4 text-white">Progresso do Módulo</h3>
             <div className="flex items-center space-x-4">
@@ -86,18 +96,17 @@ const ModulePage = () => {
               <span className="font-semibold text-lg text-white">{calculateModuleProgress()}%</span>
             </div>
             <p className="text-sm text-gray-400 mt-2">
-              {videoAulas?.filter(aula => getVisualizacao(aula.id)?.completo).length || 0} de{' '}
+              {videoAulas?.filter(a => getVisualizacao(a.id)?.completo).length || 0} de{' '}
               {videoAulas?.length || 0} aulas concluídas
             </p>
           </div>
         </div>
 
-        {/* Video Lessons */}
         <section>
           <h2 className="text-2xl font-semibold mb-6 text-white">Aulas do Módulo</h2>
 
           <div className="space-y-4">
-            {videoAulas?.map((aula) => {
+            {videoAulas?.map(aula => {
               const visualizacao = getVisualizacao(aula.id);
               const favorito = isFavorito(aula.id);
 
@@ -137,17 +146,12 @@ const ModulePage = () => {
                               <div className="flex items-center">
                                 <div className="w-32">
                                   <Progress
-                                    value={Math.round(
-                                      (visualizacao.progresso_segundos / (aula.duracao_segundos || 1)) * 100
-                                    )}
+                                    value={Math.round((visualizacao.progresso_segundos / (aula.duracao_segundos || 1)) * 100)}
                                     className="h-1"
                                   />
                                 </div>
                                 <span className="ml-2">
-                                  {Math.round(
-                                    (visualizacao.progresso_segundos / (aula.duracao_segundos || 1)) * 100
-                                  )}
-                                  %
+                                  {Math.round((visualizacao.progresso_segundos / (aula.duracao_segundos || 1)) * 100)}%
                                 </span>
                               </div>
                             )}
