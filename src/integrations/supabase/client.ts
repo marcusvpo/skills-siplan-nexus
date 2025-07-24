@@ -4,7 +4,8 @@ import type { Database } from './types';
 import { debugSupabaseClient } from '@/utils/authDebug';
 
 const SUPABASE_URL = "https://bnulocsnxiffavvabfdj.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJudWxvY3NueGlmZmF2dmFiZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4NzM1NTMsImV4cCI6MjA2NjQ0OTU1M30.3QeKQtbvTN4KQboUKhqOov16HZvz-xVLxmhl70S2IAE";
+// 🔧 CORREÇÃO CRÍTICA: Usar apenas a publishable key (sem o JWT)
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J";
 
 // Singleton pattern: Uma única instância do cliente Supabase
 let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
