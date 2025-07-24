@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
@@ -673,3 +675,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+2025/07/24 17:09:38 HTTP GET: https://api.github.com/repos/supabase/cli/releases/latest
