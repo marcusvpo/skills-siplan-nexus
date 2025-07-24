@@ -1,10 +1,22 @@
-
+// v2 - migrado para CUSTOM_SERVICE_KEY + jwtVerify
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { jwtVerify } from 'https://deno.land/x/jose@v4.14.6/index.ts';
+
+// Configuração de chaves - prioriza CUSTOM_SERVICE_KEY
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY');
+const legacyServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const jwtSecret = Deno.env.get('JWT_SECRET');
+
+// Log de inicialização
+console.log('🔧 [Init] Using service key:', customServiceKey ? 'Present' : 'Missing');
+console.log('🔧 [Init] Key source:', customServiceKey ? 'CUSTOM_SERVICE_KEY (NEW)' : 'LEGACY_FALLBACK');
+console.log('🔧 [Init] JWT Secret:', jwtSecret ? 'Present' : 'Missing');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 }
 
 serve(async (req) => {
@@ -16,8 +28,8 @@ serve(async (req) => {
     console.log('🎯 [get-sistemas-cartorio] Function started')
     
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl,
+      customServiceKey || legacyServiceKey || '',
       {
         auth: {
           autoRefreshToken: false,
@@ -93,17 +105,17 @@ serve(async (req) => {
       )
     }
 
-    console.log('🎯 [get-sistemas-cartorio] Found permissions:', permissoes?.length || 0)
+    console.log('🎯 [PERMISSIONS] Found permissions:', permissoes?.length || 0)
 
     let sistemasFiltrados = []
 
     if (!permissoes || permissoes.length === 0) {
       // Se não há permissões específicas, retorna todos os sistemas
-      console.log('🎯 [get-sistemas-cartorio] No specific permissions, returning all sistemas')
+      console.log('🎯 [PERMISSIONS] No specific permissions, returning all sistemas')
       sistemasFiltrados = todosSistemas || []
     } else {
       // Filtrar com base nas permissões (LÓGICA SIMPLIFICADA)
-      console.log('🎯 [get-sistemas-cartorio] Filtering by permissions')
+      console.log('🎯 [PERMISSIONS] Filtering by permissions')
       
       const sistemasPermitidos = new Set()
       const produtosPermitidos = new Set()
@@ -113,11 +125,11 @@ serve(async (req) => {
         if (p.sistema_id && !p.produto_id) {
           // Acesso ao sistema completo
           sistemasPermitidos.add(p.sistema_id)
-          console.log('🎯 [get-sistemas-cartorio] Sistema completo permitido:', p.sistema_id)
+          console.log('🎯 [PERMISSIONS] Sistema completo permitido:', p.sistema_id)
         } else if (p.produto_id) {
           // Acesso a produto específico
           produtosPermitidos.add(p.produto_id)
-          console.log('🎯 [get-sistemas-cartorio] Produto específico permitido:', p.produto_id)
+          console.log('🎯 [PERMISSIONS] Produto específico permitido:', p.produto_id)
         }
       })
       
@@ -125,7 +137,7 @@ serve(async (req) => {
       sistemasFiltrados = (todosSistemas || []).filter(sistema => {
         // Se tem acesso ao sistema completo, incluir tudo
         if (sistemasPermitidos.has(sistema.id)) {
-          console.log('🎯 [get-sistemas-cartorio] Including full sistema:', sistema.nome)
+          console.log('🎯 [PERMISSIONS] Including full sistema:', sistema.nome)
           return true
         }
         
@@ -135,7 +147,7 @@ serve(async (req) => {
           sistema.produtos = sistema.produtos.filter(produto => {
             const allowed = produtosPermitidos.has(produto.id)
             if (allowed) {
-              console.log('🎯 [get-sistemas-cartorio] Including produto:', produto.nome)
+              console.log('🎯 [PERMISSIONS] Including produto:', produto.nome)
             }
             return allowed
           })
@@ -145,7 +157,7 @@ serve(async (req) => {
         return false
       })
       
-      console.log('🎯 [get-sistemas-cartorio] Total sistemas after filtering:', sistemasFiltrados.length)
+      console.log('🎯 [PERMISSIONS] Total sistemas after filtering:', sistemasFiltrados.length)
     }
 
     return new Response(

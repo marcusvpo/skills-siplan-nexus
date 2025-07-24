@@ -1,10 +1,19 @@
-
+// v2 - migrado para CUSTOM_SERVICE_KEY + jwtVerify
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Configuração de chaves - prioriza CUSTOM_SERVICE_KEY
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY');
+const legacyServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+// Log de inicialização
+console.log('🔧 [Init] Using service key:', customServiceKey ? 'Present' : 'Missing');
+console.log('🔧 [Init] Key source:', customServiceKey ? 'CUSTOM_SERVICE_KEY (NEW)' : 'LEGACY_FALLBACK');
+
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  supabaseUrl,
+  customServiceKey || legacyServiceKey || ''
 );
 
 interface VerifyRequest {
@@ -13,7 +22,7 @@ interface VerifyRequest {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 };
 
 serve(async (req) => {
@@ -44,7 +53,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Verifying token...');
+    console.log('🔍 [TOKEN] Verifying token...');
 
     const { data: acesso, error } = await supabase
       .from('acessos_cartorio')
@@ -64,7 +73,7 @@ serve(async (req) => {
       .single();
 
     if (error || !acesso) {
-      console.log('Token not found:', error?.message);
+      console.log('❌ [TOKEN] Token not found:', error?.message);
       return new Response(JSON.stringify({
         valid: false,
         error: 'Token não encontrado',
@@ -81,7 +90,7 @@ serve(async (req) => {
     const isActive = acesso.ativo;
     const cartorioActive = acesso.cartorios?.is_active;
 
-    console.log('Token verification result:', {
+    console.log('✅ [TOKEN] Token verification result:', {
       isExpired,
       isActive,
       cartorioActive,
@@ -109,7 +118,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in verify-token:', error);
+    console.error('❌ [TOKEN] Error in verify-token:', error);
     return new Response(JSON.stringify({
       valid: false,
       error: 'Erro interno',

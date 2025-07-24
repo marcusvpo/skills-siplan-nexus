@@ -1,10 +1,22 @@
-
+// v2 - migrado para CUSTOM_SERVICE_KEY + jwtVerify
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { jwtVerify } from 'https://deno.land/x/jose@v4.14.6/index.ts';
+
+// Configuração de chaves - prioriza CUSTOM_SERVICE_KEY
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY');
+const legacyServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const jwtSecret = Deno.env.get('JWT_SECRET');
+
+// Log de inicialização
+console.log('🔧 [Init] Using service key:', customServiceKey ? 'Present' : 'Missing');
+console.log('🔧 [Init] Key source:', customServiceKey ? 'CUSTOM_SERVICE_KEY (NEW)' : 'LEGACY_FALLBACK');
+console.log('🔧 [Init] JWT Secret:', jwtSecret ? 'Present' : 'Missing');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 }
 
 serve(async (req) => {
@@ -32,11 +44,41 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Verificar autenticação admin (opcional para esta função utilitária)
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      console.log('🔐 [JWT] Processing admin JWT token for utility function');
+
+      if (jwtSecret) {
+        try {
+          const secret = new TextEncoder().encode(jwtSecret);
+          const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+          console.log('🔐 [JWT] Token verified for admin utility');
+          
+          const isAdmin = payload.role === 'admin' || payload.is_admin === true;
+          if (!isAdmin) {
+            console.error('❌ [AUTH] User is not admin for utility function');
+            return new Response(JSON.stringify({ error: 'Acesso negado: apenas administradores' }), {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+        } catch (error) {
+          console.error('❌ [JWT] Token verification failed:', error.message);
+          return new Response(JSON.stringify({ error: 'Token JWT inválido ou expirado' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+    }
+
+    // Initialize Supabase client with custom service role key
+    const supabase = createClient(
+      supabaseUrl,
+      customServiceKey || legacyServiceKey || ''
+    );
 
     console.log('🔧 [update-bunny-video-ids] Fetching video aulas with missing bunny_video_id');
 
