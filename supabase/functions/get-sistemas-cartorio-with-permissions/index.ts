@@ -33,7 +33,7 @@ serve(async (req) => {
   console.log('=== GET SISTEMAS CARTORIO WITH PERMISSIONS ===');
   
   try {
-    // Get cartorio ID from custom header or token
+    // Get cartorio ID from JWT or legacy CART token
     const customAuth = req.headers.get('x-custom-auth') || req.headers.get('authorization');
     
     if (!customAuth) {
@@ -47,17 +47,52 @@ serve(async (req) => {
     
     let cartorioId: string | null = null;
     
+    // Check if it's a legacy CART token
     if (customAuth.startsWith('CART-')) {
-      // Decode the CART token
       try {
         const tokenData = customAuth.replace('CART-', '');
         const decodedData = JSON.parse(atob(tokenData));
         cartorioId = decodedData.cartorio_id;
-        console.log('Extracted cartorio_id from CART token:', cartorioId);
+        console.log('🔍 [JWT] Extracted cartorio_id from CART token:', cartorioId);
       } catch (e) {
-        console.error('Error decoding CART token:', e);
+        console.error('❌ [JWT] Error decoding CART token:', e);
         return new Response(JSON.stringify({
           error: 'Token inválido'
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      // It's a JWT token - validate and extract cartorio_id
+      try {
+        const token = customAuth.replace('Bearer ', '');
+        
+        if (!jwtSecret) {
+          console.error('❌ [JWT] JWT_SECRET not configured');
+          return new Response(JSON.stringify({
+            error: 'Configuração de autenticação inválida'
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        console.log('🔍 [JWT] Verifying JWT token...');
+        const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
+        
+        cartorioId = payload.cartorio_id as string;
+        console.log('✅ [JWT] Successfully extracted cartorio_id:', cartorioId);
+        console.log('🔍 [JWT] Full payload:', { 
+          cartorio_id: payload.cartorio_id,
+          user_id: payload.user_id,
+          username: payload.username 
+        });
+        
+      } catch (e) {
+        console.error('❌ [JWT] Error verifying JWT:', e);
+        return new Response(JSON.stringify({
+          error: 'Token JWT inválido ou expirado'
         }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -66,6 +101,7 @@ serve(async (req) => {
     }
     
     if (!cartorioId) {
+      console.error('❌ [PERMISSIONS] cartorioId is null after token processing');
       return new Response(JSON.stringify({
         error: 'ID do cartório não encontrado no token'
       }), {
@@ -73,6 +109,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    
+    console.log('✅ [PERMISSIONS] Using cartorio_id:', cartorioId);
     
     // First, check if cartorio has any specific permissions
     const { data: permissions, error: permError } = await supabase
