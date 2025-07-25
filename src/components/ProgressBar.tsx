@@ -55,7 +55,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       
       <Progress 
         value={percentual} 
-        className={cn(sizeClasses[size], 'bg-gray-700')}
+        className={cn(sizeClasses[size], 'bg-gray-700 transition-all duration-500 ease-out')}
       />
       
       {showStats && (

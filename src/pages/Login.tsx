@@ -119,6 +119,27 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 page-transition">
+      {/* Ícone Admin no canto superior direito */}
+      <Link 
+        to="/admin-login"
+        className="fixed top-4 right-4 z-10 flex items-center space-x-2 bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm border border-gray-600 rounded-lg px-3 py-2 transition-all duration-300 group hover:border-red-500/50"
+      >
+        <div className="relative">
+          <div className="w-6 h-6 flex items-center justify-center">
+            <svg 
+              className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+        <span className="text-xs text-gray-400 group-hover:text-red-400 transition-colors font-medium">Admin</span>
+      </Link>
+
       <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-6">
@@ -206,13 +227,6 @@ const Login: React.FC = () => {
           )}
           
           <div className="space-y-4 pt-4 border-t border-gray-700/50">
-            <Link 
-              to="/admin-login" 
-              className="block text-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
-            >
-              Acessar como Administrador
-            </Link>
-            
             <Link 
               to="/"
               className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"

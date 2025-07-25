@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useProgressoProduto } from '@/hooks/useProgressoProduto';
 import ProgressBar from '@/components/ProgressBar';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
+import { useProgressContext } from '@/contexts/ProgressContext';
 
 interface ProductProgressBarProps {
   produtoId: string;
@@ -14,6 +15,16 @@ export const ProductProgressBar: React.FC<ProductProgressBarProps> = ({
   className = '' 
 }) => {
   const { total, completas, percentual, isLoading, error, refetch } = useProgressoProduto(produtoId);
+  
+  // Observar mudanças de progresso globalmente
+  const { refreshKey } = useProgressContext();
+  
+  // Refetch quando houver mudanças no progresso
+  useEffect(() => {
+    if (refetch && refreshKey > 0) {
+      refetch();
+    }
+  }, [refreshKey, refetch]);
 
   if (isLoading) {
     return (

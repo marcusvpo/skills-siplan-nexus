@@ -156,44 +156,100 @@ export const UserProgressViewFinal: React.FC = () => {
       const usuarioData = cartorioDetalhado?.usuarios.find(u => u.id === usuarioId);
       if (!usuarioData) throw new Error('Usuário não encontrado');
 
-      // Usar a nova função SQL que filtra por permissões
-      const { data: progressData, error: progressError } = await supabase
-        .rpc('get_user_progress_by_cartorio_with_permissions', { p_cartorio_id: cartorioId });
+      // Buscar progresso real do usuário a partir da tabela user_video_progress
+      const { data: userVideoProgress, error: userProgressError } = await supabase
+        .from('user_video_progress')
+        .select(`
+          video_aula_id,
+          completed,
+          video_aulas!inner(
+            id,
+            titulo,
+            produto_id,
+            produtos!inner(
+              id,
+              nome,
+              sistemas!inner(
+                id,
+                nome
+              )
+            )
+          )
+        `)
+        .eq('user_id', usuarioId)
+        .eq('completed', true);
 
-      if (progressError) {
-        console.error('Erro ao buscar progresso:', progressError);
-        throw progressError;
+      if (userProgressError) {
+        console.error('Erro ao buscar progresso do usuário:', userProgressError);
+        throw userProgressError;
       }
 
-      // Filtrar apenas os dados do usuário específico
-      const userProgressData = progressData?.filter(row => row.user_id === usuarioId) || [];
+      // Também buscar informações sobre produtos disponíveis para o cartório
+      const { data: produtosDisponiveis, error: produtosError } = await supabase
+        .from('produtos')
+        .select(`
+          id,
+          nome,
+          sistemas!inner(
+            id,
+            nome
+          ),
+          video_aulas(id)
+        `);
 
-      if (userProgressData.length === 0) {
-        // Usuário não tem produtos liberados
-        setUsuarioProgresso({
-          id: usuarioData.id,
-          username: usuarioData.username,
-          email: usuarioData.email,
-          is_active: usuarioData.is_active,
-          produtos: [],
-          progresso_geral: {
-            total_aulas: 0,
-            aulas_concluidas: 0,
-            percentual: 0
+      if (produtosError) {
+        console.error('Erro ao buscar produtos disponíveis:', produtosError);
+        throw produtosError;
+      }
+
+
+      // Processar progresso por produto
+      const progressoPorProduto = new Map();
+
+      // Contar aulas concluídas por produto
+      userVideoProgress?.forEach(progress => {
+        const videoAula = progress.video_aulas;
+        if (videoAula && videoAula.produtos) {
+          const produto = videoAula.produtos;
+          const produtoId = produto.id;
+          
+          if (!progressoPorProduto.has(produtoId)) {
+            progressoPorProduto.set(produtoId, {
+              id: produtoId,
+              nome: produto.nome,
+              sistema_nome: produto.sistemas?.nome || 'Sistema',
+              aulas_concluidas: 0,
+              total_aulas: 0
+            });
           }
-        });
-        return;
-      }
+          
+          const progressoAtual = progressoPorProduto.get(produtoId);
+          progressoAtual.aulas_concluidas += 1;
+        }
+      });
 
-      // Processar dados do progresso
-      const produtos = userProgressData.map(row => ({
-        id: row.produto_id,
-        nome: row.produto_nome,
-        sistema_nome: row.sistema_nome,
-        total_aulas: Number(row.total_aulas),
-        aulas_concluidas: Number(row.aulas_concluidas),
-        percentual: Number(row.percentual)
-      }));
+      // Adicionar informações sobre total de aulas por produto
+      produtosDisponiveis?.forEach(produto => {
+        const totalAulas = produto.video_aulas?.length || 0;
+        
+        if (progressoPorProduto.has(produto.id)) {
+          const progressoAtual = progressoPorProduto.get(produto.id);
+          progressoAtual.total_aulas = totalAulas;
+          progressoAtual.percentual = totalAulas > 0 ? Math.round((progressoAtual.aulas_concluidas / totalAulas) * 100) : 0;
+        } else {
+          // Produto sem progresso
+          progressoPorProduto.set(produto.id, {
+            id: produto.id,
+            nome: produto.nome,
+            sistema_nome: produto.sistemas?.nome || 'Sistema',
+            aulas_concluidas: 0,
+            total_aulas: totalAulas,
+            percentual: 0
+          });
+        }
+      });
+
+      const produtos = Array.from(progressoPorProduto.values());
 
       // Calcular progresso geral
       const totalAulas = produtos.reduce((sum, produto) => sum + produto.total_aulas, 0);
@@ -341,15 +397,20 @@ export const UserProgressViewFinal: React.FC = () => {
                                 <div className="w-24">
                                   <Progress value={produto.percentual} className="h-2" />
                                 </div>
-                                <Badge 
-                                  variant={produto.percentual === 100 ? "default" : "secondary"}
-                                  className="text-xs min-w-[50px]"
-                                >
-                                  {produto.percentual}%
-                                </Badge>
-                                {produto.percentual === 100 && (
-                                  <CheckCircle className="h-4 w-4 text-green-400" />
-                                )}
+                                 <div className="flex items-center space-x-2">
+                                   <Badge 
+                                     variant={produto.percentual === 100 ? "default" : "secondary"}
+                                     className="text-xs min-w-[50px]"
+                                   >
+                                     {produto.percentual}%
+                                   </Badge>
+                                   {produto.percentual === 100 && (
+                                     <div className="bg-green-600/90 text-green-50 px-2 py-1 rounded-full text-xs font-medium flex items-center shadow-lg">
+                                       <CheckCircle className="h-3 w-3 mr-1" />
+                                       Concluído
+                                     </div>
+                                   )}
+                                 </div>
                               </div>
                             </div>
                           </CardContent>
