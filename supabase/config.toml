@@ -49,11 +49,14 @@ verify_jwt = false
 [functions.update-cartorio-permissions]
 verify_jwt = true
 
+[functions.generate-admin-jwt]
+verify_jwt = false
+
 [functions.get-cartorios-admin]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-cartorio]
-verify_jwt = true
+verify_jwt = false
 
 [functions.update-bunny-video-ids]
 verify_jwt = true

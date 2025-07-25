@@ -76,6 +76,26 @@ const AdminLogin = () => {
 
         console.log('🔍 DEBUG: Admin login successful for:', adminData.nome);
         
+        // Gerar JWT customizado para admin
+        try {
+          const { data: jwtData, error: jwtError } = await supabase.functions.invoke('generate-admin-jwt', {
+            body: { email: data.user.email }
+          });
+
+          if (jwtError || !jwtData?.success) {
+            console.error('❌ [AdminLogin] Failed to generate admin JWT:', jwtError);
+            throw new Error('Erro ao gerar token administrativo');
+          }
+
+          // Salvar JWT customizado no localStorage
+          localStorage.setItem('admin_jwt', jwtData.adminJWT);
+          
+          console.log('✅ [AdminLogin] Admin JWT generated and stored');
+        } catch (jwtError) {
+          console.error('❌ [AdminLogin] JWT generation error:', jwtError);
+          // Continuar mesmo se falhar - o sistema tentará outras formas de autenticação
+        }
+        
         // Aguardar um pouco para garantir que o estado seja atualizado
         await new Promise(resolve => setTimeout(resolve, 100));
         
