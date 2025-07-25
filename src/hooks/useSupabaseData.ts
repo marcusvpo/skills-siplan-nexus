@@ -3,9 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import type { Database } from '@/types/database';
 
-type Sistema = Database['public']['Tables']['sistemas']['Row'];
-type Produto = Database['public']['Tables']['produtos']['Row'];
-type Modulo = Database['public']['Tables']['modulos'] extends { Row: infer R } ? R : any; // Caso exista
+type Sistema = Database['public']['Tables']['sistemas']['Row'] & {
+  produtos?: Produto[];
+};
+type Produto = Database['public']['Tables']['produtos']['Row'] & {
+  video_aulas?: VideoAula[];
+};
 type VideoAula = Database['public']['Tables']['video_aulas']['Row'];
 type VisualizacaoCartorio = Database['public']['Tables']['visualizacoes_cartorio']['Row'];
 type Favorito = Database['public']['Tables']['favoritos_cartorio']['Row'];
@@ -26,10 +29,7 @@ export const useSistemas = () => {
           *,
           produtos (
             *,
-            modulos (
-              *, 
-              video_aulas (*)
-            )
+            video_aulas (*)
           )
         `)
         .order('ordem', { ascending: true });
@@ -44,27 +44,27 @@ export const useSistemas = () => {
   });
 };
 
-// Hook para video aulas de um módulo
-export const useVideoAulas = (moduloId?: string) => {
+// Hook para video aulas de um produto
+export const useVideoAulas = (produtoId?: string) => {
   const { authenticatedClient, user } = useAuth();
   const client = user?.type === 'cartorio' ? authenticatedClient : supabase;
 
   return useQuery<VideoAula[]>({
-    queryKey: ['video_aulas', moduloId],
+    queryKey: ['video_aulas', produtoId],
     queryFn: async () => {
-      if (!client || !moduloId) return [];
+      if (!client || !produtoId) return [];
 
       const { data, error } = await client
         .from('video_aulas')
         .select('*')
-        .eq('modulo_id', moduloId)
+        .eq('produto_id', produtoId)
         .order('ordem', { ascending: true });
 
       if (error) throw error;
 
       return data || [];
     },
-    enabled: !!client && !!moduloId,
+    enabled: !!client && !!produtoId,
   });
 };
 
@@ -78,30 +78,11 @@ export const useVisualizacoes = (cartorioId?: string) => {
     queryFn: async () => {
       if (!client || !cartorioId) return [];
 
-      let query = client
+      const { data, error } = await client
         .from('visualizacoes_cartorio')
-        .select(`
-          *,
-          video_aulas (
-            *,
-            modulos (
-              *,
-              produtos (
-                *,
-                sistemas (*)
-              )
-            )
-          )
-        `)
-        .order('ultima_visualizacao', { ascending: false });
-
-      if (cartorioId && user?.type === 'admin') {
-        query = query.eq('cartorio_usuario_id', cartorioId);
-      } else {
-        query = query.eq('cartorio_id', cartorioId);
-      }
-
-      const { data, error } = await query;
+        .select('*')
+        .eq('cartorio_id', cartorioId)
+        .order('id', { ascending: false });
 
       if (error) throw error;
 
@@ -123,19 +104,7 @@ export const useFavoritos = (cartorioId?: string) => {
 
       const { data, error } = await client
         .from('favoritos_cartorio')
-        .select(`
-          *,
-          video_aulas (
-            *,
-            modulos (
-              *,
-              produtos (
-                *,
-                sistemas (*)
-              )
-            )
-          )
-        `)
+        .select('*')
         .eq('cartorio_id', cartorioId)
         .order('data_favoritado', { ascending: false });
 
@@ -156,13 +125,11 @@ export const useUpdateProgress = () => {
   return useMutation({
     mutationFn: async ({
       videoAulaId,
-      progressoSegundos,
       completo,
       cartorioId,
       userId,
     }: {
       videoAulaId: string;
-      progressoSegundos: number;
       completo: boolean;
       cartorioId: string;
       userId: string;
@@ -176,9 +143,7 @@ export const useUpdateProgress = () => {
             video_aula_id: videoAulaId,
             cartorio_id: cartorioId,
             user_id: userId,
-            progresso_segundos: progressoSegundos,
             completo,
-            ultima_visualizacao: new Date().toISOString(),
           },
           { onConflict: 'video_aula_id,cartorio_id,user_id' }
         )

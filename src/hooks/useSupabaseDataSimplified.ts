@@ -1,7 +1,20 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { Sistema, Produto, VideoAulaDetalhada } from '@/types/database';
+import type { Database } from '@/types/database';
+
+type Sistema = Database['public']['Tables']['sistemas']['Row'] & {
+  produtos?: Produto[];
+};
+type Produto = Database['public']['Tables']['produtos']['Row'] & {
+  video_aulas?: VideoAula[];
+};
+type VideoAula = Database['public']['Tables']['video_aulas']['Row'];
+type VideoAulaDetalhada = VideoAula & {
+  produtos?: Produto & {
+    sistemas?: Sistema;
+  };
+};
 
 // ✅ Configurações do React Query
 const QUERY_CONFIG = {

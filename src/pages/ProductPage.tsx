@@ -23,9 +23,6 @@ const ProductPage = () => {
   const navigate = useNavigate();
 
   const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
-  
-  // Hook para progresso reativo
-  const { marcarVideoCompleto } = useProgressoReativo(productId!);
 
   useEffect(() => {
     logger.info('🎯 [ProductPage] Page loaded', { 
