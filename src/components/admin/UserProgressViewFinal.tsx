@@ -72,24 +72,22 @@ export const UserProgressViewFinal: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Buscar cartórios com contagem de usuários
-      const { data: cartoriosData, error: cartoriosError } = await supabase
-        .from('cartorios')
-        .select(`
-          id, nome, cidade, estado,
-          cartorio_usuarios!inner (id)
-        `)
-        .eq('is_active', true)
-        .order('nome');
-
+      // Usar edge function para evitar problemas de RLS
+      const { data: cartoriosResponse, error: cartoriosError } = await supabase.functions.invoke('get-cartorios-admin', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      
       if (cartoriosError) throw cartoriosError;
+      const cartoriosData = cartoriosResponse?.data || [];
 
       // Processar dados para contar usuários
       const cartoriosProcessados = cartoriosData.map(cartorio => ({
         id: cartorio.id,
         nome: cartorio.nome,
-        cidade: cartorio.cidade,
-        estado: cartorio.estado,
+        cidade: cartorio.cidade || '',
+        estado: cartorio.estado || '',
         total_usuarios: cartorio.cartorio_usuarios?.length || 0
       }));
 
@@ -110,31 +108,32 @@ export const UserProgressViewFinal: React.FC = () => {
     try {
       setIsLoadingDetalhes(true);
 
-      // Buscar dados básicos do cartório
-      const { data: cartorioData, error: cartorioError } = await supabase
-        .from('cartorios')
-        .select('id, nome, cidade, estado')
-        .eq('id', cartorioId)
-        .single();
+      // Usar edge function para buscar dados do cartório e usuários
+      const { data: cartoriosResponse, error: cartoriosError } = await supabase.functions.invoke('get-cartorios-admin', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
 
-      if (cartorioError) throw cartorioError;
+      if (cartoriosError) throw cartoriosError;
+      
+      const cartorioData = cartoriosResponse?.data?.find((c: any) => c.id === cartorioId);
+      if (!cartorioData) throw new Error('Cartório não encontrado');
 
-      // Buscar usuários do cartório
-      const { data: usuariosData, error: usuariosError } = await supabase
-        .from('cartorio_usuarios')
-        .select('id, username, email, is_active, cartorio_id')
-        .eq('cartorio_id', cartorioId)
-        .eq('is_active', true)
-        .order('username');
-
-      if (usuariosError) throw usuariosError;
+      const usuariosData = cartorioData.cartorio_usuarios || [];
 
       setCartorioDetalhado({
         id: cartorioData.id,
         nome: cartorioData.nome,
-        cidade: cartorioData.cidade,
-        estado: cartorioData.estado,
-        usuarios: usuariosData || []
+        cidade: cartorioData.cidade || '',
+        estado: cartorioData.estado || '',
+        usuarios: usuariosData.map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          is_active: u.is_active,
+          cartorio_id: cartorioId
+        }))
       });
 
     } catch (error) {
@@ -153,14 +152,9 @@ export const UserProgressViewFinal: React.FC = () => {
     try {
       setIsLoadingProgresso(true);
 
-      // Buscar dados básicos do usuário
-      const { data: usuarioData, error: usuarioError } = await supabase
-        .from('cartorio_usuarios')
-        .select('id, username, email, is_active')
-        .eq('id', usuarioId)
-        .single();
-
-      if (usuarioError) throw usuarioError;
+      // Buscar dados do usuário a partir do cartório detalhado que já temos
+      const usuarioData = cartorioDetalhado?.usuarios.find(u => u.id === usuarioId);
+      if (!usuarioData) throw new Error('Usuário não encontrado');
 
       // Usar a nova função SQL que filtra por permissões
       const { data: progressData, error: progressError } = await supabase

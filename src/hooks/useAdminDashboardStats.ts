@@ -25,54 +25,25 @@ export const useAdminDashboardStats = () => {
         const cartoriosAtivos = cartoriosData?.data?.filter((c: any) => c.is_active).length || 0;
 
 
-        // Total de usuários cadastrados (admins + usuários de cartório)
-        const [
-          { count: adminCount, error: adminError },
-          { count: cartorioUsersCount, error: cartorioUsersError }
-        ] = await Promise.all([
-          supabase.from('admins').select('*', { count: 'exact', head: true }),
-          supabase.from('cartorio_usuarios').select('*', { count: 'exact', head: true }).eq('is_active', true)
-        ]);
-
-        if (adminError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching admins:', adminError);
-          throw adminError;
+        // Usar edge function para buscar estatísticas para evitar problemas de RLS
+        const { data: statsData, error: statsError } = await supabase.functions.invoke('get-admin-stats', {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
+        });
+        
+        if (statsError) {
+          logger.error('❌ [useAdminDashboardStats] Error fetching stats via function:', statsError);
+          throw new Error('Erro ao buscar estatísticas');
         }
 
-        if (cartorioUsersError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching cartorio users:', cartorioUsersError);
-          throw cartorioUsersError;
-        }
-
-        // Total de videoaulas
-        const { count: videoaulasCount, error: videoaulasError } = await supabase
-          .from('video_aulas')
-          .select('*', { count: 'exact', head: true });
-
-        if (videoaulasError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching videoaulas:', videoaulasError);
-          throw videoaulasError;
-        }
-
-        // Total de sistemas
-        const { count: sistemasCount, error: sistemasError } = await supabase
-          .from('sistemas')
-          .select('*', { count: 'exact', head: true });
-
-        if (sistemasError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching sistemas:', sistemasError);
-          throw sistemasError;
-        }
-
-        // Total de produtos
-        const { count: produtosCount, error: produtosError } = await supabase
-          .from('produtos')
-          .select('*', { count: 'exact', head: true });
-
-        if (produtosError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching produtos:', produtosError);
-          throw produtosError;
-        }
+        const {
+          adminCount = 0,
+          cartorioUsersCount = 0, 
+          videoaulasCount = 0,
+          sistemasCount = 0,
+          produtosCount = 0
+        } = statsData?.data || {};
 
         const stats = {
           cartoriosAtivos: cartoriosAtivos || 0,
