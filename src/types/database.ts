@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
@@ -49,7 +47,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cartorios"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       admins: {
@@ -119,7 +117,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sistemas"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       cartorio_usuarios: {
@@ -163,7 +161,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cartorios"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       cartorios: {
@@ -229,7 +227,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "video_aulas"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       produtos: {
@@ -261,7 +259,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sistemas"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       sistemas: {
@@ -324,7 +322,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "video_aulas"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       video_aulas: {
@@ -368,7 +366,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       visualizacoes_cartorio: {
@@ -413,7 +411,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "video_aulas"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
     }
@@ -553,8 +551,8 @@ export type Database = {
   }
 }
 
+// Helper types for easier usage (optional)
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -564,8 +562,7 @@ export type Tables<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals

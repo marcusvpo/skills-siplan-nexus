@@ -56,23 +56,23 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
     try {
       setProgresso(prev => ({ ...prev, isLoading: true }));
 
-      // Buscando o produto do video_aula
+      // Buscar produto_id do video
       const { data: videoAula, error: errVideoAula } = await supabase
-        .from<VideoAula>('video_aulas')
+        .from('video_aulas')
         .select('id, produto_id')
         .eq('id', videoId)
         .single();
 
       if (errVideoAula || !videoAula) {
-        throw new Error(errVideoAula?.message || 'Videoaula não encontrada');
+        throw new Error(errVideoAula?.message || 'Vídeo-aula não encontrada');
       }
 
       const produtoId = videoAula.produto_id;
       if (!produtoId) throw new Error('Produto do vídeo não encontrado');
 
-      // Total de aulas do produto
+      // Buscar todas as aulas do produto
       const { data: aulasProduto, error: errAulasProduto } = await supabase
-        .from<VideoAula>('video_aulas')
+        .from('video_aulas')
         .select('id')
         .eq('produto_id', produtoId);
 
@@ -81,11 +81,11 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
       const totalAulas = aulasProduto?.length ?? 0;
       const videoIdsProduto = aulasProduto?.map(a => a.id) ?? [];
 
-      // Contar quantas aulas já foram concluídas
+      // Buscar visualizações completas desse usuário/ cartório / produto
       let aulasCompletas = 0;
       if (videoIdsProduto.length > 0) {
         const { data: visualizacoesCompletas, error: errVisualizacoes } = await supabase
-          .from<VisualizacaoCartorio>('visualizacoes_cartorio')
+          .from('visualizacoes_cartorio')
           .select('video_aula_id')
           .eq('cartorio_id', user.cartorio_id)
           .eq('user_id', user.id)
@@ -97,14 +97,14 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
         aulasCompletas = visualizacoesCompletas?.length ?? 0;
       }
 
-      // Visualização específica do vídeo
+      // Buscar visualização específica desse vídeo
       const { data: visualizacao, error: errVisualizacao } = await supabase
-        .from<VisualizacaoCartorio>('visualizacoes_cartorio')
+        .from('visualizacoes_cartorio')
         .select('completo')
         .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
         .eq('video_aula_id', videoId)
-        .single();
+        .maybeSingle(); // (usa maybeSingle pra não dar erro se não existe)
 
       if (errVisualizacao && errVisualizacao.code !== 'PGRST116') {
         throw new Error(errVisualizacao.message);
