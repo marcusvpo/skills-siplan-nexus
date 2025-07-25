@@ -128,7 +128,9 @@ export const useProgressoProduto = (produtoId: string) => {
   };
 
   useEffect(() => {
-    calcularProgresso();
+    if (produtoId && user?.cartorio_id && user?.id) {
+      calcularProgresso();
+    }
   }, [produtoId, user?.cartorio_id, user?.id, refreshKey]);
 
   return {

@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-import { Progress } from '@/components/ui/progress';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Clock, BookOpen, RefreshCw } from 'lucide-react';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo'; // Atualizado
-import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { useProgressoProduto } from '@/hooks/useProgressoProduto';
 
 interface ProductProgressReativoProps {
-  produtoId?: string; // Note: deve ser videoId para uso correto do hook atualmente
+  produtoId?: string;
   produtoNome: string;
 }
 
@@ -16,11 +14,7 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
 }) => {
   console.log('🟢 [ProductProgressReativo] Componente renderizado:', { produtoId, produtoNome });
 
-  // Como o hook espera um videoId, aqui deverá ser adaptado para um só (ou alterar o hook)
-  // Para múltiplos vídeo aulas, crie um hook específico ou outro componente.
-
-  // Aqui vamos usar produtoId como videoId direto para demo.
-  const { totalAulas, aulasCompletas, percentual, isLoading, error } = useProgressoReativo(produtoId);
+  const { total: totalAulas, completas: aulasCompletas, percentual, isLoading, error } = useProgressoProduto(produtoId || '');
 
   console.log('🟢 [ProductProgressReativo] Hook retornou:', {
     totalAulas,
