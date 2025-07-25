@@ -46,27 +46,71 @@ serve(async (req) => {
       });
     }
 
-    // Verificar JWT (para admins)
+    // Verificar se é admin - duas formas: JWT customizado ou Supabase Auth
     let isAdmin = false;
+    let adminData = null;
+    
     try {
+      // Tentativa 1: JWT customizado (HS256)
       const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
-      console.log('🔐 [JWT] Token verified, checking admin status');
-      
-      // Para esta função, assumimos que apenas admins fazem esta operação
+      console.log('🔐 [JWT] Custom token verified, checking admin status');
       isAdmin = payload.role === 'admin' || payload.is_admin === true;
       
-      if (!isAdmin) {
-        console.error('❌ [AUTH] User is not admin');
-        return new Response(JSON.stringify({ error: 'Acesso negado: apenas administradores' }), {
-          status: 403,
+      if (isAdmin) {
+        console.log('✅ [AUTH] Admin verified via custom JWT');
+      }
+    } catch (customJwtError) {
+      console.log('🔄 [JWT] Custom JWT verification failed, trying Supabase Auth:', customJwtError.message);
+      
+      // Tentativa 2: Token do Supabase Auth
+      try {
+        const supabaseClient = createClient(
+          supabaseUrl,
+          customServiceKey || legacyServiceKey || '',
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        );
+
+        // Usar o token para fazer uma requisição autenticada ao Supabase
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+        
+        if (userError || !userData.user) {
+          throw new Error('Token Supabase inválido');
+        }
+
+        // Verificar se o usuário é admin
+        const { data: adminCheck, error: adminError } = await supabaseClient
+          .from('admins')
+          .select('*')
+          .eq('email', userData.user.email)
+          .single();
+
+        if (adminError || !adminCheck) {
+          throw new Error('Usuário não é administrador');
+        }
+
+        isAdmin = true;
+        adminData = adminCheck;
+        console.log('✅ [AUTH] Admin verified via Supabase Auth:', userData.user.email);
+        
+      } catch (supabaseAuthError) {
+        console.error('❌ [AUTH] Both JWT verifications failed:', supabaseAuthError.message);
+        return new Response(JSON.stringify({ error: 'Token inválido ou usuário não é admin' }), {
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-    } catch (error) {
-      console.error('❌ [JWT] Token verification failed:', error.message);
-      return new Response(JSON.stringify({ error: 'Token JWT inválido ou expirado' }), {
-        status: 401,
+    }
+
+    if (!isAdmin) {
+      console.error('❌ [AUTH] User is not admin');
+      return new Response(JSON.stringify({ error: 'Acesso negado: apenas administradores' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

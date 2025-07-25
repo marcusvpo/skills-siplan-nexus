@@ -10,8 +10,12 @@ export const useAdminDashboardStats = () => {
       logger.info('📊 [useAdminDashboardStats] Fetching dashboard statistics');
 
       try {
-        // Usar edge function para buscar cartórios (bypassa RLS)
-        const { data: cartoriosData, error: cartoriosError } = await supabase.functions.invoke('get-cartorios-admin');
+        // Usar edge function para buscar cartórios com auth token do Supabase
+        const { data: cartoriosData, error: cartoriosError } = await supabase.functions.invoke('get-cartorios-admin', {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
+        });
         
         if (cartoriosError) {
           logger.error('❌ [useAdminDashboardStats] Error fetching cartorios via function:', cartoriosError);

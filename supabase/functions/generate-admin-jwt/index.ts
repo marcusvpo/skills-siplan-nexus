@@ -24,17 +24,50 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Verificar se o token é válido fazendo uma requisição com ele
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/admins?select=*&email=eq.${req.url.includes('email=') ? new URL(req.url).searchParams.get('email') : ''}`, {
+    // Verificar se o token é válido usando Supabase Auth
+    let userEmail = null;
+    
+    try {
+      // Criar cliente Supabase para verificação
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const serviceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': serviceKey || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Token inválido');
+      }
+
+      const userData = await response.json();
+      userEmail = userData.email;
+      
+      if (!userEmail) {
+        throw new Error('Email não encontrado no token');
+      }
+      
+    } catch (authError) {
+      return new Response(JSON.stringify({ error: 'Token inválido ou expirado' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verificar se o usuário é admin
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/admins?select=*&email=eq.${userEmail}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
         'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
       }
     });
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: 'Token inválido ou usuário não é admin' }), {
-        status: 401,
+      return new Response(JSON.stringify({ error: 'Erro ao verificar status de admin' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
