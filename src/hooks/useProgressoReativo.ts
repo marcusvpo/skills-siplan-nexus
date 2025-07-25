@@ -61,7 +61,7 @@ export const useProgressoReativo = (videoId?: string): ProgressoReativo => {
         .from('video_aulas')
         .select('id, produto_id')
         .eq('id', videoId)
-        .single();
+        .maybeSingle();
 
       if (errVideoAula || !videoAula) {
         throw new Error(errVideoAula?.message || 'Vídeo-aula não encontrada');
