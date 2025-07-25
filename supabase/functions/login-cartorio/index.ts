@@ -32,9 +32,9 @@ serve(async (req) => {
     console.log(`ℹ️ [LOGIN] Iniciando autenticação para username: ${username}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    console.log(`🔧 [LOGIN] Using service key: ${supabaseServiceKey ? 'Present' : 'Missing'}`);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    console.log(`🔧 [LOGIN] Using custom service key: ${customServiceKey ? 'Present' : 'Missing'}`);
+    const supabase = createClient(supabaseUrl, customServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
