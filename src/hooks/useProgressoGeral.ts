@@ -48,13 +48,12 @@ export const useProgressoGeral = () => {
 
       if (errVideoAulas) throw new Error(errVideoAulas.message);
 
-      // Buscar visualizacoes completas do usuário/cartório
+      // Buscar visualizacoes completas do usuário
       const { data: visualizacoes, error: errVisualizacoes } = await supabase
-        .from('visualizacoes_cartorio')
+        .from('user_video_progress')
         .select('video_aula_id')
-        .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
-        .eq('completo', true);
+        .eq('completed', true);
 
       if (errVisualizacoes) throw new Error(errVisualizacoes.message);
 
