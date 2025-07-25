@@ -102,17 +102,26 @@ export const useCreateCartorio = () => {
       email_contato: string;
       data_expiracao: string;
     }) => {
-      logger.info('🏗️ [useCreateCartorio] Creating cartorio:', { nome: cartorioData.nome });
+      logger.info('🏗️ [useCreateCartorio] Creating cartorio:', { 
+        nome: cartorioData.nome,
+        email_contato: cartorioData.email_contato,
+        data_expiracao: cartorioData.data_expiracao
+      });
       
       try {
+        // Validar campos obrigatórios
+        if (!cartorioData.nome || !cartorioData.email_contato || !cartorioData.data_expiracao) {
+          throw new Error('Campos obrigatórios não preenchidos: nome, email_contato, data_expiracao');
+        }
+
         // 1. Criar o cartório
         const { data: cartorio, error: cartorioError } = await supabase
           .from('cartorios')
           .insert({
-            nome: cartorioData.nome,
-            cidade: cartorioData.cidade || null,
-            estado: cartorioData.estado || 'SP',
-            observacoes: cartorioData.observacoes || null,
+            nome: cartorioData.nome.trim(),
+            cidade: cartorioData.cidade?.trim() || null,
+            estado: cartorioData.estado?.trim() || 'SP',
+            observacoes: cartorioData.observacoes?.trim() || null,
             is_active: true
           })
           .select()
@@ -125,11 +134,12 @@ export const useCreateCartorio = () => {
 
         logger.info('✅ [useCreateCartorio] Cartorio created:', { id: cartorio.id });
 
-        // 2. Gerar token único (formato seguro e válido)
-        const timestamp = Date.now();
-        const randomBytes = crypto.getRandomValues(new Uint8Array(6));
-        const randomSuffix = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
-        const login_token = `CART${timestamp}${randomSuffix}`;
+        // 2. Gerar token único (formato simples e seguro)
+        const timestamp = Date.now().toString();
+        const randomNum = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+        const login_token = `CART${timestamp.slice(-8)}${randomNum}`;
+
+        logger.info('🔑 [useCreateCartorio] Generated token:', { login_token });
 
         // 3. Criar acesso do cartório
         const { data: acesso, error: acessoError } = await supabase
@@ -138,7 +148,7 @@ export const useCreateCartorio = () => {
             login_token,
             cartorio_id: cartorio.id,
             data_expiracao: cartorioData.data_expiracao,
-            email_contato: cartorioData.email_contato,
+            email_contato: cartorioData.email_contato.trim(),
             ativo: true
           })
           .select()
@@ -161,7 +171,7 @@ export const useCreateCartorio = () => {
           .insert({
             cartorio_id: cartorio.id,
             username: 'admin',
-            email: cartorioData.email_contato,
+            email: cartorioData.email_contato.trim(),
             is_active: true
           });
 
