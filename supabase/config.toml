@@ -55,6 +55,9 @@ verify_jwt = false
 [functions.get-cartorios-admin]
 verify_jwt = false
 
+[functions.get-admin-stats]
+verify_jwt = false
+
 [functions.delete-cartorio]
 verify_jwt = false
 
