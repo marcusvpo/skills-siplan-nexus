@@ -70,7 +70,10 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
         console.log('🎯 [ProductsList] Renderizando produto:', {
           produtoId: produto.id,
           nome: produto.nome,
-          progresso
+          progresso,
+          totalAulas,
+          progressLoading,
+          allProgressos: progressos
         });
         
         return (
