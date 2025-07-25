@@ -5,6 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Play, Clock, ArrowRight, Search, X, CheckCircle } from 'lucide-react';
 import { useProgressoReativo } from '@/hooks/useProgressoReativo';
+import { useProgressContext } from '@/contexts/ProgressContext';
+import { useAuth } from '@/contexts/AuthContextFixed';
+import { supabase } from '@/integrations/supabase/client';
+
+// Helper para usar o contexto de progresso de forma segura
+const useSafeProgressContext = () => {
+  try {
+    return useProgressContext();
+  } catch {
+    return { refreshKey: 0 };
+  }
+};
 
 interface VideoAula {
   id: string;
@@ -28,9 +40,49 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
 
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuth();
 
-  // Hook para obter o progresso do produto
-  const { isVideoCompleto } = useProgressoReativo(productId);
+  // Estado para controlar os vídeos completos
+  const [videosCompletos, setVideosCompletos] = useState<Set<string>>(new Set());
+  const [loadingProgress, setLoadingProgress] = useState(true);
+  
+  // Hook do progresso (apenas para trigger de updates)
+  const { refreshKey } = useSafeProgressContext();
+
+  // Buscar progresso das videoaulas
+  const fetchProgress = React.useCallback(async () => {
+    if (!user?.cartorio_id || !user?.id || videoAulas.length === 0) {
+      setLoadingProgress(false);
+      return;
+    }
+
+    try {
+      setLoadingProgress(true);
+      const videoIds = videoAulas.map(v => v.id);
+      
+      const { data: visualizacoes, error } = await supabase
+        .from('visualizacoes_cartorio')
+        .select('video_aula_id')
+        .eq('cartorio_id', user.cartorio_id)
+        .eq('user_id', user.id)
+        .eq('completo', true)
+        .in('video_aula_id', videoIds);
+
+      if (error) throw error;
+
+      const completedSet = new Set(visualizacoes?.map(v => v.video_aula_id) || []);
+      setVideosCompletos(completedSet);
+    } catch (error) {
+      console.error('Erro ao buscar progresso das videoaulas:', error);
+    } finally {
+      setLoadingProgress(false);
+    }
+  }, [user?.cartorio_id, user?.id, videoAulas]);
+
+  // Atualizar progresso quando dados mudarem
+  React.useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress, refreshKey]);
 
   // Filtrar videoaulas com base no termo de pesquisa
   const filteredVideoAulas = useMemo(() => {
@@ -114,7 +166,7 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {sortedVideoAulas.map((aula) => {
-            const isCompleted = isVideoCompleto ? isVideoCompleto(aula.id) : false;
+            const isCompleted = videosCompletos.has(aula.id);
 
             return (
               <Card
