@@ -47,7 +47,7 @@ verify_jwt = false
 [functions.update-cartorio-permissions]
 verify_jwt = true
 
-[functions.generate-admin-jwt]
+[functions.admin-auth]
 verify_jwt = false
 
 [functions.get-cartorios-admin]

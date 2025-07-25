@@ -73,7 +73,7 @@ export const useProgressoProduto = (produtoId: string) => {
       // 2. Buscar videoaulas concluídas pelo usuário - FORÇA REFRESH
       const timestamp = Date.now();
       
-      // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+      // ✅ USAR user_id do contexto do usuário autenticado
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
       }
