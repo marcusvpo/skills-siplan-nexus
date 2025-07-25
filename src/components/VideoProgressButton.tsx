@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { toast } from '@/hooks/use-toast';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo';
+import { useProgressContext } from '@/contexts/ProgressContext';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
@@ -29,6 +29,9 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   
   // Obtém dados do usuário autenticado e status de autenticação do AuthContextFixed
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Obtém funcionalidades do contexto de progresso para forçar refresh
+  const { refreshAll } = useProgressContext();
   
   // Estados locais do componente
   const [isCompleted, setIsCompleted] = useState(false);
@@ -73,17 +76,16 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           videoAulaId
         });
 
-        // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
+        // ✅ Usar nova tabela user_video_progress
         if (!user?.id) {
           console.error('❌ [VideoProgressButton] Usuário não autenticado para verificação');
           return;
         }
 
         const { data, error } = await supabase
-          .from('visualizacoes_cartorio')
-          .select('completo')
+          .from('user_video_progress')
+          .select('completed')
           .eq('video_aula_id', videoAulaId)
-          .eq('cartorio_id', cartorioId)
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -91,7 +93,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
           console.error('❌ [VideoProgressButton] Erro ao verificar progresso:', error);
         } else {
           console.log('✅ [VideoProgressButton] Progresso encontrado:', data);
-          setIsCompleted(data?.completo || false);
+          setIsCompleted(data?.completed || false);
         }
       } catch (error) {
         console.error('❌ [VideoProgressButton] Erro inesperado:', error);
@@ -139,100 +141,41 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         return;
       }
 
-      // ✅ CORREÇÃO: Usar função robusta com RLS configurado
-      console.log('🔄 [VideoProgressButton] Configurando contexto do cartório e registrando visualização:', {
-        cartorio_id: cartorioId,
-        video_aula_id: videoAulaId,
-        completo: newCompletedState,
-        concluida: newCompletedState
-      });
-
-      // Primeiro, setar o contexto do cartório para RLS
-      const { error: contextError } = await supabase.rpc('set_cartorio_context', {
-        p_cartorio_id: cartorioId
-      });
-
-      if (contextError) {
-        console.error('❌ [VideoProgressButton] Erro ao setar contexto:', contextError);
-        toast({
-          title: "Erro",
-          description: "Erro ao configurar contexto do cartório",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('✅ [VideoProgressButton] Contexto do cartório configurado com sucesso');
-
-      // Testar se o contexto foi setado corretamente
-      const { data: testCartorioId, error: testError } = await supabase.rpc('get_current_cartorio_id_from_jwt');
-      console.log('🔍 [VideoProgressButton] Contexto após setar:', testCartorioId);
-      
-      if (testError) {
-        console.error('❌ [VideoProgressButton] Erro ao testar contexto:', testError);
-      }
-
-      // Usar a função de teste para verificar múltiplas fontes de contexto
-      const { data: contextTest, error: contextTestError } = await supabase.rpc('test_cartorio_context');
-      
-      if (contextTestError) {
-        console.error('❌ [VideoProgressButton] Erro ao testar contexto completo:', contextTestError);
-      } else {
-        console.log('✅ [VideoProgressButton] Teste de contexto completo:', contextTest);
-      }
-
-      // Usar a nova função robusta para registrar visualização
-      console.log('💾 [VideoProgressButton] Executando RPC com dados:', {
-        p_video_aula_id: videoAulaId,
-        p_completo: newCompletedState,
-        p_concluida: newCompletedState,
-        p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
+      // ✅ Usar nova tabela user_video_progress diretamente
+      console.log('🔄 [VideoProgressButton] Salvando progresso na nova tabela:', {
         user_id: user.id,
-        cartorio_id: cartorioId
+        video_aula_id: videoAulaId,
+        completed: newCompletedState
       });
 
-      // Registrar visualização usando a função robusta
-      const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
-        p_video_aula_id: videoAulaId,
-        p_completo: newCompletedState,
-        p_concluida: newCompletedState,
-        p_data_conclusao: newCompletedState ? new Date().toISOString() : null,
-      });
+      const { data, error } = await supabase
+        .from('user_video_progress')
+        .upsert({
+          user_id: user.id,
+          video_aula_id: videoAulaId,
+          completed: newCompletedState,
+          completed_at: newCompletedState ? new Date().toISOString() : null
+        }, {
+          onConflict: 'user_id,video_aula_id'
+        })
+        .select('id')
+        .single();
 
       if (error) {
-        console.error('❌ [VideoProgressButton] Erro RPC:', error);
-        console.error('❌ [VideoProgressButton] Detalhes do erro:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // Se o RPC falhar, mostrar toast informativo
+        console.error('❌ [VideoProgressButton] Erro ao salvar progresso:', error);
         toast({
           title: "Erro",
           description: "Não foi possível atualizar o progresso. Verifique sua conexão e tente novamente.",
           variant: "destructive",
         });
-        
         return;
       }
 
-      // Verificar se a função retornou sucesso
-      const result = data as { success: boolean; error?: string; debug?: string };
-      if (result && !result.success) {
-        console.error('❌ [VideoProgressButton] Erro retornado pela função:', result);
-        console.error('❌ [VideoProgressButton] Debug da função:', result.debug || 'Sem debug');
-        toast({
-          title: "Erro",
-          description: result.error || "Erro desconhecido ao atualizar progresso",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('✅ [VideoProgressButton] Visualização registrada:', data);
+      console.log('✅ [VideoProgressButton] Progresso salvo com sucesso:', data);
       setIsCompleted(newCompletedState);
+
+      // ✅ Refresh all progress contexts to update UI immediately
+      refreshAll();
 
       // ✅ SEMPRE notificar mudança de progresso
       if (onProgressChange) {
