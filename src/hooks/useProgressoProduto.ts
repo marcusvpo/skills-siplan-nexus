@@ -70,7 +70,7 @@ export const useProgressoProduto = (produtoId: string) => {
         return;
       }
 
-      // 2. Buscar videoaulas concluídas pelo cartório - FORÇA REFRESH
+      // 2. Buscar videoaulas concluídas pelo usuário - FORÇA REFRESH
       const timestamp = Date.now();
       
       // ✅ USAR user_id do contexto ao invés de supabase.auth.getUser()
@@ -78,23 +78,22 @@ export const useProgressoProduto = (produtoId: string) => {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('🔍 [useProgressoProduto] Buscando visualizações para cartório:', user.cartorio_id, 'usuário:', user.id);
+      console.log('🔍 [useProgressoProduto] Buscando progresso para usuário:', user.id);
 
-      const { data: visualizacoes, error: visualError } = await supabase
-        .from('visualizacoes_cartorio')
+      const { data: progresso, error: progressoError } = await supabase
+        .from('user_video_progress')
         .select('video_aula_id')
-        .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
-        .eq('completo', true)
+        .eq('completed', true)
         .in('video_aula_id', videoIds)
         .range(0, 1000); // Força uma nova query sempre
 
-      if (visualError) {
-        console.error('❌ [useProgressoProduto] Erro ao buscar visualizações:', visualError);
-        throw visualError;
+      if (progressoError) {
+        console.error('❌ [useProgressoProduto] Erro ao buscar progresso:', progressoError);
+        throw progressoError;
       }
 
-      const completas = visualizacoes?.length || 0;
+      const completas = progresso?.length || 0;
       const percentual = total > 0 ? Math.round((completas / total) * 100) : 0;
       const restantes = total - completas;
 
