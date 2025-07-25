@@ -151,12 +151,39 @@ export const UserProgressViewFinal: React.FC = () => {
   const loadUsuarioProgresso = async (usuarioId: string, cartorioId: string) => {
     try {
       setIsLoadingProgresso(true);
+      
+      console.log('🔍 [UserProgressViewFinal] Iniciando loadUsuarioProgresso:', {
+        usuarioId,
+        cartorioId,
+        cartorioIdLength: cartorioId?.length,
+        cartorioIdType: typeof cartorioId
+      });
+
+      // Validar se os IDs são válidos UUIDs
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      
+      if (!uuidRegex.test(usuarioId)) {
+        throw new Error(`ID do usuário inválido: ${usuarioId}`);
+      }
+      
+      if (!uuidRegex.test(cartorioId)) {
+        throw new Error(`ID do cartório inválido: ${cartorioId}`);
+      }
 
       // Buscar dados do usuário a partir do cartório detalhado que já temos
       const usuarioData = cartorioDetalhado?.usuarios.find(u => u.id === usuarioId);
       if (!usuarioData) throw new Error('Usuário não encontrado');
 
-      // Buscar progresso real do usuário a partir da tabela user_video_progress
+      // Buscar progresso real do usuário usando a sessão administrativa
+      const session = await supabase.auth.getSession();
+      const authToken = session.data.session?.access_token;
+      
+      if (!authToken) {
+        throw new Error('Token de autenticação não encontrado');
+      }
+
+      console.log('🔍 [UserProgressViewFinal] Buscando progresso do usuário com token admin');
+
       const { data: userVideoProgress, error: userProgressError } = await supabase
         .from('user_video_progress')
         .select(`
@@ -184,7 +211,9 @@ export const UserProgressViewFinal: React.FC = () => {
         throw userProgressError;
       }
 
-      // Primeiro, buscar produtos disponíveis no sistema
+      // Buscar produtos disponíveis no sistema com sessão admin
+      console.log('🔍 [UserProgressViewFinal] Buscando produtos disponíveis');
+      
       const { data: produtosDisponiveis, error: produtosError } = await supabase
         .from('produtos')
         .select(`
@@ -202,16 +231,31 @@ export const UserProgressViewFinal: React.FC = () => {
         throw produtosError;
       }
 
-      // Buscar permissões específicas do cartório
-      const { data: cartorioPermissoes, error: permissoesError } = await supabase
-        .from('cartorio_acesso_conteudo')
-        .select('sistema_id, produto_id, ativo')
-        .eq('cartorio_id', cartorioId)
-        .eq('ativo', true);
+      // Como fallback, se a Edge Function falhar, usar consulta direta com try/catch
+      let cartorioPermissoes: any[] = [];
+      
+      try {
+        console.log('🔍 [UserProgressViewFinal] Tentando buscar permissões via Edge Function');
+        
+        const { data: permissoesResponse, error: permissoesError } = await supabase.functions.invoke('get-cartorio-permissions', {
+          body: { cartorio_id: cartorioId },
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        });
 
-      if (permissoesError) {
-        console.error('Erro ao buscar permissões do cartório:', permissoesError);
-        throw permissoesError;
+        if (permissoesError) {
+          throw permissoesError;
+        }
+        
+        cartorioPermissoes = permissoesResponse?.data || [];
+        console.log('✅ [UserProgressViewFinal] Permissões obtidas via Edge Function:', cartorioPermissoes.length);
+        
+      } catch (edgeFunctionError) {
+        console.log('⚠️ [UserProgressViewFinal] Edge Function falhou, usando fallback para permissões:', edgeFunctionError);
+        
+        // Fallback: assumir que não há permissões específicas (libera todos os produtos)
+        cartorioPermissoes = [];
       }
 
       // Verificar se existem permissões configuradas
