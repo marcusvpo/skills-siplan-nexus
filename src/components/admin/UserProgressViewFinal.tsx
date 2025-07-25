@@ -184,7 +184,7 @@ export const UserProgressViewFinal: React.FC = () => {
         throw userProgressError;
       }
 
-      // Também buscar informações sobre produtos disponíveis para o cartório
+      // Primeiro, buscar produtos disponíveis no sistema
       const { data: produtosDisponiveis, error: produtosError } = await supabase
         .from('produtos')
         .select(`
@@ -202,6 +202,42 @@ export const UserProgressViewFinal: React.FC = () => {
         throw produtosError;
       }
 
+      // Buscar permissões específicas do cartório
+      const { data: cartorioPermissoes, error: permissoesError } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .select('sistema_id, produto_id, ativo')
+        .eq('cartorio_id', cartorioId)
+        .eq('ativo', true);
+
+      if (permissoesError) {
+        console.error('Erro ao buscar permissões do cartório:', permissoesError);
+        throw permissoesError;
+      }
+
+      // Verificar se existem permissões configuradas
+      const temPermissoesConfiguradas = cartorioPermissoes && cartorioPermissoes.length > 0;
+
+      let produtosFiltrados = [];
+
+      if (!temPermissoesConfiguradas) {
+        // Se não há permissões específicas, libera todos os produtos
+        produtosFiltrados = produtosDisponiveis || [];
+      } else {
+        // Se há permissões específicas, filtrar apenas os produtos liberados
+        produtosFiltrados = produtosDisponiveis?.filter(produto => {
+          // Verificar se o produto específico está liberado
+          const produtoLiberado = cartorioPermissoes.some(perm => 
+            perm.produto_id === produto.id
+          );
+          
+          // Verificar se o sistema do produto está liberado (libera todos os produtos do sistema)
+          const sistemaLiberado = cartorioPermissoes.some(perm => 
+            perm.sistema_id === produto.sistemas?.id && perm.produto_id === null
+          );
+          
+          return produtoLiberado || sistemaLiberado;
+        }) || [];
+      }
 
       // Processar progresso por produto
       const progressoPorProduto = new Map();
@@ -228,8 +264,8 @@ export const UserProgressViewFinal: React.FC = () => {
         }
       });
 
-      // Adicionar informações sobre total de aulas por produto
-      produtosDisponiveis?.forEach(produto => {
+      // Adicionar informações sobre total de aulas por produto (apenas produtos liberados)
+      produtosFiltrados?.forEach(produto => {
         const totalAulas = produto.video_aulas?.length || 0;
         
         if (progressoPorProduto.has(produto.id)) {
@@ -250,6 +286,15 @@ export const UserProgressViewFinal: React.FC = () => {
       });
 
       const produtos = Array.from(progressoPorProduto.values());
+
+      console.log('🎯 [UserProgressViewFinal] Produtos processados para cartório:', {
+        cartorioId,
+        usuarioId,
+        temPermissoesConfiguradas,
+        totalProdutosDisponiveis: produtosDisponiveis?.length || 0,
+        totalProdutosLiberados: produtosFiltrados.length,
+        produtos: produtos.map(p => ({ id: p.id, nome: p.nome, percentual: p.percentual }))
+      });
 
       // Calcular progresso geral
       const totalAulas = produtos.reduce((sum, produto) => sum + produto.total_aulas, 0);
