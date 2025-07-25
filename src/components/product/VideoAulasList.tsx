@@ -158,29 +158,38 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                       </h3>
                     </div>
 
-                    {/* Botão Assistir */}
-                    <div className="space-y-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={`w-full text-xs transition-colors ${
-                          isCompleted
-                            ? 'border-green-600 text-green-300 hover:bg-green-600/20'
-                            : 'border-gray-600 text-gray-300 hover:bg-gray-700'
-                        }`}
-                        onClick={e => {
-                          e.stopPropagation();
-                          navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
-                        }}
-                      >
-                        {isCompleted ? 'Concluída' : 'Assistir'}
-                        {isCompleted ? (
-                          <CheckCircle className="h-3 w-3 ml-1" />
-                        ) : (
-                          <ArrowRight className="h-3 w-3 ml-1" />
-                        )}
-                      </Button>
-                    </div>
+                     {/* Badge de Status e Botão */}
+                     <div className="space-y-2">
+                       {isCompleted && (
+                         <div className="flex justify-center">
+                           <div className="bg-green-600/90 text-green-50 px-2 py-1 rounded-full text-xs font-medium flex items-center shadow-lg">
+                             <CheckCircle className="h-3 w-3 mr-1" />
+                             Concluída
+                           </div>
+                         </div>
+                       )}
+                       
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         className={`w-full text-xs transition-colors ${
+                           isCompleted
+                             ? 'border-green-600 text-green-300 hover:bg-green-600/20'
+                             : 'border-gray-600 text-gray-300 hover:bg-gray-700'
+                         }`}
+                         onClick={e => {
+                           e.stopPropagation();
+                           navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
+                         }}
+                       >
+                         {isCompleted ? 'Assistir Novamente' : 'Assistir'}
+                         {isCompleted ? (
+                           <CheckCircle className="h-3 w-3 ml-1" />
+                         ) : (
+                           <ArrowRight className="h-3 w-3 ml-1" />
+                         )}
+                       </Button>
+                     </div>
                   </div>
                 </CardContent>
               </Card>

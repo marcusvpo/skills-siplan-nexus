@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, ArrowRight, Clock } from 'lucide-react';
 import ProgressBar from '@/components/ProgressBar';
 import { useProgressoGeral } from '@/hooks/useProgressoGeral';
+import { useProgressContext } from '@/contexts/ProgressContext';
 
 interface Product {
   id: string;
@@ -22,6 +23,16 @@ interface ProductsListProps {
 const ProductsList: React.FC<ProductsListProps> = ({ products, systemId }) => {
   const navigate = useNavigate();
   const { progressos, isLoading: progressLoading, refetch: refetchProgressos } = useProgressoGeral();
+  
+  // Observar mudanças de progresso globalmente
+  const { refreshKey } = useProgressContext();
+  
+  // Refetch quando houver mudanças no progresso
+  useEffect(() => {
+    if (refetchProgressos && refreshKey > 0) {
+      refetchProgressos();
+    }
+  }, [refreshKey, refetchProgressos]);
 
   if (products.length === 0) {
     return (
