@@ -43,8 +43,6 @@ verify_jwt = false
 [functions.get-sistemas-cartorio-with-permissions]
 verify_jwt = false
 
-[functions.get-cartorio-permissions]
-verify_jwt = false
 
 [functions.update-cartorio-permissions]
 verify_jwt = true
@@ -56,6 +54,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-admin-stats]
+verify_jwt = false
+
+[functions.get-cartorio-permissions]
 verify_jwt = false
 
 [functions.delete-cartorio]
