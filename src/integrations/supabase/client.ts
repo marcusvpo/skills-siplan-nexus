@@ -31,21 +31,11 @@ const configureRequestInterceptor = () => {
 
       const headers = new Headers(init?.headers);
 
-      // Para Edge Functions, usar JWT admin se disponível
-      if (url.includes('/functions/v1/')) {
-        const adminJWT = localStorage.getItem('admin_jwt');
-        if (adminJWT && !headers.has('Authorization')) {
-          headers.set('Authorization', `Bearer ${adminJWT}`);
-          console.log(`🔐 [Supabase] Admin JWT aplicado para: ${url.substring(0, 80)}...`);
-        }
-      }
-      // Para queries diretas REST, usar token do cartório
-      else {
-        const token = localStorage.getItem('siplan-auth-token');
-        if (token && !headers.has('Authorization')) {
-          headers.set('Authorization', `Bearer ${token}`);
-          console.log(`🔐 [Supabase] Cartório JWT aplicado para: ${url.substring(0, 80)}...`);
-        }
+      // Para Edge Functions e REST API, usar token do cartório se disponível
+      const token = localStorage.getItem('siplan-auth-token');
+      if (token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+        console.log(`🔐 [Supabase] Cartório JWT aplicado para: ${url.substring(0, 80)}...`);
       }
 
       return originalFetch(input, { ...init, headers });

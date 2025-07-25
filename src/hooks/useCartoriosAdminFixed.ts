@@ -39,7 +39,11 @@ export const useCartoriosAdminFixed = () => {
       
       logger.info('🏢 [useCartoriosAdminFixed] Fetching cartorios via Edge Function');
 
-      const { data, error } = await supabase.functions.invoke('get-cartorios-admin');
+      const { data, error } = await supabase.functions.invoke('get-cartorios-admin', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
 
       if (error) {
         logger.error('❌ [useCartoriosAdminFixed] Function error:', error);
