@@ -71,11 +71,10 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
       console.log('🔍 [VideoAulasList] Buscando progresso para vídeos:', videoIds);
       
       const { data: visualizacoes, error } = await supabase
-        .from('visualizacoes_cartorio')
+        .from('user_video_progress')
         .select('video_aula_id')
-        .eq('cartorio_id', user.cartorio_id)
         .eq('user_id', user.id)
-        .eq('completo', true)
+        .eq('completed', true)
         .in('video_aula_id', videoIds);
 
       if (error) throw error;
