@@ -10,16 +10,16 @@ export const useAdminDashboardStats = () => {
       logger.info('📊 [useAdminDashboardStats] Fetching dashboard statistics');
 
       try {
-        // Cartórios ativos
-        const { count: cartoriosAtivos, error: cartoriosError } = await supabase
-          .from('cartorios')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_active', true);
-
+        // Usar edge function para buscar cartórios (bypassa RLS)
+        const { data: cartoriosData, error: cartoriosError } = await supabase.functions.invoke('get-cartorios-admin');
+        
         if (cartoriosError) {
-          logger.error('❌ [useAdminDashboardStats] Error fetching cartorios:', cartoriosError);
-          throw cartoriosError;
+          logger.error('❌ [useAdminDashboardStats] Error fetching cartorios via function:', cartoriosError);
+          throw new Error('Erro ao buscar cartórios');
         }
+        
+        const cartoriosAtivos = cartoriosData?.data?.filter((c: any) => c.is_active).length || 0;
+
 
         // Total de usuários cadastrados (admins + usuários de cartório)
         const [

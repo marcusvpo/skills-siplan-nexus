@@ -29,12 +29,23 @@ const configureRequestInterceptor = () => {
     if (url.includes('bnulocsnxiffavvabfdj.supabase.co/rest/') || 
         url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
 
-      const token = localStorage.getItem('siplan-auth-token');
       const headers = new Headers(init?.headers);
 
-      if (token && !headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${token}`);
-        console.log(`🔐 [Supabase] JWT adicionado ao header para: ${url.substring(0, 80)}...`);
+      // Para Edge Functions, usar JWT admin se disponível
+      if (url.includes('/functions/v1/')) {
+        const adminJWT = localStorage.getItem('admin_jwt');
+        if (adminJWT && !headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${adminJWT}`);
+          console.log(`🔐 [Supabase] Admin JWT aplicado para: ${url.substring(0, 80)}...`);
+        }
+      }
+      // Para queries diretas REST, usar token do cartório
+      else {
+        const token = localStorage.getItem('siplan-auth-token');
+        if (token && !headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+          console.log(`🔐 [Supabase] Cartório JWT aplicado para: ${url.substring(0, 80)}...`);
+        }
       }
 
       return originalFetch(input, { ...init, headers });
@@ -92,6 +103,11 @@ export const clearAuthToken = () => {
   localStorage.removeItem('siplan-auth-token');
 };
 
+export const clearAdminToken = () => {
+  console.log('🔐 [AdminToken] Removendo JWT admin do localStorage');
+  localStorage.removeItem('admin_jwt');
+};
+
 export const getAuthToken = (): string | null => {
   return localStorage.getItem('siplan-auth-token');
 };
@@ -114,4 +130,5 @@ export const resetSupabaseClient = () => {
   supabaseInstance = null;
   isInterceptorConfigured = false;
   clearAuthToken();
+  clearAdminToken();
 };
