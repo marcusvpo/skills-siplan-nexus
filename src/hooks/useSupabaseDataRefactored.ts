@@ -125,10 +125,11 @@ export const useCreateCartorio = () => {
 
         logger.info('✅ [useCreateCartorio] Cartorio created:', { id: cartorio.id });
 
-        // 2. Gerar token único
+        // 2. Gerar token único (formato seguro e válido)
         const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const login_token = `CART-${timestamp}-${randomSuffix}`;
+        const randomBytes = crypto.getRandomValues(new Uint8Array(6));
+        const randomSuffix = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+        const login_token = `CART${timestamp}${randomSuffix}`;
 
         // 3. Criar acesso do cartório
         const { data: acesso, error: acessoError } = await supabase
