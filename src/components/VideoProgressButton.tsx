@@ -191,6 +191,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
         cartorio_id: cartorioId
       });
 
+      // Registrar visualização usando a função robusta
       const { data, error } = await supabase.rpc('registrar_visualizacao_cartorio_robust', {
         p_video_aula_id: videoAulaId,
         p_completo: newCompletedState,
