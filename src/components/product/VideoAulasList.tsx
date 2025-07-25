@@ -51,7 +51,15 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
 
   // Buscar progresso das videoaulas
   const fetchProgress = React.useCallback(async () => {
+    console.log('🔵 [VideoAulasList] fetchProgress chamado:', {
+      hasUser: !!user,
+      cartorioId: user?.cartorio_id,
+      userId: user?.id,
+      videoAulasCount: videoAulas.length
+    });
+
     if (!user?.cartorio_id || !user?.id || videoAulas.length === 0) {
+      console.log('⚠️ [VideoAulasList] Condições não atendidas para buscar progresso');
       setLoadingProgress(false);
       return;
     }
@@ -59,6 +67,8 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
     try {
       setLoadingProgress(true);
       const videoIds = videoAulas.map(v => v.id);
+      
+      console.log('🔍 [VideoAulasList] Buscando progresso para vídeos:', videoIds);
       
       const { data: visualizacoes, error } = await supabase
         .from('visualizacoes_cartorio')
@@ -71,9 +81,14 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
       if (error) throw error;
 
       const completedSet = new Set(visualizacoes?.map(v => v.video_aula_id) || []);
+      console.log('✅ [VideoAulasList] Progresso carregado:', {
+        visualizacoes,
+        completedVideoIds: Array.from(completedSet)
+      });
+      
       setVideosCompletos(completedSet);
     } catch (error) {
-      console.error('Erro ao buscar progresso das videoaulas:', error);
+      console.error('❌ [VideoAulasList] Erro ao buscar progresso das videoaulas:', error);
     } finally {
       setLoadingProgress(false);
     }
