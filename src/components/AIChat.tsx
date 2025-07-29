@@ -90,9 +90,13 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
         logger.info('🧵 [AIChat] Thread ID stored:', data.threadId);
       }
 
+      // Remove citações de fonte internas antes de exibir
+      const cleanContent = (data.response || data.fallback_response || 'Desculpe, não consegui processar sua solicitação.')
+        .replace(/【[^】]*】/g, ''); // Remove tudo entre 【 e 】
+
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: data.response || data.fallback_response || 'Desculpe, não consegui processar sua solicitação.',
+        content: cleanContent,
         sender: 'ai',
         timestamp: new Date(),
         source: data.fallback ? 'Resposta de fallback' : `Assistente OpenAI - ${lessonTitle}`
