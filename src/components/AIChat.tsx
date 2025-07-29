@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User, MessageCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
   id: string;
@@ -153,7 +154,30 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
                     ? 'bg-gradient-to-br from-red-600/20 to-red-700/20 border border-red-500/30 text-white'
                     : 'bg-gradient-to-br from-gray-700/50 to-gray-800/50 border border-gray-600/30 text-gray-100'
                 }`}>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  {message.sender === 'ai' ? (
+                    <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ children }) => <h1 className="text-lg font-bold text-gray-100 mb-3">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-bold text-gray-100 mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-bold text-gray-100 mb-2">{children}</h3>,
+                          p: ({ children }) => <p className="text-gray-100 mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside text-gray-100 mb-2 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside text-gray-100 mb-2 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="text-gray-100">{children}</li>,
+                          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                          em: ({ children }) => <em className="italic text-gray-200">{children}</em>,
+                          code: ({ children }) => <code className="bg-gray-800/50 text-blue-300 px-1 py-0.5 rounded text-xs">{children}</code>,
+                          pre: ({ children }) => <pre className="bg-gray-800/50 p-3 rounded-lg overflow-x-auto text-xs text-blue-300 mb-2">{children}</pre>,
+                          blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-300 mb-2">{children}</blockquote>
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  )}
                   {message.source && (
                     <div className="mt-3 pt-3 border-t border-gray-600/50">
                       <p className="text-xs text-gray-400 italic flex items-center">
