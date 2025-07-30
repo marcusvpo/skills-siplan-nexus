@@ -3,6 +3,7 @@ import { supabase, setAuthToken, clearAuthToken } from '@/integrations/supabase/
 import { Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
 import { logger } from '@/utils/logger';
+import { isTokenExpired } from '@/utils/tokenUtils';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -45,9 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedUserStr) {
         const savedUser: User = JSON.parse(savedUserStr);
         if (savedUser.type === 'cartorio' && savedUser.token) {
-          setCartorioUser(savedUser);
-          setAuthToken(savedUser.token);
-          logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}`);
+          // Verificar se o token está expirado
+          if (isTokenExpired(savedUser.token)) {
+            logger.warn('[AuthContextFixed] Token do usuário cartório expirado, removendo do localStorage');
+            localStorage.removeItem('siplan-user');
+            clearAuthToken();
+            setCartorioUser(null);
+          } else {
+            setCartorioUser(savedUser);
+            setAuthToken(savedUser.token);
+            logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}`);
+          }
         } else {
           localStorage.removeItem('siplan-user');
         }
