@@ -91,8 +91,21 @@ serve(async (req) => {
         
       } catch (e) {
         console.error('❌ [JWT] Error verifying JWT:', e);
+        
+        // Return specific error for expired tokens
+        if (e.name === 'JWTExpired' || e.code === 'ERR_JWT_EXPIRED') {
+          return new Response(JSON.stringify({
+            error: 'Token expirado',
+            error_code: 'JWT_EXPIRED',
+            message: 'Faça login novamente para continuar'
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
         return new Response(JSON.stringify({
-          error: 'Token JWT inválido ou expirado'
+          error: 'Token JWT inválido'
         }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

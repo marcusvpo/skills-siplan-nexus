@@ -3,11 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 // Importa useAuth da versão FIXA
-import { useAuth } from '@/contexts/AuthContextFixed'; 
+import { useAuth } from '@/contexts/AuthContextFixed';
+import { useNavigate } from 'react-router-dom';
 
 // Hook to fetch systems with access control via RLS
 export const useSistemasCartorioWithAccess = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   return useQuery({
     queryKey: ['sistemas-cartorio-with-access', user?.cartorio_id],
@@ -36,26 +38,37 @@ export const useSistemasCartorioWithAccess = () => {
       try {
         logger.info('🏢 [useSistemasCartorioWithAccess] Calling edge function');
         
-        // Use the new edge function that handles permissions properly
-        const response = await fetch('https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/get-sistemas-cartorio-with-permissions', {
-          method: 'GET',
+        // Use Supabase client to call edge function instead of direct fetch
+        const { data, error } = await supabase.functions.invoke('get-sistemas-cartorio-with-permissions', {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.token}`, // Usa o token do usuário logado
-            'X-Custom-Auth': user.token, // Para compatibilidade ou uso customizado
+            'x-custom-auth': user.token, // Use token for authentication
           },
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ 
-            error: `Erro HTTP ${response.status}` 
-          }));
-          logger.error('❌ [useSistemasCartorioWithAccess] Edge function error:', errorData);
-          throw new Error(errorData.error || `Erro ao carregar sistemas (${response.status})`);
+        if (error) {
+          logger.error('❌ [useSistemasCartorioWithAccess] Edge function error:', error);
+          
+          // Handle expired token error specifically
+          if (error.message?.includes('Token expirado') || error.message?.includes('JWT_EXPIRED')) {
+            logger.warn('🔄 [useSistemasCartorioWithAccess] Token expired, logging out user');
+            
+            // Auto logout and redirect to login
+            setTimeout(async () => {
+              await logout();
+              navigate('/login');
+              toast({
+                title: "Sessão expirada",
+                description: "Sua sessão expirou. Faça login novamente.",
+                variant: "destructive",
+              });
+            }, 100);
+            
+            throw new Error('Sessão expirada. Redirecionando...');
+          }
+          
+          throw new Error(error.message || 'Erro ao carregar sistemas');
         }
 
-        const data = await response.json();
-        
         logger.info('✅ [useSistemasCartorioWithAccess] Successfully fetched from edge function:', { 
           count: data.sistemas?.length || 0,
           hasPermissions: data.hasPermissions,
@@ -75,8 +88,12 @@ export const useSistemasCartorioWithAccess = () => {
     },
     enabled: !!user?.cartorio_id && !!user?.token && user?.type === 'cartorio',
     retry: (failureCount, error: any) => {
-      // Don't retry permission errors
-      if (error?.message?.includes('permissão') || error?.message?.includes('Permissão')) {
+      // Don't retry permission errors or expired token errors
+      if (error?.message?.includes('permissão') || 
+          error?.message?.includes('Permissão') ||
+          error?.message?.includes('Token expirado') ||
+          error?.message?.includes('JWT_EXPIRED') ||
+          error?.message?.includes('Sessão expirada')) {
         return false;
       }
       return failureCount < 2;
