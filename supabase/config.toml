@@ -17,13 +17,13 @@ major_version = 15
 verify_jwt = true
 
 [functions.get-bunny-video-details]
-verify_jwt = true
+verify_jwt = false
 
 [functions.login-cartorio]
 verify_jwt = false
 
 [functions.upload-video-bunny]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-video-url]
 verify_jwt = true
