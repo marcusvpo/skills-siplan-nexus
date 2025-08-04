@@ -52,26 +52,29 @@ export const useBunnyVideoDetails = (videoId?: string): UseBunnyVideoDetailsRetu
     logger.info('🎥 [useBunnyVideoDetails] Fetching video details', { videoId: id });
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke(
-        'get-bunny-video-details',
-        {
-          body: { videoId: id.trim() }
-        }
-      );
-
-      logger.info('🎥 [useBunnyVideoDetails] Function response', { 
-        data: data ? { success: data.success, hasError: !!data.error } : null, 
-        functionError 
+      // Chamada direta sem autenticação para função pública
+      const response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/get-bunny-video-details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoId: id.trim() })
       });
 
-      if (functionError) {
-        logger.error('❌ [useBunnyVideoDetails] Function error:', functionError);
-        throw new Error(`Erro na função: ${functionError.message}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+
+      logger.info('🎥 [useBunnyVideoDetails] Function response', { 
+        data: data ? { success: data.success, hasError: !!data.error } : null
+      });
 
       if (!data) {
         throw new Error('Nenhum dado retornado pela API');
       }
+
 
       if (!data.success) {
         logger.error('❌ [useBunnyVideoDetails] API error:', data.error);
