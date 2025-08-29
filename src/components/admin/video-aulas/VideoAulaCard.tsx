@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, ExternalLink, Clock, Play } from 'lucide-react';
+import { Edit, Trash2, ExternalLink, Clock, Play, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface VideoAula {
   id: string;
@@ -29,6 +29,9 @@ export const VideoAulaCard: React.FC<VideoAulaCardProps> = ({
   onDelete,
   onEditWYSIWYG
 }) => {
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const hasLongDescription = videoAula.descricao && videoAula.descricao.length > 100;
+  
   return (
     <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500">
       <CardHeader className="pb-2">
@@ -53,6 +56,36 @@ export const VideoAulaCard: React.FC<VideoAulaCardProps> = ({
         )}
       </CardHeader>
       <CardContent className="pt-0">
+        {videoAula.descricao && (
+          <div className="mb-4">
+            <p className="text-gray-300 text-sm">
+              {hasLongDescription && !showFullDescription 
+                ? `${videoAula.descricao.substring(0, 100)}...`
+                : videoAula.descricao
+              }
+            </p>
+            {hasLongDescription && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFullDescription(!showFullDescription)}
+                className="text-blue-400 hover:text-blue-300 p-0 h-auto mt-2"
+              >
+                {showFullDescription ? (
+                  <>
+                    <ChevronUp className="h-3 w-3 mr-1" />
+                    Ocultar descrição
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                    Ver descrição
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        )}
         <div className="flex flex-col space-y-2">
           <Button
             variant="outline"
