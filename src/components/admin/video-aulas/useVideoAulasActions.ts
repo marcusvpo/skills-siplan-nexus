@@ -44,6 +44,18 @@ export const useVideoAulasActions = (
 
     setIsDeleting(videoAulaId);
     try {
+      // Primeiro, deletar todos os registros de progresso relacionados
+      const { error: progressError } = await supabase
+        .from('user_video_progress')
+        .delete()
+        .eq('video_aula_id', videoAulaId);
+
+      if (progressError) {
+        console.error('Error deleting user progress:', progressError);
+        throw progressError;
+      }
+
+      // Depois, deletar a videoaula
       const { error } = await supabase
         .from('video_aulas')
         .delete()
