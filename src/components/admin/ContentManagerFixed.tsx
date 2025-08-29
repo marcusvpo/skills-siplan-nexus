@@ -29,7 +29,7 @@ export const ContentManagerFixed: React.FC = () => {
   const [selectedSistema, setSelectedSistema] = useState<Sistema | null>(null);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   
-  const { data: sistemas, isLoading, error } = useSistemasFixed();
+  const { data: sistemas, isLoading, error, refetch } = useSistemasFixed();
 
   const handleSelectSistema = (sistema: Sistema) => {
     setSelectedSistema(sistema);
@@ -106,7 +106,7 @@ export const ContentManagerFixed: React.FC = () => {
         sistema={selectedSistema}
         produto={selectedProduto}
         videoAulas={videoAulas}
-        onVideoAulasChange={() => {}}
+        onVideoAulasChange={() => refetch()}
         onBack={handleBackToProdutos}
       />
     );
