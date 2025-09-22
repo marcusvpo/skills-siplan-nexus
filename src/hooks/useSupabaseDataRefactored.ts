@@ -99,19 +99,17 @@ export const useCreateCartorio = () => {
       cidade?: string;
       estado?: string;
       observacoes?: string;
-      email_contato: string;
       data_expiracao: string;
     }) => {
       logger.info('🏗️ [useCreateCartorio] Creating cartorio:', { 
         nome: cartorioData.nome,
-        email_contato: cartorioData.email_contato,
         data_expiracao: cartorioData.data_expiracao
       });
       
       try {
         // Validar campos obrigatórios
-        if (!cartorioData.nome || !cartorioData.email_contato || !cartorioData.data_expiracao) {
-          throw new Error('Campos obrigatórios não preenchidos: nome, email_contato, data_expiracao');
+        if (!cartorioData.nome || !cartorioData.data_expiracao) {
+          throw new Error('Campos obrigatórios não preenchidos: nome, data_expiracao');
         }
 
         // 1. Criar o cartório
@@ -148,7 +146,6 @@ export const useCreateCartorio = () => {
             login_token,
             cartorio_id: cartorio.id,
             data_expiracao: cartorioData.data_expiracao,
-            email_contato: cartorioData.email_contato.trim(),
             ativo: true
           })
           .select()
@@ -165,13 +162,12 @@ export const useCreateCartorio = () => {
 
         logger.info('✅ [useCreateCartorio] Acesso created:', { token: login_token });
 
-        // 4. Criar usuário padrão "admin" para o cartório
+        // 4. Criar usuário padrão "admin" para o cartório (sem email)
         const { error: usuarioError } = await supabase
           .from('cartorio_usuarios')
           .insert({
             cartorio_id: cartorio.id,
             username: 'admin',
-            email: cartorioData.email_contato.trim(),
             is_active: true
           });
 

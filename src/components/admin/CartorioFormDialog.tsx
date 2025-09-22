@@ -21,7 +21,6 @@ interface NewCartorioForm {
   cidade: string;
   estado: string;
   observacoes: string;
-  email_contato: string;
   data_expiracao: string;
 }
 
@@ -35,7 +34,6 @@ export const CartorioFormDialog: React.FC<CartorioFormDialogProps> = ({
     cidade: '',
     estado: 'SP',
     observacoes: '',
-    email_contato: '',
     data_expiracao: ''
   });
 
@@ -46,12 +44,6 @@ export const CartorioFormDialog: React.FC<CartorioFormDialogProps> = ({
     
     if (!newCartorio.nome.trim()) {
       errors.push('Nome do cartório é obrigatório');
-    }
-    
-    if (!newCartorio.email_contato.trim()) {
-      errors.push('Email de contato é obrigatório');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCartorio.email_contato)) {
-      errors.push('Email de contato deve ter formato válido');
     }
     
     if (!newCartorio.data_expiracao) {
@@ -82,8 +74,7 @@ export const CartorioFormDialog: React.FC<CartorioFormDialogProps> = ({
     }
 
     logger.info('🏢 [CartorioFormDialog] Creating new cartorio:', { 
-      nome: newCartorio.nome,
-      email: newCartorio.email_contato 
+      nome: newCartorio.nome
     });
 
     try {
@@ -105,7 +96,6 @@ export const CartorioFormDialog: React.FC<CartorioFormDialogProps> = ({
         cidade: '',
         estado: 'SP',
         observacoes: '',
-        email_contato: '',
         data_expiracao: ''
       });
       onClose();
@@ -179,18 +169,6 @@ export const CartorioFormDialog: React.FC<CartorioFormDialogProps> = ({
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="email_contato">Email de Contato *</Label>
-            <Input
-              id="email_contato"
-              type="email"
-              value={newCartorio.email_contato}
-              onChange={(e) => setNewCartorio(prev => ({ ...prev, email_contato: e.target.value }))}
-              className="bg-gray-700 border-gray-600 text-white"
-              placeholder="contato@cartorio.com.br"
-              disabled={createCartorioMutation.isPending}
-            />
-          </div>
 
           <div>
             <Label htmlFor="data_expiracao">Data de Expiração do Acesso *</Label>

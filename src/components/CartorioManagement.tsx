@@ -12,7 +12,6 @@ interface CartorioForm {
   nome: string;
   cidade: string;
   estado: string;
-  email_contato: string;
   data_expiracao: string;
 }
 
@@ -25,13 +24,12 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
     nome: '',
     cidade: '',
     estado: '',
-    email_contato: '',
     data_expiracao: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const generateCartorioToken = async () => {
-    if (!cartorioForm.nome || !cartorioForm.cidade || !cartorioForm.estado || !cartorioForm.email_contato || !cartorioForm.data_expiracao) {
+    if (!cartorioForm.nome || !cartorioForm.cidade || !cartorioForm.estado || !cartorioForm.data_expiracao) {
       toast({
         title: "Dados incompletos",
         description: "Preencha todos os campos obrigatórios.",
@@ -65,7 +63,6 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
           login_token: loginToken,
           cartorio_id: cartorio.id,
           data_expiracao: cartorioForm.data_expiracao,
-          email_contato: cartorioForm.email_contato,
           ativo: true
         });
 
@@ -82,7 +79,6 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
         nome: '',
         cidade: '',
         estado: '',
-        email_contato: '',
         data_expiracao: ''
       });
 
@@ -149,17 +145,6 @@ const CartorioManagement: React.FC<CartorioManagementProps> = ({ onTokenGenerate
               className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
               placeholder="Ex: SP"
               maxLength={2}
-            />
-          </div>
-          <div>
-            <Label htmlFor="email" className="text-gray-300">Email de Contato</Label>
-            <Input
-              id="email"
-              type="email"
-              value={cartorioForm.email_contato}
-              onChange={(e) => setCartorioForm({...cartorioForm, email_contato: e.target.value})}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20"
-              placeholder="contato@cartorio.com.br"
             />
           </div>
           <div className="md:col-span-2">
