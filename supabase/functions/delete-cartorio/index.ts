@@ -165,7 +165,113 @@ serve(async (req) => {
       )
     }
 
-    // Deletar o cartório (CASCADE vai cuidar das dependências)
+    // Step 1: Obter todos os usuários do cartório
+    const { data: cartorioUsuarios, error: usuariosError } = await supabaseClient
+      .from('cartorio_usuarios')
+      .select('id')
+      .eq('cartorio_id', cartorioId)
+
+    if (usuariosError) {
+      console.error('❌ [delete-cartorio] Error fetching cartorio users:', usuariosError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao buscar usuários do cartório: ${usuariosError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Step 2: Deletar progressos de vídeo dos usuários do cartório
+    if (cartorioUsuarios && cartorioUsuarios.length > 0) {
+      const userIds = cartorioUsuarios.map(u => u.id)
+      
+      const { error: progressDeleteError } = await supabaseClient
+        .from('user_video_progress')
+        .delete()
+        .in('user_id', userIds)
+
+      if (progressDeleteError) {
+        console.error('❌ [delete-cartorio] Error deleting user progress:', progressDeleteError)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Erro ao deletar progresso dos usuários: ${progressDeleteError.message}` 
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      console.log(`✅ [delete-cartorio] Deleted progress for ${userIds.length} users`)
+    }
+
+    // Step 3: Deletar visualizações do cartório
+    const { error: visualizacoesError } = await supabaseClient
+      .from('visualizacoes_cartorio')
+      .delete()
+      .eq('cartorio_id', cartorioId)
+
+    if (visualizacoesError) {
+      console.error('❌ [delete-cartorio] Error deleting visualizacoes:', visualizacoesError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao deletar visualizações: ${visualizacoesError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Step 4: Deletar usuários do cartório
+    const { error: usuariosDeleteError } = await supabaseClient
+      .from('cartorio_usuarios')
+      .delete()
+      .eq('cartorio_id', cartorioId)
+
+    if (usuariosDeleteError) {
+      console.error('❌ [delete-cartorio] Error deleting cartorio users:', usuariosDeleteError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao deletar usuários do cartório: ${usuariosDeleteError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Step 5: Deletar acessos do cartório
+    const { error: acessosDeleteError } = await supabaseClient
+      .from('acessos_cartorio')
+      .delete()
+      .eq('cartorio_id', cartorioId)
+
+    if (acessosDeleteError) {
+      console.error('❌ [delete-cartorio] Error deleting cartorio access:', acessosDeleteError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Erro ao deletar acessos do cartório: ${acessosDeleteError.message}` 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Step 6: Deletar o cartório
     const { error: deleteError } = await supabaseClient
       .from('cartorios')
       .delete()
