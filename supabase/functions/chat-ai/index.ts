@@ -137,137 +137,125 @@ serve(async (req) => {
       });
     }
 
-    // Run the assistant with streaming enabled
-    console.log('🚀 [chat-ai] Running assistant with streaming');
-    let runResponse;
-    try {
-      runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'assistants=v2',
-        },
-        body: JSON.stringify({
-          assistant_id: assistantId,
-          stream: true
-        }),
-      });
+    // Run the assistant
+    console.log('🚀 [chat-ai] Running assistant');
+    const runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2',
+      },
+      body: JSON.stringify({
+        assistant_id: assistantId
+      }),
+    });
 
-      if (!runResponse.ok) {
-        const errorText = await runResponse.text();
-        console.error('❌ [chat-ai] Failed to run assistant:', errorText);
-        throw new Error(`Failed to run assistant: ${runResponse.status}`);
+    if (!runResponse.ok) {
+      const errorText = await runResponse.text();
+      console.error('❌ [chat-ai] Failed to run assistant:', errorText);
+      throw new Error(`Failed to run assistant: ${runResponse.status}`);
+    }
+
+    const runData = await runResponse.json();
+    const runId = runData.id;
+    console.log('✅ [chat-ai] Assistant run started:', runId);
+
+    // Poll for completion with reduced timeout (18s)
+    const maxAttempts = 18;
+    let attempts = 0;
+    let runStatus = 'in_progress';
+
+    while (attempts < maxAttempts && runStatus === 'in_progress') {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      attempts++;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      try {
+        const statusResponse = await fetch(
+          `https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'OpenAI-Beta': 'assistants=v2',
+            },
+            signal: controller.signal
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!statusResponse.ok) {
+          console.error(`❌ [chat-ai] Error checking run status (attempt ${attempts}/${maxAttempts}):`, statusResponse.status);
+          continue;
+        }
+
+        const statusData = await statusResponse.json();
+        runStatus = statusData.status;
+        console.log(`🔄 [chat-ai] Run status (attempt ${attempts}/${maxAttempts}):`, runStatus);
+
+        if (runStatus === 'completed') {
+          break;
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error(`❌ [chat-ai] Error fetching run status (attempt ${attempts}/${maxAttempts}):`, error.message);
       }
-    } catch (error) {
-      console.error('❌ [chat-ai] Error calling OpenAI run API:', error);
+    }
+
+    // If timeout, return friendly message
+    if (runStatus !== 'completed') {
+      console.log('⏱️ [chat-ai] Response timeout - returning fallback');
       return new Response(JSON.stringify({
-        error: 'Erro ao iniciar processamento da mensagem',
-        fallback_response: 'Desculpe, houve um problema ao processar sua mensagem. Tente novamente.',
+        timeout: true,
+        fallback_response: 'O assistente está demorando mais que o esperado. Por favor, reformule sua pergunta de forma mais simples ou tente novamente.',
+        threadId: currentThreadId,
         timestamp: new Date().toISOString()
       }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ [chat-ai] Streaming response started');
-
-    // Create a readable stream to forward the OpenAI stream to the client
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = runResponse.body?.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let fullResponse = '';
-
-        if (!reader) {
-          controller.close();
-          return;
-        }
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            
-            if (done) {
-              // Send final message with threadId
-              const finalData = JSON.stringify({
-                type: 'done',
-                threadId: currentThreadId,
-                fullResponse: fullResponse,
-                timestamp: new Date().toISOString()
-              });
-              controller.enqueue(new TextEncoder().encode(`data: ${finalData}\n\n`));
-              controller.close();
-              break;
-            }
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-              if (line.trim() === '' || line.startsWith(':')) continue;
-              if (!line.startsWith('data: ')) continue;
-
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                
-                // Handle thread.message.delta events for text streaming
-                if (parsed.event === 'thread.message.delta') {
-                  const delta = parsed.data?.delta?.content?.[0];
-                  if (delta?.type === 'text' && delta?.text?.value) {
-                    const textChunk = delta.text.value;
-                    fullResponse += textChunk;
-                    
-                    // Forward the chunk to the client
-                    const chunkData = JSON.stringify({
-                      type: 'chunk',
-                      content: textChunk,
-                      timestamp: new Date().toISOString()
-                    });
-                    controller.enqueue(new TextEncoder().encode(`data: ${chunkData}\n\n`));
-                  }
-                }
-              } catch (e) {
-                console.error('Error parsing SSE data:', e);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('❌ [chat-ai] Streaming error:', error);
-          const errorData = JSON.stringify({
-            type: 'error',
-            error: 'Erro durante o streaming da resposta',
-            timestamp: new Date().toISOString()
-          });
-          controller.enqueue(new TextEncoder().encode(`data: ${errorData}\n\n`));
-          controller.close();
-        }
+    // Get the assistant's response
+    const messagesResponse = await fetch(
+      `https://api.openai.com/v1/threads/${currentThreadId}/messages`,
+      {
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'OpenAI-Beta': 'assistants=v2',
+        },
       }
+    );
+
+    if (!messagesResponse.ok) {
+      throw new Error('Failed to fetch messages');
+    }
+
+    const messagesData = await messagesResponse.json();
+    const assistantMessage = messagesData.data.find(
+      (msg: any) => msg.role === 'assistant'
+    );
+
+    if (!assistantMessage || !assistantMessage.content?.[0]?.text?.value) {
+      throw new Error('No response from assistant');
+    }
+
+    const responseText = assistantMessage.content[0].text.value;
+    console.log('✅ [chat-ai] Response generated successfully');
+    console.log('📤 [chat-ai] Sending response payload:', {
+      responseLength: responseText.length,
+      threadId: currentThreadId,
+      hasResponse: !!responseText
     });
 
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-
-    // Caso nenhuma resposta tenha sido retornada, retornar erro
-    console.error('❌ [chat-ai] No response generated');
     return new Response(JSON.stringify({
-      error: 'No response generated',
-      fallback_response: 'Desculpe, não consegui gerar uma resposta. Tente novamente.',
+      response: responseText,
+      threadId: currentThreadId,
       timestamp: new Date().toISOString()
     }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
