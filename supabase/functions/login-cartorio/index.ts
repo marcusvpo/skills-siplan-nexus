@@ -152,6 +152,22 @@ serve(async (req) => {
 
     console.log(`✅ [LOGIN] JWT gerado com sucesso para usuário: ${userData.nome}`);
 
+    // 4. Registrar sessão do cartório
+    console.log(`ℹ️ [LOGIN] Registrando sessão para cartorio_id: ${userData.cartorio_id}`);
+    try {
+      const { error: sessionError } = await supabase.rpc('upsert_cartorio_session', {
+        p_cartorio_id: userData.cartorio_id
+      });
+
+      if (sessionError) {
+        console.error("⚠️ [LOGIN] Erro ao registrar sessão (não crítico):", sessionError);
+      } else {
+        console.log(`✅ [LOGIN] Sessão registrada com sucesso`);
+      }
+    } catch (sessionErr) {
+      console.error("⚠️ [LOGIN] Erro inesperado ao registrar sessão:", sessionErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       access_token: jwt,
