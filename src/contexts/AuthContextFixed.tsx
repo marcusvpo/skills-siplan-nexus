@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setAuthToken, clearAuthToken } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { useStableAuth } from '@/hooks/useStableAuth';
-import { useCartorioSessionHeartbeat } from '@/hooks/useCartorioSessionHeartbeat';
 import { logger } from '@/utils/logger';
 import { isTokenExpired } from '@/utils/tokenUtils';
 import { useNavigate } from 'react-router-dom';
@@ -39,9 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const stableAuth = useStableAuth();
   const navigate = useNavigate();
-  
-  // Ativar heartbeat para manter sessão do cartório ativa
-  useCartorioSessionHeartbeat(cartorioUser?.cartorio_id || null);
 
   useEffect(() => {
     try {

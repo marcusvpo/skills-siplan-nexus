@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
+import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 
 
 const Dashboard = () => {
@@ -91,6 +92,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen text-white page-transition">
+      {/* Gerenciador de sessão invisível */}
+      <CartorioSessionManager />
+      
       {/* Header */}
       <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
         <div className="container mx-auto px-4 py-4">
