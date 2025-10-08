@@ -59,107 +59,91 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
     setInputMessage('');
     setIsLoading(true);
 
-    // Add empty AI message that will be filled with streaming content
-    const aiMessageId = (Date.now() + 1).toString();
-    setMessages(prev => [...prev, {
-      id: aiMessageId,
-      content: '',
-      sender: 'ai',
-      timestamp: new Date(),
-      source: `Assistente OpenAI - ${lessonTitle}`
-    }]);
-
     try {
-      logger.info('🤖 [AIChat] Sending message with streaming', {
+      logger.info('🤖 [AIChat] Sending message to OpenAI assistant', {
         messageLength: currentMessage.length,
         threadId,
         lessonTitle
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            message: currentMessage,
-            threadId: threadId,
-            lessonTitle: lessonTitle
-          }),
+      logger.info('📤 [AIChat] Invoking edge function with:', {
+        lessonTitle,
+        containsOrionPRO: lessonTitle?.toLowerCase().includes('orion pro')
+      });
+
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('chat-ai', {
+        body: {
+          message: currentMessage,
+          threadId: threadId,
+          lessonTitle: lessonTitle
         }
-      );
+      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      logger.info('📥 [AIChat] Edge function response:', {
+        hasData: !!functionData,
+        hasError: !!functionError,
+        data: functionData
+      });
+
+      if (functionError) {
+        logger.error('❌ [AIChat] Function error:', functionError);
+        throw functionError;
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let accumulatedContent = '';
-
-      if (!reader) {
-        throw new Error('No reader available');
+      if (!functionData) {
+        throw new Error('No response from assistant');
       }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.trim() === '' || line.startsWith(':')) continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const data = line.slice(6).trim();
-          
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.type === 'chunk' && parsed.content) {
-              accumulatedContent += parsed.content;
-              
-              // Update the AI message with accumulated content (remove citations)
-              const cleanContent = accumulatedContent.replace(/【[^】]*】/g, '');
-              
-              setMessages(prev => prev.map(msg => 
-                msg.id === aiMessageId 
-                  ? { ...msg, content: cleanContent }
-                  : msg
-              ));
-            } else if (parsed.type === 'done' && parsed.threadId) {
-              setThreadId(parsed.threadId);
-              logger.info('✅ [AIChat] Streaming completed, thread ID:', parsed.threadId);
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.error || 'Erro durante streaming');
-            }
-          } catch (e) {
-            console.error('Error parsing SSE:', e);
-          }
-        }
+      // Handle error response
+      if (functionData.error) {
+        throw new Error(functionData.fallback_response || functionData.error);
       }
 
-      logger.info('✅ [AIChat] Message stream completed');
+      // Handle timeout
+      if (functionData.timeout) {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: functionData.fallback_response || 'O assistente está demorando mais que o esperado. Por favor, tente novamente.',
+          sender: 'ai',
+          timestamp: new Date(),
+          source: `Assistente OpenAI - Timeout`
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        return;
+      }
+
+      // Success case
+      logger.info('✅ [AIChat] Valid response received from assistant');
+      
+      // Remove citations from response
+      const cleanResponse = functionData.response?.replace(/【[^】]*】/g, '') || functionData.response;
+
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: cleanResponse,
+        sender: 'ai',
+        timestamp: new Date(),
+        source: `Assistente OpenAI - ${lessonTitle}`
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+      
+      if (functionData.threadId) {
+        setThreadId(functionData.threadId);
+        logger.info('🧵 [AIChat] Thread ID stored:', functionData.threadId);
+      }
     } catch (error) {
       logger.error('❌ [AIChat] Error sending message:', error);
       
-      // Update the AI message with error
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiMessageId 
-          ? { 
-              ...msg, 
-              content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente em alguns instantes.',
-              source: 'Mensagem de erro'
-            }
-          : msg
-      ));
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente em alguns instantes.',
+        sender: 'ai',
+        timestamp: new Date(),
+        source: 'Mensagem de erro'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
