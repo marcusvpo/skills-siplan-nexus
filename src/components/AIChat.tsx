@@ -18,9 +18,10 @@ interface ChatMessage {
 
 interface AIChatProps {
   lessonTitle: string;
+  systemName?: string; // Nome do sistema para seleção do assistente
 }
 
-const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
+const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -69,7 +70,8 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle }) => {
         body: {
           message: currentMessage,
           threadId: threadId,
-          lessonTitle: lessonTitle
+          lessonTitle: lessonTitle,
+          systemName: systemName // Enviar o nome do sistema para a edge function
         }
       });
 

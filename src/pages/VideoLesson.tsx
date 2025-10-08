@@ -210,7 +210,10 @@ const VideoLesson: React.FC = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="h-[600px] overflow-hidden">
-                    <AIChat lessonTitle={videoAulaData.titulo} />
+                    <AIChat 
+                      lessonTitle={videoAulaData.titulo} 
+                      systemName={sistema?.nome}
+                    />
                   </div>
                 </CardContent>
               </Card>

@@ -3,7 +3,8 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const openAIApiKey = Deno.env.get('openai_api_key');
-const assistantId = Deno.env.get('ASSISTANT_ID');
+const assistantIdOrionTN = Deno.env.get('ASSISTANT_ID'); // Assistente padrão para Orion TN
+const assistantIdOrionPRO = Deno.env.get('ASSISTANT_ID_ORION_PRO'); // Novo assistente para Orion PRO
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,12 +25,27 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
     
-    if (!assistantId) {
-      console.error('❌ [chat-ai] Missing Assistant ID');
-      throw new Error('Assistant ID not configured');
+    if (!assistantIdOrionTN) {
+      console.error('❌ [chat-ai] Missing Orion TN Assistant ID');
+      throw new Error('Orion TN Assistant ID not configured');
     }
 
-    const { message, threadId, lessonTitle } = await req.json();
+    if (!assistantIdOrionPRO) {
+      console.error('❌ [chat-ai] Missing Orion PRO Assistant ID');
+      throw new Error('Orion PRO Assistant ID not configured');
+    }
+
+    const { message, threadId, lessonTitle, systemName } = await req.json();
+    
+    // Selecionar o assistente correto baseado no sistema
+    let assistantId: string;
+    if (systemName && systemName.toLowerCase().includes('orion pro')) {
+      assistantId = assistantIdOrionPRO;
+      console.log('🤖 [chat-ai] Using Orion PRO Assistant');
+    } else {
+      assistantId = assistantIdOrionTN;
+      console.log('🤖 [chat-ai] Using Orion TN Assistant (default)');
+    }
     console.log('📨 [chat-ai] Received request:', { 
       messageLength: message?.length, 
       threadId, 
