@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@/utils/logger';
 import { useCartoriosAdminFixed } from '@/hooks/useCartoriosAdminFixed';
+import { useCartorioSessions } from '@/hooks/useCartorioSessions';
 import { toast } from '@/hooks/use-toast';
 import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioEditor } from './CartorioEditor';
 import { CartorioFormDialog } from './CartorioFormDialog';
 import { CartorioPermissionsManager } from './CartorioPermissionsManager';
+import { CartorioCard } from './CartorioCard';
 
 const CartorioManagerRestored: React.FC = () => {
   const [isNewCartorioOpen, setIsNewCartorioOpen] = useState(false);
@@ -20,6 +22,7 @@ const CartorioManagerRestored: React.FC = () => {
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
 
   const { cartorios, isLoading, error, refetch, deleteCartorio } = useCartoriosAdminFixed();
+  const sessions = useCartorioSessions();
 
   const handleDeleteCartorio = async (cartorio: any) => {
     if (!window.confirm(`Tem certeza que deseja deletar o cartório "${cartorio.nome}"? Esta ação não pode ser desfeita.`)) {
@@ -130,155 +133,19 @@ const CartorioManagerRestored: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          cartorios.map((cartorio) => (
-            <Card key={cartorio.id} className="bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-colors">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg text-white mb-1">
-                      {cartorio.nome}
-                    </CardTitle>
-                    <div className="flex items-center space-x-4 text-sm text-gray-400 mb-2">
-                      {cartorio.cidade && cartorio.estado && (
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {cartorio.cidade}, {cartorio.estado}
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(cartorio.data_cadastro).toLocaleDateString('pt-BR')}
-                      </div>
-                    </div>
-                    
-                    {/* Tokens de acesso */}
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-300 mb-2">Tokens de Acesso:</p>
-                      {cartorio.acessos_cartorio?.length > 0 ? (
-                        <div className="space-y-2">
-                          {cartorio.acessos_cartorio.map((acesso) => {
-                            const isVisible = visibleTokens.has(acesso.id);
-                            return (
-                              <div key={acesso.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <Badge 
-                                      variant={acesso.ativo ? 'secondary' : 'destructive'}
-                                      className={`text-xs ${acesso.ativo ? 'bg-green-600' : ''}`}
-                                    >
-                                      {acesso.ativo ? 'Ativo' : 'Inativo'}
-                                    </Badge>
-                                    <span className="text-xs text-gray-400">
-                                      Expira: {new Date(acesso.data_expiracao).toLocaleDateString('pt-BR')}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex items-center space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => toggleTokenVisibility(acesso.id)}
-                                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                                    >
-                                      {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleCopyToken(acesso.login_token)}
-                                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                                    >
-                                      <Copy className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                                
-                                <div className="bg-gray-800/50 rounded p-2 font-mono text-xs text-gray-300 break-all">
-                                  {isVisible ? acesso.login_token : `${acesso.login_token.substring(0, 20)}...`}
-                                </div>
-                                
-                                {acesso.email_contato && (
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    Contato: {acesso.email_contato}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">Nenhum token configurado</p>
-                      )}
-                    </div>
-
-                    {/* Usuários */}
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-300">
-                        Usuários: {cartorio.cartorio_usuarios?.filter(u => u.is_active).length || 0} ativos
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Badge 
-                    variant={cartorio.is_active ? 'secondary' : 'destructive'}
-                    className={cartorio.is_active ? 'bg-green-600 text-white' : ''}
-                  >
-                    {cartorio.is_active ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                {cartorio.observacoes && (
-                  <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                    {cartorio.observacoes}
-                  </p>
-                )}
-                
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => setSelectedCartorioForEdit(cartorio)}
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                  
-                  <Button
-                    onClick={() => setSelectedCartorioForUsers(cartorio)}
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                  >
-                    <Users className="h-4 w-4 mr-1" />
-                    Usuários
-                  </Button>
-                  
-                  <Button
-                    onClick={() => setSelectedCartorioForPermissions(cartorio)}
-                    variant="outline"
-                    size="sm"
-                    className="border-blue-600 text-blue-300 hover:bg-blue-700/20"
-                  >
-                    <Shield className="h-4 w-4 mr-1" />
-                    Permissões
-                  </Button>
-                  
-                  <Button
-                    onClick={() => handleDeleteCartorio(cartorio)}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-600 text-red-300 hover:bg-red-700/20"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Remover
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+          cartorios.map((cartorio) => {
+            const sessionData = sessions.get(cartorio.id);
+            return (
+              <CartorioCard
+                key={cartorio.id}
+                cartorio={cartorio}
+                sessionData={sessionData || null}
+                onEditCartorio={(c) => setSelectedCartorioForEdit(c)}
+                onManageUsers={(c) => setSelectedCartorioForUsers(c)}
+                onManageAccess={(c) => setSelectedCartorioForPermissions(c)}
+              />
+            );
+          })
         )}
       </div>
 

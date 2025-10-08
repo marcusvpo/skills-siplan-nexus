@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -122,6 +122,38 @@ export type Database = {
           },
         ]
       }
+      cartorio_sessions: {
+        Row: {
+          cartorio_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_activity: string
+        }
+        Insert: {
+          cartorio_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_activity?: string
+        }
+        Update: {
+          cartorio_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_activity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_sessions_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: true
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartorio_usuarios: {
         Row: {
           auth_user_id: string | null
@@ -170,6 +202,7 @@ export type Database = {
         Row: {
           cidade: string | null
           data_cadastro: string
+          email: string | null
           estado: string | null
           id: string
           is_active: boolean | null
@@ -179,6 +212,7 @@ export type Database = {
         Insert: {
           cidade?: string | null
           data_cadastro?: string
+          email?: string | null
           estado?: string | null
           id?: string
           is_active?: boolean | null
@@ -188,6 +222,7 @@ export type Database = {
         Update: {
           cidade?: string | null
           data_cadastro?: string
+          email?: string | null
           estado?: string | null
           id?: string
           is_active?: boolean | null
@@ -421,6 +456,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deactivate_old_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       debug_auth_cartorio_context: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -432,24 +471,24 @@ export type Database = {
       debug_cartorios_data: {
         Args: Record<PropertyKey, never>
         Returns: {
+          cartorio_ativo: boolean
           cartorio_id: string
           cartorio_nome: string
-          cartorio_ativo: boolean
-          tokens_count: number
-          usuarios_count: number
           tokens_ativos: number
+          tokens_count: number
           tokens_expirados: number
+          usuarios_count: number
         }[]
       }
       get_current_cartorio_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_current_cartorio_id_from_custom_jwt: {
+      get_current_cartorio_id_from_jwt: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_current_cartorio_id_from_jwt: {
+      get_current_cartorio_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
@@ -458,37 +497,45 @@ export type Database = {
         Returns: string
       }
       get_product_progress: {
-        Args: { p_produto_id: string; p_cartorio_id: string }
+        Args: { p_cartorio_id: string; p_produto_id: string }
         Returns: Json
       }
       get_user_progress_by_cartorio: {
         Args: { p_cartorio_id: string }
         Returns: {
-          user_id: string
-          username: string
+          aulas_concluidas: number
           email: string
           is_active: boolean
+          percentual: number
           produto_id: string
           produto_nome: string
           sistema_nome: string
           total_aulas: number
-          aulas_concluidas: number
-          percentual: number
+          user_id: string
+          username: string
         }[]
       }
       get_user_progress_by_cartorio_with_permissions: {
         Args: { p_cartorio_id: string }
         Returns: {
-          user_id: string
-          username: string
+          aulas_concluidas: number
           email: string
           is_active: boolean
+          percentual: number
           produto_id: string
           produto_nome: string
           sistema_nome: string
           total_aulas: number
-          aulas_concluidas: number
-          percentual: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_user_video_progress: {
+        Args: { p_video_aula_id?: string }
+        Returns: {
+          completed: boolean
+          completed_at: string
+          video_aula_id: string
         }[]
       }
       get_visualizacao_cartorio: {
@@ -499,21 +546,29 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      migrate_progress_data_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      register_video_progress: {
+        Args: { p_completed?: boolean; p_video_aula_id: string }
+        Returns: Json
+      }
       registrar_visualizacao_cartorio: {
         Args: {
-          p_video_aula_id: string
           p_completo?: boolean
           p_concluida?: boolean
           p_data_conclusao?: string
+          p_video_aula_id: string
         }
         Returns: Json
       }
       registrar_visualizacao_cartorio_robust: {
         Args: {
-          p_video_aula_id: string
           p_completo?: boolean
           p_concluida?: boolean
           p_data_conclusao?: string
+          p_video_aula_id: string
         }
         Returns: Json
       }
@@ -532,12 +587,20 @@ export type Database = {
       test_insert_visualizacao_cartorio: {
         Args: {
           p_cartorio_id: string
-          p_video_aula_id: string
           p_completo?: boolean
           p_concluida?: boolean
           p_data_conclusao?: string
+          p_video_aula_id: string
         }
         Returns: Json
+      }
+      upsert_cartorio_session: {
+        Args: { p_cartorio_id: string }
+        Returns: undefined
+      }
+      validate_custom_jwt: {
+        Args: { token: string }
+        Returns: string
       }
     }
     Enums: {

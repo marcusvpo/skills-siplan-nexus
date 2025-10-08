@@ -4,19 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Users, Shield, Calendar, MapPin } from 'lucide-react';
+import { CartorioStatusIndicator } from './CartorioStatusIndicator';
 
 interface CartorioCardProps {
   cartorio: any;
   onEditCartorio: (cartorio: any) => void;
   onManageUsers: (cartorio: any) => void;
   onManageAccess?: (cartorio: any) => void;
+  sessionData?: {
+    last_activity: string;
+    is_active: boolean;
+  } | null;
 }
 
 export const CartorioCard: React.FC<CartorioCardProps> = ({
   cartorio,
   onEditCartorio,
   onManageUsers,
-  onManageAccess
+  onManageAccess,
+  sessionData
 }) => {
   return (
     <Card className="gradient-card shadow-modern hover:shadow-elevated border-gray-600/50 hover:border-red-500/50 transition-all duration-500 card-enter btn-hover-lift">
@@ -37,6 +43,14 @@ export const CartorioCard: React.FC<CartorioCardProps> = ({
                 <Calendar className="h-4 w-4 mr-1" />
                 {new Date(cartorio.data_cadastro).toLocaleDateString('pt-BR')}
               </div>
+            </div>
+            
+            {/* Status de sessão em tempo real */}
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <CartorioStatusIndicator
+                lastActivity={sessionData?.last_activity || null}
+                isActive={sessionData?.is_active || false}
+              />
             </div>
           </div>
           <Badge 
