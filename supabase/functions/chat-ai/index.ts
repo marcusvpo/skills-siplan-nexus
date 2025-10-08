@@ -220,6 +220,17 @@ serve(async (req) => {
       });
     }
 
+    // Caso nenhuma resposta tenha sido retornada, retornar erro
+    console.error('❌ [chat-ai] No response generated');
+    return new Response(JSON.stringify({
+      error: 'No response generated',
+      fallback_response: 'Desculpe, não consegui gerar uma resposta. Tente novamente.',
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
     console.error('❌ [chat-ai] Error:', error);
     
