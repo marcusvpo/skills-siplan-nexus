@@ -52,6 +52,34 @@ export const CartorioCard: React.FC<CartorioCardProps> = ({
                 isActive={sessionData?.is_active || false}
               />
             </div>
+            
+            {/* Token de acesso */}
+            {cartorio.acessos_cartorio?.[0]?.login_token && (
+              <div className="mt-3 pt-3 border-t border-gray-700/50">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 mb-1">Token de Acesso</p>
+                    <code className="text-xs text-blue-300 font-mono block truncate">
+                      {cartorio.acessos_cartorio[0].login_token}
+                    </code>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(cartorio.acessos_cartorio[0].login_token);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-blue-300 h-8 w-8 p-0"
+                    title="Copiar token"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                    </svg>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <Badge 
             variant={cartorio.is_active ? 'secondary' : 'destructive'}
@@ -68,33 +96,6 @@ export const CartorioCard: React.FC<CartorioCardProps> = ({
             <p className="text-sm text-gray-400 line-clamp-2">
               {cartorio.observacoes}
             </p>
-          </div>
-        )}
-        
-        {/* Token de acesso */}
-        {cartorio.acessos_cartorio?.[0]?.login_token && (
-          <div className="mb-4 p-3 glass-effect rounded-lg border border-blue-600/30">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs text-gray-400 mb-1">Token de Acesso</p>
-                <code className="text-sm text-blue-300 font-mono">
-                  {cartorio.acessos_cartorio[0].login_token}
-                </code>
-              </div>
-              <Button
-                onClick={() => {
-                  navigator.clipboard.writeText(cartorio.acessos_cartorio[0].login_token);
-                }}
-                variant="ghost"
-                size="sm"
-                className="ml-2 text-gray-400 hover:text-blue-300"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                </svg>
-              </Button>
-            </div>
           </div>
         )}
         
