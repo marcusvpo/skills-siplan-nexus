@@ -161,13 +161,13 @@ serve(async (req) => {
     const runId = runData.id;
     console.log('✅ [chat-ai] Assistant run started:', runId);
 
-    // Poll for completion with reduced timeout (18s)
-    const maxAttempts = 18;
+    // Poll for completion with extended timeout (60s)
+    const maxAttempts = 30;
     let attempts = 0;
     let runStatus = 'in_progress';
 
     while (attempts < maxAttempts && runStatus === 'in_progress') {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       attempts++;
 
       const controller = new AbortController();
