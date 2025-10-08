@@ -101,27 +101,40 @@ serve(async (req) => {
 
     // Add the user message to the thread
     console.log('💬 [chat-ai] Adding message to thread');
-    const messageResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
-      },
-      body: JSON.stringify({
-        role: 'user',
-        content: message,
-        metadata: {
-          lesson_title: lessonTitle || 'Unknown Lesson',
-          timestamp: new Date().toISOString()
-        }
-      }),
-    });
+    let messageResponse;
+    try {
+      messageResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2',
+        },
+        body: JSON.stringify({
+          role: 'user',
+          content: message,
+          metadata: {
+            lesson_title: lessonTitle || 'Unknown Lesson',
+            timestamp: new Date().toISOString()
+          }
+        }),
+      });
 
-    if (!messageResponse.ok) {
-      const errorText = await messageResponse.text();
-      console.error('❌ [chat-ai] Failed to add message:', errorText);
-      throw new Error(`Failed to add message: ${messageResponse.status}`);
+      if (!messageResponse.ok) {
+        const errorText = await messageResponse.text();
+        console.error('❌ [chat-ai] Failed to add message:', errorText);
+        throw new Error(`Failed to add message: ${messageResponse.status}`);
+      }
+    } catch (error) {
+      console.error('❌ [chat-ai] Error adding message to thread:', error);
+      return new Response(JSON.stringify({
+        error: 'Erro ao adiciar mensagem à conversa',
+        fallback_response: 'Desculpe, houve um problema ao processar sua mensagem. Tente novamente.',
+        timestamp: new Date().toISOString()
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Run the assistant
