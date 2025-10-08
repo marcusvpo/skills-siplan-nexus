@@ -161,34 +161,44 @@ serve(async (req) => {
     const runId = runData.id;
     console.log('✅ [chat-ai] Assistant run started:', runId);
 
-    // Poll for completion with better error handling
+    // Poll for completion with strict timeout to prevent edge function timeout
     let attempts = 0;
-    const maxAttempts = 25; // 25 seconds timeout (edge functions have ~60s limit)
+    const maxAttempts = 18; // 18 seconds max (well within 60s edge function limit)
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       attempts++;
 
       let statusResponse;
+      let statusData;
+      
       try {
+        // Add timeout to fetch itself
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s fetch timeout
+        
         statusResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`, {
           headers: {
             'Authorization': `Bearer ${openAIApiKey}`,
             'OpenAI-Beta': 'assistants=v2',
           },
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
 
         if (!statusResponse.ok) {
-          console.error(`❌ [chat-ai] Failed to check run status (attempt ${attempts}): ${statusResponse.status}`);
+          console.error(`❌ [chat-ai] Failed to check run status (attempt ${attempts}/${maxAttempts}): ${statusResponse.status}`);
           continue;
         }
+        
+        statusData = await statusResponse.json();
       } catch (error) {
-        console.error(`❌ [chat-ai] Error fetching run status (attempt ${attempts}):`, error);
+        console.error(`❌ [chat-ai] Error fetching run status (attempt ${attempts}/${maxAttempts}):`, error.message || error);
         continue;
       }
 
-      const statusData = await statusResponse.json();
-      console.log(`🔄 [chat-ai] Run status (attempt ${attempts}):`, statusData.status);
+      console.log(`🔄 [chat-ai] Run status (attempt ${attempts}/${maxAttempts}):`, statusData.status);
 
       if (statusData.status === 'completed') {
         // Get the assistant's response
@@ -234,18 +244,17 @@ serve(async (req) => {
       }
     }
 
-    // Timeout fallback
-    if (attempts >= maxAttempts) {
-      console.warn('⚠️ [chat-ai] Assistant response timeout, using fallback');
-      return new Response(JSON.stringify({
-        response: 'Desculpe, estou com dificuldades para responder no momento. Tente reformular sua pergunta ou aguarde alguns instantes.',
-        threadId: currentThreadId,
-        timestamp: new Date().toISOString(),
-        fallback: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Timeout fallback - assistant took too long
+    console.error(`⏱️ [chat-ai] Assistant timeout after ${attempts} attempts (${attempts}s). Run may still be processing.`);
+    return new Response(JSON.stringify({
+      response: 'O assistente está demorando mais que o esperado. Por favor, reformule sua pergunta de forma mais simples ou tente novamente.',
+      threadId: currentThreadId,
+      timestamp: new Date().toISOString(),
+      timeout: true
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
     // Caso nenhuma resposta tenha sido retornada, retornar erro
     console.error('❌ [chat-ai] No response generated');
