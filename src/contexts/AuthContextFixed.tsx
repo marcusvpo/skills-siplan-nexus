@@ -146,6 +146,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async (): Promise<void> => {
     try {
+      // Desativar a sessão do cartório se for um usuário cartório
+      if (cartorioUser?.cartorio_id) {
+        try {
+          await supabase.rpc('deactivate_old_sessions');
+          logger.info('[AuthContextFixed] Sessão do cartório desativada no logout');
+        } catch (error) {
+          logger.error('[AuthContextFixed] Erro ao desativar sessão:', error);
+        }
+      }
+      
       if (stableAuth.session) await stableAuth.logout();
       setCartorioUser(null);
       clearAuthToken();
