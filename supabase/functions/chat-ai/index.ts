@@ -126,45 +126,64 @@ serve(async (req) => {
 
     // Run the assistant
     console.log('🚀 [chat-ai] Running assistant');
-    const runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
-      },
-      body: JSON.stringify({
-        assistant_id: assistantId
-      }),
-    });
+    let runResponse;
+    try {
+      runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2',
+        },
+        body: JSON.stringify({
+          assistant_id: assistantId
+        }),
+      });
 
-    if (!runResponse.ok) {
-      const errorText = await runResponse.text();
-      console.error('❌ [chat-ai] Failed to run assistant:', errorText);
-      throw new Error(`Failed to run assistant: ${runResponse.status}`);
+      if (!runResponse.ok) {
+        const errorText = await runResponse.text();
+        console.error('❌ [chat-ai] Failed to run assistant:', errorText);
+        throw new Error(`Failed to run assistant: ${runResponse.status}`);
+      }
+    } catch (error) {
+      console.error('❌ [chat-ai] Error calling OpenAI run API:', error);
+      return new Response(JSON.stringify({
+        error: 'Erro ao iniciar processamento da mensagem',
+        fallback_response: 'Desculpe, houve um problema ao processar sua mensagem. Tente novamente.',
+        timestamp: new Date().toISOString()
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const runData = await runResponse.json();
     const runId = runData.id;
     console.log('✅ [chat-ai] Assistant run started:', runId);
 
-    // Poll for completion
+    // Poll for completion with better error handling
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
+    const maxAttempts = 25; // 25 seconds timeout (edge functions have ~60s limit)
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       attempts++;
 
-      const statusResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`, {
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'OpenAI-Beta': 'assistants=v2',
-        },
-      });
+      let statusResponse;
+      try {
+        statusResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`, {
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'OpenAI-Beta': 'assistants=v2',
+          },
+        });
 
-      if (!statusResponse.ok) {
-        console.error('❌ [chat-ai] Failed to check run status');
+        if (!statusResponse.ok) {
+          console.error(`❌ [chat-ai] Failed to check run status (attempt ${attempts}): ${statusResponse.status}`);
+          continue;
+        }
+      } catch (error) {
+        console.error(`❌ [chat-ai] Error fetching run status (attempt ${attempts}):`, error);
         continue;
       }
 
