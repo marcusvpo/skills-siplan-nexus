@@ -122,12 +122,7 @@ serve(async (req) => {
         'OpenAI-Beta': 'assistants=v2',
       },
       body: JSON.stringify({
-        assistant_id: assistantId,
-        instructions: `Você está ajudando um usuário da plataforma Siplan Skills que está assistindo à videoaula: "${lessonTitle || 'videoaula'}". 
-        
-Responda de forma clara, didática e contextualizada ao conteúdo da videoaula. Se a pergunta não estiver diretamente relacionada ao conteúdo, tente conectá-la aos conceitos abordados na aula quando possível.
-
-Mantenha suas respostas focadas, úteis e em português brasileiro.`
+        assistant_id: assistantId
       }),
     });
 
