@@ -5,6 +5,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const openAIApiKey = Deno.env.get('openai_api_key');
 const assistantIdOrionTN = Deno.env.get('ASSISTANT_ID'); // Assistente padrão para Orion TN
 const assistantIdOrionPRO = Deno.env.get('ASSISTANT_ID_ORION_PRO'); // Novo assistente para Orion PRO
+const vectorStoreIdOrionTN = Deno.env.get('VECTOR_STORE_ID_ORION_TN'); // Vector Store para Orion TN
+const vectorStoreIdOrionPRO = Deno.env.get('VECTOR_STORE_ID_ORION_PRO'); // Vector Store para Orion PRO
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,18 +49,23 @@ serve(async (req) => {
     // Selecionar o assistente correto baseado no TÍTULO DA AULA
     let assistantId: string;
     let assistantName: string;
+    let vectorStoreId: string;
     
     // Verificar se o título da aula contém "orion pro" (case-insensitive)
     if (lessonTitle && lessonTitle.toLowerCase().includes('orion pro')) {
       assistantId = assistantIdOrionPRO;
+      vectorStoreId = vectorStoreIdOrionPRO;
       assistantName = 'Orion PRO';
       console.log('🤖 [chat-ai] Using Orion PRO Assistant (detected from lesson title)');
       console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionPRO);
+      console.log('📚 [chat-ai] Vector Store ID:', vectorStoreIdOrionPRO);
     } else {
       assistantId = assistantIdOrionTN;
+      vectorStoreId = vectorStoreIdOrionTN;
       assistantName = 'Orion TN (default)';
       console.log('🤖 [chat-ai] Using Orion TN Assistant (default)');
       console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionTN);
+      console.log('📚 [chat-ai] Vector Store ID:', vectorStoreIdOrionTN);
     }
     
     console.log('🔍 [chat-ai] Lesson Title:', lessonTitle);
@@ -99,8 +106,8 @@ serve(async (req) => {
       console.log('✅ [chat-ai] Thread created:', currentThreadId);
     }
 
-    // Add the user message to the thread
-    console.log('💬 [chat-ai] Adding message to thread');
+    // Add the user message to the thread with mandatory file_search attachment
+    console.log('💬 [chat-ai] Adding message to thread with vector store attachment');
     let messageResponse;
     try {
       messageResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/messages`, {
@@ -113,9 +120,15 @@ serve(async (req) => {
         body: JSON.stringify({
           role: 'user',
           content: message,
+          attachments: [
+            {
+              tools: [{ type: "file_search" }]
+            }
+          ],
           metadata: {
             lesson_title: lessonTitle || 'Unknown Lesson',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            vector_store_id: vectorStoreId
           }
         }),
       });
