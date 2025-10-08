@@ -18,7 +18,7 @@ interface ChatMessage {
 
 interface AIChatProps {
   lessonTitle: string;
-  systemName?: string; // Nome do sistema para seleção do assistente
+  systemName?: string;
 }
 
 const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
@@ -67,16 +67,15 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
       });
 
       logger.info('📤 [AIChat] Invoking edge function with:', {
-        systemName,
-        lessonTitle
+        lessonTitle,
+        containsOrionPRO: lessonTitle.toLowerCase().includes('orion pro')
       });
 
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: {
           message: currentMessage,
           threadId: threadId,
-          lessonTitle: lessonTitle,
-          systemName: systemName // Enviar o nome do sistema para a edge function
+          lessonTitle: lessonTitle
         }
       });
 

@@ -35,25 +35,24 @@ serve(async (req) => {
       throw new Error('Orion PRO Assistant ID not configured');
     }
 
-    const { message, threadId, lessonTitle, systemName } = await req.json();
+    const { message, threadId, lessonTitle } = await req.json();
     
     console.log('📨 [chat-ai] Received request:', { 
       messageLength: message?.length, 
       threadId, 
       lessonTitle,
-      systemName,
-      systemNameType: typeof systemName
+      lessonTitleType: typeof lessonTitle
     });
     
-    // Selecionar o assistente correto baseado no sistema
+    // Selecionar o assistente correto baseado no TÍTULO DA AULA
     let assistantId: string;
     let assistantName: string;
     
-    // Verificar se o nome do sistema contém "orion pro" (case-insensitive)
-    if (systemName && systemName.toLowerCase().includes('orion pro')) {
+    // Verificar se o título da aula contém "orion pro" (case-insensitive)
+    if (lessonTitle && lessonTitle.toLowerCase().includes('orion pro')) {
       assistantId = assistantIdOrionPRO;
       assistantName = 'Orion PRO';
-      console.log('🤖 [chat-ai] Using Orion PRO Assistant');
+      console.log('🤖 [chat-ai] Using Orion PRO Assistant (detected from lesson title)');
       console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionPRO);
     } else {
       assistantId = assistantIdOrionTN;
@@ -62,7 +61,7 @@ serve(async (req) => {
       console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionTN);
     }
     
-    console.log('🔍 [chat-ai] System Name received:', systemName);
+    console.log('🔍 [chat-ai] Lesson Title:', lessonTitle);
     console.log('🎯 [chat-ai] Selected Assistant:', assistantName);
 
     if (!message || message.trim() === '') {
