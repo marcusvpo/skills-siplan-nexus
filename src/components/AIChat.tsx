@@ -66,6 +66,11 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
         lessonTitle
       });
 
+      logger.info('📤 [AIChat] Invoking edge function with:', {
+        systemName,
+        lessonTitle
+      });
+
       const { data, error } = await supabase.functions.invoke('chat-ai', {
         body: {
           message: currentMessage,
@@ -75,16 +80,28 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
         }
       });
 
+      logger.info('📥 [AIChat] Edge function response:', { 
+        hasData: !!data, 
+        hasError: !!error,
+        data: data ? JSON.stringify(data).substring(0, 200) : null
+      });
+
       if (error) {
         logger.error('❌ [AIChat] Function error:', error);
         throw error;
       }
 
       if (!data) {
+        logger.error('❌ [AIChat] No data received from edge function');
         throw new Error('Nenhuma resposta recebida do assistente');
       }
 
-      logger.info('✅ [AIChat] Response received from assistant');
+      if (!data.response && !data.fallback_response) {
+        logger.error('❌ [AIChat] Invalid response structure:', data);
+        throw new Error('Resposta inválida do assistente');
+      }
+
+      logger.info('✅ [AIChat] Valid response received from assistant');
 
       // Update thread ID if this is the first message
       if (data.threadId && !threadId) {

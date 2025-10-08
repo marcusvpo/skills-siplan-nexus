@@ -191,12 +191,21 @@ serve(async (req) => {
         if (assistantMessage && assistantMessage.role === 'assistant') {
           const responseText = assistantMessage.content[0]?.text?.value || 'Desculpe, não consegui gerar uma resposta.';
           
-          console.log('✅ [chat-ai] Response generated successfully');
-          return new Response(JSON.stringify({
+          const responsePayload = {
             response: responseText,
             threadId: currentThreadId,
             timestamp: new Date().toISOString()
-          }), {
+          };
+          
+          console.log('✅ [chat-ai] Response generated successfully');
+          console.log('📤 [chat-ai] Sending response payload:', {
+            responseLength: responseText.length,
+            threadId: currentThreadId,
+            hasResponse: !!responseText
+          });
+          
+          return new Response(JSON.stringify(responsePayload), {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
