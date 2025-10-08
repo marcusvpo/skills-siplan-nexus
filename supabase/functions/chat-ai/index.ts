@@ -37,20 +37,33 @@ serve(async (req) => {
 
     const { message, threadId, lessonTitle, systemName } = await req.json();
     
-    // Selecionar o assistente correto baseado no sistema
-    let assistantId: string;
-    if (systemName && systemName.toLowerCase().includes('orion pro')) {
-      assistantId = assistantIdOrionPRO;
-      console.log('🤖 [chat-ai] Using Orion PRO Assistant');
-    } else {
-      assistantId = assistantIdOrionTN;
-      console.log('🤖 [chat-ai] Using Orion TN Assistant (default)');
-    }
     console.log('📨 [chat-ai] Received request:', { 
       messageLength: message?.length, 
       threadId, 
-      lessonTitle 
+      lessonTitle,
+      systemName,
+      systemNameType: typeof systemName
     });
+    
+    // Selecionar o assistente correto baseado no sistema
+    let assistantId: string;
+    let assistantName: string;
+    
+    // Verificar se o nome do sistema contém "orion pro" (case-insensitive)
+    if (systemName && systemName.toLowerCase().includes('orion pro')) {
+      assistantId = assistantIdOrionPRO;
+      assistantName = 'Orion PRO';
+      console.log('🤖 [chat-ai] Using Orion PRO Assistant');
+      console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionPRO);
+    } else {
+      assistantId = assistantIdOrionTN;
+      assistantName = 'Orion TN (default)';
+      console.log('🤖 [chat-ai] Using Orion TN Assistant (default)');
+      console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionTN);
+    }
+    
+    console.log('🔍 [chat-ai] System Name received:', systemName);
+    console.log('🎯 [chat-ai] Selected Assistant:', assistantName);
 
     if (!message || message.trim() === '') {
       throw new Error('Message is required');
