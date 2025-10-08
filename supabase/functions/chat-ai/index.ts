@@ -77,9 +77,9 @@ serve(async (req) => {
 
     let currentThreadId = threadId;
 
-    // Create a new thread if one doesn't exist
+    // Create a new thread if one doesn't exist, with vector store attached
     if (!currentThreadId) {
-      console.log('🧵 [chat-ai] Creating new thread');
+      console.log('🧵 [chat-ai] Creating new thread with vector store');
       const threadResponse = await fetch('https://api.openai.com/v1/threads', {
         method: 'POST',
         headers: {
@@ -88,9 +88,15 @@ serve(async (req) => {
           'OpenAI-Beta': 'assistants=v2',
         },
         body: JSON.stringify({
+          tool_resources: {
+            file_search: {
+              vector_store_ids: [vectorStoreId]
+            }
+          },
           metadata: {
             lesson_title: lessonTitle || 'Unknown Lesson',
-            platform: 'siplan-skills'
+            platform: 'siplan-skills',
+            vector_store_id: vectorStoreId
           }
         }),
       });
@@ -103,11 +109,11 @@ serve(async (req) => {
 
       const threadData = await threadResponse.json();
       currentThreadId = threadData.id;
-      console.log('✅ [chat-ai] Thread created:', currentThreadId);
+      console.log('✅ [chat-ai] Thread created with vector store:', currentThreadId);
     }
 
-    // Add the user message to the thread with mandatory file_search attachment
-    console.log('💬 [chat-ai] Adding message to thread with vector store attachment');
+    // Add the user message to the thread (without attachments - vector store is on thread)
+    console.log('💬 [chat-ai] Adding message to thread');
     let messageResponse;
     try {
       messageResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/messages`, {
@@ -120,15 +126,9 @@ serve(async (req) => {
         body: JSON.stringify({
           role: 'user',
           content: message,
-          attachments: [
-            {
-              tools: [{ type: "file_search" }]
-            }
-          ],
           metadata: {
             lesson_title: lessonTitle || 'Unknown Lesson',
-            timestamp: new Date().toISOString(),
-            vector_store_id: vectorStoreId
+            timestamp: new Date().toISOString()
           }
         }),
       });
@@ -150,8 +150,8 @@ serve(async (req) => {
       });
     }
 
-    // Run the assistant
-    console.log('🚀 [chat-ai] Running assistant');
+    // Run the assistant with forced file_search tool
+    console.log('🚀 [chat-ai] Running assistant with forced file_search');
     const runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
       method: 'POST',
       headers: {
@@ -160,7 +160,9 @@ serve(async (req) => {
         'OpenAI-Beta': 'assistants=v2',
       },
       body: JSON.stringify({
-        assistant_id: assistantId
+        assistant_id: assistantId,
+        tools: [{ type: "file_search" }],
+        tool_choice: { type: "file_search" }
       }),
     });
 
