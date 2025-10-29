@@ -139,9 +139,10 @@ const CartorioManagerFixed: React.FC = () => {
         {cartorios.length === 0 ? (
           <CartorioEmptyState onCreateClick={() => setIsNewCartorioOpen(true)} />
         ) : (
-          cartorios.map((cartorio) => (
+          cartorios.map((cartorio, index) => (
             <CartorioCard
               key={cartorio.id}
+              numero={index + 1}
               cartorio={cartorio}
               onEditCartorio={setSelectedCartorioForEdit}
               onManageUsers={setSelectedCartorioForUsers}

@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { CartorioStatusIndicator } from './CartorioStatusIndicator';
 
 interface CartorioCardProps {
+  numero: number;
   cartorio: any;
   onEditCartorio: (cartorio: any) => void;
   onManageUsers: (cartorio: any) => void;
@@ -19,6 +20,7 @@ interface CartorioCardProps {
 }
 
 export const CartorioCard: React.FC<CartorioCardProps> = ({
+  numero,
   cartorio,
   onEditCartorio,
   onManageUsers,
@@ -34,23 +36,35 @@ export const CartorioCard: React.FC<CartorioCardProps> = ({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="text-sm font-semibold text-gray-400 flex-shrink-0">#{numero}</span>
+                <div className="flex-1 min-w-0 text-left">
+                  <CardTitle className="text-base text-white text-enhanced truncate">
+                    {cartorio.nome}
+                  </CardTitle>
+                </div>
+                <div className="flex-shrink-0">
+                  <CartorioStatusIndicator
+                    lastActivity={sessionData?.last_activity || null}
+                    isActive={sessionData?.is_active || false}
+                  />
+                </div>
                 {isOpen ? (
                   <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 )}
-                <div className="flex-1 min-w-0 text-left">
-                  <CardTitle className="text-base text-white text-enhanced truncate">
-                    {cartorio.nome}
-                  </CardTitle>
-                  <div className="mt-1">
-                    <CartorioStatusIndicator
-                      lastActivity={sessionData?.last_activity || null}
-                      isActive={sessionData?.is_active || false}
-                    />
-                  </div>
-                </div>
               </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="transition-all duration-300">
+          <CardContent className="pt-0 space-y-3">
+            {/* Nome completo do cartório */}
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-700">
+              <h4 className="text-sm font-semibold text-white">
+                {cartorio.nome}
+              </h4>
               <Badge 
                 variant={cartorio.is_active ? 'secondary' : 'destructive'}
                 className={cartorio.is_active ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-modern flex-shrink-0' : 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-modern flex-shrink-0'}
@@ -58,11 +72,7 @@ export const CartorioCard: React.FC<CartorioCardProps> = ({
                 {cartorio.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
             </div>
-          </CardHeader>
-        </CollapsibleTrigger>
 
-        <CollapsibleContent className="transition-all duration-300">
-          <CardContent className="pt-0 space-y-3">
             {/* Localização */}
             {cartorio.cidade && cartorio.estado && (
               <div className="flex items-center text-sm text-gray-400">
