@@ -210,10 +210,23 @@ const VideoLesson: React.FC = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="h-[600px] overflow-hidden">
-                    <AIChat 
-                      lessonTitle={videoAulaData.titulo} 
-                      systemName={sistema?.nome}
-                    />
+                    {sistema?.nome === "Orion PRO" || sistema?.nome === "Orion TN" ? (
+                      <AIChat 
+                        lessonTitle={videoAulaData.titulo} 
+                        systemName={sistema?.nome}
+                      />
+                    ) : (
+                      <div className="h-full flex items-center justify-center p-6">
+                        <div className="text-center space-y-4">
+                          <div className="p-4 bg-gray-800/50 rounded-lg mx-auto w-16 h-16 flex items-center justify-center">
+                            <AlertCircle className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <p className="text-gray-400 text-sm max-w-xs mx-auto">
+                            Atualmente disponível apenas para os sistemas Orion TN e Orion PRO
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
