@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, RefreshCw, Trash2, Users, Shield, Edit, Calendar, MapPin, Copy, Eye, EyeOff } from 'lucide-react';
+import { Plus, AlertCircle, RefreshCw, Trash2, Users, Shield, Edit, Calendar, MapPin, Copy, Eye, EyeOff, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { logger } from '@/utils/logger';
 import { useCartoriosAdminFixed } from '@/hooks/useCartoriosAdminFixed';
 import { useCartorioSessions } from '@/hooks/useCartorioSessions';
@@ -20,9 +21,15 @@ const CartorioManagerRestored: React.FC = () => {
   const [selectedCartorioForEdit, setSelectedCartorioForEdit] = useState<any>(null);
   const [selectedCartorioForPermissions, setSelectedCartorioForPermissions] = useState<any>(null);
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { cartorios, isLoading, error, refetch, deleteCartorio } = useCartoriosAdminFixed();
   const sessions = useCartorioSessions();
+
+  // Filtrar cartórios pelo termo de busca
+  const filteredCartorios = cartorios.filter(cartorio => 
+    cartorio.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDeleteCartorio = async (cartorio: any) => {
     if (!window.confirm(`Tem certeza que deseja deletar o cartório "${cartorio.nome}"? Esta ação não pode ser desfeita.`)) {
@@ -113,27 +120,45 @@ const CartorioManagerRestored: React.FC = () => {
         </Button>
       </div>
 
+      {/* Filtro de busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Buscar cartório por nome..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-400"
+        />
+      </div>
+
       {/* Lista de cartórios */}
-      <div className="grid grid-cols-1 gap-6">
-        {cartorios.length === 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredCartorios.length === 0 ? (
           <Card className="bg-gray-800/50 border-gray-700">
             <CardContent className="py-12">
               <div className="text-center">
                 <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">Nenhum cartório encontrado</h3>
-                <p className="text-gray-400 mb-4">Comece criando seu primeiro cartório</p>
-                <Button 
-                  onClick={() => setIsNewCartorioOpen(true)}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeiro Cartório
-                </Button>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  {searchTerm ? 'Nenhum cartório encontrado' : 'Nenhum cartório cadastrado'}
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  {searchTerm ? 'Tente buscar por outro nome' : 'Comece criando seu primeiro cartório'}
+                </p>
+                {!searchTerm && (
+                  <Button 
+                    onClick={() => setIsNewCartorioOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar Primeiro Cartório
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         ) : (
-          cartorios.map((cartorio) => {
+          filteredCartorios.map((cartorio) => {
             const sessionData = sessions.get(cartorio.id);
             return (
               <CartorioCard
