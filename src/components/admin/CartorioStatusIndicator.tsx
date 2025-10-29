@@ -1,5 +1,5 @@
-import React from 'react';
-import { Circle } from 'lucide-react';
+import React from "react";
+import { Circle } from "lucide-react";
 
 interface CartorioStatusIndicatorProps {
   lastActivity: string | null;
@@ -13,29 +13,24 @@ const formatTimeAgo = (date: Date): string => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMinutes < 1) return 'agora há pouco';
-  if (diffInMinutes < 60) return `há ${diffInMinutes} ${diffInMinutes === 1 ? 'minuto' : 'minutos'}`;
-  if (diffInHours < 24) return `há ${diffInHours} ${diffInHours === 1 ? 'hora' : 'horas'}`;
-  return `há ${diffInDays} ${diffInDays === 1 ? 'dia' : 'dias'}`;
+  if (diffInMinutes < 1) return "agora";
+  if (diffInMinutes < 60) return `${diffInMinutes} ${diffInMinutes === 1 ? "min" : "min"}`;
+  if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? "h" : "h"}`;
+  return `há ${diffInDays} ${diffInDays === 1 ? "dia" : "dias"}`;
 };
 
-export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = ({
-  lastActivity,
-  isActive
-}) => {
+export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = ({ lastActivity, isActive }) => {
   if (!lastActivity) {
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />
-        <span>Sem atividade registrada</span>
+        <span>Sem acesso</span>
       </div>
     );
   }
 
   const lastActivityDate = new Date(lastActivity);
-  const daysSinceLastActivity = Math.floor(
-    (Date.now() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysSinceLastActivity = Math.floor((Date.now() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Online (verde)
   if (isActive) {
@@ -52,9 +47,7 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
     return (
       <div className="flex items-center gap-2 text-xs">
         <Circle className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-        <span className="text-yellow-600 dark:text-yellow-400">
-          {formatTimeAgo(lastActivityDate)}
-        </span>
+        <span className="text-yellow-600 dark:text-yellow-400">{formatTimeAgo(lastActivityDate)}</span>
       </div>
     );
   }
@@ -63,9 +56,7 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
   return (
     <div className="flex items-center gap-2 text-xs">
       <Circle className="h-3 w-3 fill-red-500 text-red-500" />
-      <span className="text-red-600 dark:text-red-400">
-        {formatTimeAgo(lastActivityDate)}
-      </span>
+      <span className="text-red-600 dark:text-red-400">{formatTimeAgo(lastActivityDate)}</span>
     </div>
   );
 };
