@@ -158,11 +158,12 @@ const CartorioManagerRestored: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          filteredCartorios.map((cartorio) => {
+          filteredCartorios.map((cartorio, index) => {
             const sessionData = sessions.get(cartorio.id);
             return (
               <CartorioCard
                 key={cartorio.id}
+                numero={index + 1}
                 cartorio={cartorio}
                 sessionData={sessionData || null}
                 onEditCartorio={(c) => setSelectedCartorioForEdit(c)}
