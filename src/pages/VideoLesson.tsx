@@ -210,7 +210,7 @@ const VideoLesson: React.FC = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="h-[600px] overflow-hidden">
-                    {sistema?.nome === "Orion PRO" || sistema?.nome === "Orion TN" ? (
+                    {videoAulaData.titulo?.includes("Orion PRO") || videoAulaData.titulo?.includes("Orion TN") ? (
                       <AIChat 
                         lessonTitle={videoAulaData.titulo} 
                         systemName={sistema?.nome}
