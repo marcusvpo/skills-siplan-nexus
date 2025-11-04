@@ -180,26 +180,11 @@ serve(async (req) => {
     console.log('Allowed system IDs:', systemIds);
     console.log('Allowed product IDs:', productIds);
     
-    // Build the query based on what permissions exist
-    let query = supabase
-      .from('sistemas')
-      .select(`
-        *,
-        produtos (
-          *,
-          video_aulas (*)
-        )
-      `);
+    // Collect all system IDs that should be included (either directly or via products)
+    const allRelevantSystemIds = new Set(systemIds);
     
-    // Apply filters only if we have IDs to filter by
-    if (systemIds.length > 0 && productIds.length > 0) {
-      // Both system and product permissions exist
-      query = query.or(`id.in.(${systemIds.join(',')}),produtos.id.in.(${productIds.join(',')})`);
-    } else if (systemIds.length > 0) {
-      // Only system permissions exist
-      query = query.in('id', systemIds);
-    } else if (productIds.length > 0) {
-      // Only product permissions exist - we need systems that contain these products
+    // If we have product permissions, get their parent systems too
+    if (productIds.length > 0) {
       const { data: productsWithSystems, error: prodError } = await supabase
         .from('produtos')
         .select('sistema_id')
@@ -210,22 +195,15 @@ serve(async (req) => {
         throw new Error('Erro ao processar permissões de produtos');
       }
       
-      const systemIdsFromProducts = [...new Set(productsWithSystems?.map(p => p.sistema_id) || [])];
-      
-      if (systemIdsFromProducts.length > 0) {
-        query = query.in('id', systemIdsFromProducts);
-      } else {
-        // No systems found for the given products
-        return new Response(JSON.stringify({
-          sistemas: [],
-          hasPermissions: true,
-          permissions: permissions
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } else {
+      productsWithSystems?.forEach(p => {
+        if (p.sistema_id) allRelevantSystemIds.add(p.sistema_id);
+      });
+    }
+    
+    // Convert Set to Array
+    const finalSystemIds = Array.from(allRelevantSystemIds);
+    
+    if (finalSystemIds.length === 0) {
       // No valid permissions found
       return new Response(JSON.stringify({
         sistemas: [],
@@ -237,9 +215,18 @@ serve(async (req) => {
       });
     }
     
-    query = query.order('ordem', { ascending: true });
-    
-    const { data: allowedSystems, error: systemsError } = await query;
+    // Build query with only system IDs
+    const { data: allowedSystems, error: systemsError } = await supabase
+      .from('sistemas')
+      .select(`
+        *,
+        produtos (
+          *,
+          video_aulas (*)
+        )
+      `)
+      .in('id', finalSystemIds)
+      .order('ordem', { ascending: true });
     
     if (systemsError) {
       console.error('Error fetching filtered systems:', systemsError);
