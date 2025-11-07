@@ -80,6 +80,15 @@ verify_jwt = true
 [functions.verify-token]
 verify_jwt = false
 
+[functions.get-certification-status]
+verify_jwt = false
+
+[functions.submit-quiz]
+verify_jwt = false
+
+[functions.get-quiz-perguntas]
+verify_jwt = false
+
 [studio]
 enabled = true
 port = 54323
