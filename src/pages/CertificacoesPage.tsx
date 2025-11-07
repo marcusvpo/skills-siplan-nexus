@@ -18,12 +18,16 @@ export const CertificacoesPage = () => {
       }
       
       const authToken = (user as any).token;
+      const userId = (user as any).id;
+      const trilhaId = (user as any).active_trilha_id;
       
-      const { data, error } = await supabase.functions.invoke('get-certification-status', {
+      // Montar a URL com query parameters
+      const functionUrl = `get-certification-status?user_id=${userId}&trilha_id=${trilhaId}`;
+      
+      const { data, error } = await supabase.functions.invoke(functionUrl, {
         headers: {
           'Authorization': `Bearer ${authToken}`
-        },
-        body: { user_id: (user as any).id, trilha_id: (user as any).active_trilha_id }
+        }
       });
       
       if (error) throw error;
