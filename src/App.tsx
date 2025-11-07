@@ -10,9 +10,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import SystemPage from '@/pages/SystemPage';
 import ProductPage from '@/pages/ProductPage';
 import VideoLesson from '@/pages/VideoLesson';
-import VideoAulaEditor from '@/pages/VideoAulaEditor';
 import VideoAulaEditorWYSIWYG from '@/pages/VideoAulaEditorWYSIWYG';
-import NovaVideoaula from '@/pages/NovaVideoaula';
 import NovaVideoaulaBunny from '@/pages/NovaVideoaulaBunny';
 import EditarVideoaula from '@/pages/EditarVideoaula';
 import Debug from '@/pages/Debug';
@@ -21,8 +19,6 @@ import { TrilhaPage } from '@/pages/TrilhaPage';
 import { TrilhaLessonPage } from '@/pages/TrilhaLessonPage';
 import { QuizPage } from '@/pages/QuizPage';
 import { CertificacoesPage } from '@/pages/CertificacoesPage';
-
-// Importa o AuthProvider da versão FIXA do contexto
 import { AuthProvider } from '@/contexts/AuthContextFixed';
 
 const queryClient = new QueryClient({
@@ -30,7 +26,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutos
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -38,8 +34,8 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router> {/* O Router DEVE envolver TUDO que usa rotas */}
-        <AuthProvider> {/* O AuthProvider AGORA está dentro do Router */}
+      <Router>
+        <AuthProvider>
           <ProgressProvider>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -66,7 +62,7 @@ function App() {
           </ProgressProvider>
         </AuthProvider>
       </Router>
-      <Toaster /> {/* O Toaster pode ficar aqui, fora do Router, pois geralmente ele cria portais globais */}
+      <Toaster />
     </QueryClientProvider>
   );
 }
