@@ -17,9 +17,13 @@ import NovaVideoaulaBunny from '@/pages/NovaVideoaulaBunny';
 import EditarVideoaula from '@/pages/EditarVideoaula';
 import Debug from '@/pages/Debug';
 import NotFound from '@/pages/NotFound';
+import { TrilhaPage } from '@/pages/TrilhaPage';
+import { TrilhaLessonPage } from '@/pages/TrilhaLessonPage';
+import { QuizPage } from '@/pages/QuizPage';
+import { CertificacoesPage } from '@/pages/CertificacoesPage';
 
 // Importa o AuthProvider da versão FIXA do contexto
-import { AuthProvider } from '@/contexts/AuthContextFixed'; 
+import { AuthProvider } from '@/contexts/AuthContextFixed';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +56,10 @@ function App() {
               <Route path="/system/:systemId" element={<SystemPage />} />
               <Route path="/system/:systemId/product/:productId" element={<ProductPage />} />
               <Route path="/system/:systemId/product/:productId/lesson/:videoId" element={<VideoLesson />} />
+              <Route path="/trilha/inicio" element={<TrilhaPage />} />
+              <Route path="/trilha/aula/:video_aula_id" element={<TrilhaLessonPage />} />
+              <Route path="/quiz/:quiz_id" element={<QuizPage />} />
+              <Route path="/certificacoes" element={<CertificacoesPage />} />
               <Route path="/debug" element={<Debug />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
