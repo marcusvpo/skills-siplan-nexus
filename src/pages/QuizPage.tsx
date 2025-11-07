@@ -24,22 +24,42 @@ export const QuizPage = () => {
   const { data: quizData, isLoading } = useQuery({
     queryKey: ['quiz-page', finalQuizId],
     queryFn: async () => {
+      const authToken = (user as any)?.token;
+      if (!authToken) {
+        console.error('[QuizPage] Token não encontrado');
+        throw new Error('Token não encontrado');
+      }
+
       const { data, error } = await supabase.functions.invoke('get-quiz-perguntas', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
         body: { quiz_id: finalQuizId }
       });
+      
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!user && !!finalQuizId
   });
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      const authToken = (user as any)?.token;
+      if (!authToken) {
+        console.error('[QuizPage] Token não encontrado ao submeter quiz');
+        throw new Error('Token não encontrado');
+      }
+
       const respostasArray = Object.entries(respostas).map(([pergunta_id, resposta]) => ({
         pergunta_id,
         resposta: [resposta]
       }));
 
       const { data, error } = await supabase.functions.invoke('submit-quiz', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
         body: {
           user_id: (user as any)?.id,
           quiz_id: finalQuizId,

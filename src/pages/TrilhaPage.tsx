@@ -19,9 +19,15 @@ export const TrilhaPage = () => {
     queryFn: async () => {
       console.log('[TrilhaPage] Buscando roadmap da trilha ativa...');
       
+      const authToken = (user as any)?.token;
+      if (!authToken) {
+        console.error('[TrilhaPage] Erro: Token de autenticação não encontrado no useAuth');
+        throw new Error('Token de autenticação não encontrado');
+      }
+
       const { data, error } = await supabase.functions.invoke('get-active-trail-roadmap', {
         headers: {
-          'siplan-auth-token': localStorage.getItem('siplan-auth-token') || '',
+          'Authorization': `Bearer ${authToken}`
         },
       });
 
@@ -33,7 +39,7 @@ export const TrilhaPage = () => {
       console.log('[TrilhaPage] Roadmap recebido:', data);
       return data;
     },
-    enabled: !!(user as any)?.id && !!(user as any)?.active_trilha_id,
+    enabled: !!(user as any)?.id && !!(user as any)?.active_trilha_id && !!(user as any)?.token,
   });
 
   // Handlers

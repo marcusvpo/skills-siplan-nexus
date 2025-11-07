@@ -64,8 +64,8 @@ const Dashboard = () => {
     if (activeTrilhaId) {
       console.log('🚀 [Dashboard] *** FLUXO B DETECTADO ***');
       console.log('🚀 [Dashboard] Usuário de Trilha com active_trilha_id:', activeTrilhaId);
-      console.log('🚀 [Dashboard] Redirecionando para /trilha/roadmap');
-      navigate('/trilha/roadmap', { replace: true });
+      console.log('🚀 [Dashboard] Redirecionando para /trilha/inicio');
+      navigate('/trilha/inicio', { replace: true });
       return;
     }
 
