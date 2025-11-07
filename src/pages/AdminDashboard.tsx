@@ -14,6 +14,8 @@ import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored'
 import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 import { UserProgressViewFinal } from '@/components/admin/UserProgressViewFinal';
+import { TrilhaManager } from '@/components/admin/TrilhaManager';
+import { QuizManager } from '@/components/admin/QuizManager';
 
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
@@ -129,7 +131,7 @@ const AdminDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <Card className="gradient-card shadow-modern border-gray-600/50">
             <CardContent className="p-1">
-              <TabsList className="grid w-full grid-cols-3 glass-effect border-gray-700/50 p-1">
+              <TabsList className="grid w-full grid-cols-4 glass-effect border-gray-700/50 p-1">
                 <TabsTrigger 
                   value="cartorios"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
@@ -143,6 +145,13 @@ const AdminDashboard = () => {
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Gerenciamento de Conteúdo
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="personalizacao"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Personalização
                 </TabsTrigger>
                 <TabsTrigger 
                   value="configuracoes"
@@ -161,6 +170,29 @@ const AdminDashboard = () => {
 
           <TabsContent value="conteudo" className="space-y-6">
             <ContentManagerFixed />
+          </TabsContent>
+
+          <TabsContent value="personalizacao" className="space-y-6">
+            <Tabs defaultValue="trilhas" className="space-y-4">
+              <TabsList className="glass-effect border-gray-700/50">
+                <TabsTrigger value="trilhas">Gestão de Trilhas</TabsTrigger>
+                <TabsTrigger value="quizzes">Gestão de Quizzes</TabsTrigger>
+              </TabsList>
+              <TabsContent value="trilhas">
+                <Card className="gradient-card shadow-modern border-gray-600/50">
+                  <CardContent className="p-6">
+                    <TrilhaManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="quizzes">
+                <Card className="gradient-card shadow-modern border-gray-600/50">
+                  <CardContent className="p-6">
+                    <QuizManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
