@@ -198,7 +198,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
               <TableRow className="border-gray-600">
                 <TableHead className="text-gray-300">Usuário</TableHead>
                 <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Trilha</TableHead>
+                <TableHead className="text-gray-300">Trilha Atribuída</TableHead>
                 <TableHead className="text-gray-300">Status</TableHead>
                 <TableHead className="text-gray-300">Criado em</TableHead>
                 <TableHead className="text-gray-300">Ações</TableHead>
@@ -210,15 +210,32 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                   <TableCell className="font-medium text-white">{user.username}</TableCell>
                   <TableCell className="text-gray-300">{user.email || 'N/A'}</TableCell>
                   <TableCell>
-                    {user.active_trilha_id ? (
-                      <Badge className="bg-blue-600 text-white">
-                        {trilhas.find(t => t.id === user.active_trilha_id)?.nome || 'Trilha'}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-gray-600 text-gray-400">
-                        Usuário Comum
-                      </Badge>
-                    )}
+                    <Select
+                      value={user.active_trilha_id || 'none'}
+                      onValueChange={async (value) => {
+                        const trilhaId = value === 'none' ? '' : value;
+                        await updateUser(user.id, {
+                          username: user.username,
+                          email: user.email,
+                          is_active: user.is_active,
+                          active_trilha_id: trilhaId
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-600 z-50">
+                        <SelectItem value="none" className="text-white">
+                          Usuário Comum
+                        </SelectItem>
+                        {trilhas.map((trilha) => (
+                          <SelectItem key={trilha.id} value={trilha.id} className="text-white">
+                            {trilha.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Badge 
