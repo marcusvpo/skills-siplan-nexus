@@ -57,21 +57,8 @@ const Dashboard = () => {
       return;
     }
 
-    // BIFURCAÇÃO CRÍTICA: Redirecionar usuários com trilha ativa para o fluxo de trilha
-    const activeTrilhaId = (user as any)?.active_trilha_id;
-    console.log('🔍 [Dashboard] Verificando active_trilha_id:', activeTrilhaId);
-    
-    if (activeTrilhaId) {
-      console.log('🚀 [Dashboard] *** FLUXO B DETECTADO ***');
-      console.log('🚀 [Dashboard] Usuário de Trilha com active_trilha_id:', activeTrilhaId);
-      console.log('🚀 [Dashboard] Redirecionando para /trilha/inicio');
-      navigate('/trilha/inicio', { replace: true });
-      return;
-    }
-
-    // Se chegou aqui, é um Usuário Comum (sem trilha ativa) - FLUXO A
-    console.log('✅ [Dashboard] *** FLUXO A CONFIRMADO ***');
-    console.log('✅ [Dashboard] Usuário Comum (sem trilha). Exibindo dashboard padrão.');
+    // Todos os usuários de cartório agora seguem o mesmo fluxo
+    console.log('✅ [Dashboard] Usuário de cartório autenticado. Exibindo dashboard padrão.');
     console.log('🎯 [Dashboard] ======== FIM DA VERIFICAÇÃO ========');
   }, [isAuthenticated, user, navigate, isLoading]);
 
