@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.2";
+import * as jose from "https://deno.land/x/jose@v5.9.6/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, siplan-auth-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const JWT_SECRET = Deno.env.get('JWT_SECRET');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const CUSTOM_SERVICE_KEY = Deno.env.get('CUSTOM_SERVICE_KEY');
+
+console.log('🔧 [Edge Function Init] JWT Secret:', JWT_SECRET ? 'Present' : 'Missing');
+console.log('🔧 [Edge Function Init] Using service key:', CUSTOM_SERVICE_KEY ? 'Present' : 'Missing');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,47 +20,71 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization') || req.headers.get('siplan-auth-token');
-    if (!authHeader) {
-      console.error('[get-active-trail-roadmap] Sem token de autenticação');
+    console.log('=== GET ACTIVE TRAIL ROADMAP ===');
+    
+    // Obter token do header Authorization
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ [ROADMAP] Token não fornecido ou formato inválido');
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    // Extrair user_id do JWT customizado
     const token = authHeader.replace('Bearer ', '');
-    let userId: string | null = null;
 
+    // Validar JWT customizado usando jose
+    if (!JWT_SECRET) {
+      console.error('❌ [ROADMAP] JWT_SECRET não configurado');
+      return new Response(
+        JSON.stringify({ error: 'Configuração do servidor inválida' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('🔍 [JWT] Verificando JWT token...');
+    let payload: any;
+    
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      userId = payload.user_id || payload.sub;
-      console.log('[get-active-trail-roadmap] User ID:', userId);
-    } catch (e) {
-      console.error('[get-active-trail-roadmap] Erro ao decodificar JWT:', e);
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      const { payload: jwtPayload } = await jose.jwtVerify(token, secret, {
+        algorithms: ['HS256'],
+      });
+      payload = jwtPayload;
+      console.log('🔍 [JWT] Full payload:', JSON.stringify(payload, null, 2));
+    } catch (error) {
+      console.error('❌ [JWT] Erro ao verificar JWT:', error);
       return new Response(
         JSON.stringify({ error: 'Token inválido' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const userId = payload.user_id as string;
+    const cartorioId = payload.cartorio_id as string;
+
     if (!userId) {
+      console.error('❌ [ROADMAP] user_id não encontrado no JWT');
       return new Response(
         JSON.stringify({ error: 'Usuário não identificado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`✅ [ROADMAP] JWT válido - user_id: ${userId}, cartorio_id: ${cartorioId}`);
+
+    // Criar cliente Supabase com Service Key (SEM passar o JWT do usuário)
+    const supabase = createClient(
+      SUPABASE_URL,
+      CUSTOM_SERVICE_KEY ?? '',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
 
     // Buscar active_trilha_id do usuário
     const { data: usuario, error: usuarioError } = await supabase
