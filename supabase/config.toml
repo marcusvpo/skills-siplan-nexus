@@ -71,6 +71,9 @@ verify_jwt = false
 [functions.update-trilha]
 verify_jwt = false
 
+[functions.get-active-trail-roadmap]
+verify_jwt = false
+
 [functions.update-bunny-video-ids]
 verify_jwt = true
 
