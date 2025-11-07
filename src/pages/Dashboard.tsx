@@ -19,7 +19,8 @@ const Dashboard = () => {
     console.log('🎯 [Dashboard] Current auth state:', { 
       isAuthenticated, 
       userType: user?.type,
-      cartorioId: user?.cartorio_id,
+      cartorioId: (user as any)?.cartorio_id,
+      activeTrilhaId: (user as any)?.active_trilha_id,
       user: user,
       isLoading
     });
@@ -46,7 +47,7 @@ const Dashboard = () => {
       return;
     }
 
-    if (!user?.cartorio_id) {
+    if (!(user as any)?.cartorio_id) {
       console.error('❌ [Dashboard] User has no cartorio_id');
       toast({
         title: "Erro de configuração",
@@ -54,6 +55,14 @@ const Dashboard = () => {
         variant: "destructive",
       });
       navigate('/login');
+      return;
+    }
+
+    // Verificar se tem trilha ativa e redirecionar
+    const activeTrilhaId = (user as any)?.active_trilha_id;
+    if (activeTrilhaId) {
+      console.log('🎯 [Dashboard] User has active trilha, redirecting to /trilha/inicio');
+      navigate('/trilha/inicio');
       return;
     }
   }, [isAuthenticated, user, navigate, isLoading]);
