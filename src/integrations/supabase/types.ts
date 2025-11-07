@@ -156,6 +156,7 @@ export type Database = {
       }
       cartorio_usuarios: {
         Row: {
+          active_trilha_id: string | null
           auth_user_id: string | null
           cartorio_id: string
           created_at: string | null
@@ -167,6 +168,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          active_trilha_id?: string | null
           auth_user_id?: string | null
           cartorio_id: string
           created_at?: string | null
@@ -178,6 +180,7 @@ export type Database = {
           username: string
         }
         Update: {
+          active_trilha_id?: string | null
           auth_user_id?: string | null
           cartorio_id?: string
           created_at?: string | null
@@ -189,6 +192,13 @@ export type Database = {
           username?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cartorio_usuarios_active_trilha_id_fkey"
+            columns: ["active_trilha_id"]
+            isOneToOne: false
+            referencedRelation: "trilhas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cartorio_usuarios_fk"
             columns: ["cartorio_id"]
@@ -299,6 +309,89 @@ export type Database = {
           },
         ]
       }
+      quiz_perguntas: {
+        Row: {
+          id: string
+          imagem_url: string | null
+          opcoes: Json | null
+          pergunta: string
+          quiz_id: string
+          resposta_correta: Json | null
+          tipo_pergunta: string
+        }
+        Insert: {
+          id?: string
+          imagem_url?: string | null
+          opcoes?: Json | null
+          pergunta: string
+          quiz_id: string
+          resposta_correta?: Json | null
+          tipo_pergunta?: string
+        }
+        Update: {
+          id?: string
+          imagem_url?: string | null
+          opcoes?: Json | null
+          pergunta?: string
+          quiz_id?: string
+          resposta_correta?: Json | null
+          tipo_pergunta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_perguntas_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          id: string
+          min_acertos: number
+          qtd_perguntas_exibir: number
+          tipo: string
+          titulo: string
+          trilha_id: string | null
+          video_aula_id: string | null
+        }
+        Insert: {
+          id?: string
+          min_acertos?: number
+          qtd_perguntas_exibir?: number
+          tipo?: string
+          titulo: string
+          trilha_id?: string | null
+          video_aula_id?: string | null
+        }
+        Update: {
+          id?: string
+          min_acertos?: number
+          qtd_perguntas_exibir?: number
+          tipo?: string
+          titulo?: string
+          trilha_id?: string | null
+          video_aula_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "trilhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quizzes_video_aula_id_fkey"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sistemas: {
         Row: {
           descricao: string | null
@@ -319,6 +412,168 @@ export type Database = {
           ordem?: number
         }
         Relationships: []
+      }
+      trilha_aulas: {
+        Row: {
+          id: string
+          ordem: number
+          trilha_id: string
+          video_aula_id: string
+        }
+        Insert: {
+          id?: string
+          ordem?: number
+          trilha_id: string
+          video_aula_id: string
+        }
+        Update: {
+          id?: string
+          ordem?: number
+          trilha_id?: string
+          video_aula_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trilha_aulas_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "trilhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trilha_aulas_video_aula_id_fkey"
+            columns: ["video_aula_id"]
+            isOneToOne: false
+            referencedRelation: "video_aulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trilhas: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          produto_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          produto_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          produto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trilhas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_quiz_tentativas: {
+        Row: {
+          aprovado: boolean
+          data_tentativa: string | null
+          id: string
+          quiz_id: string
+          respostas_dadas: Json | null
+          score: number
+          trilha_id: string | null
+          user_id: string
+        }
+        Insert: {
+          aprovado?: boolean
+          data_tentativa?: string | null
+          id?: string
+          quiz_id: string
+          respostas_dadas?: Json | null
+          score: number
+          trilha_id?: string | null
+          user_id: string
+        }
+        Update: {
+          aprovado?: boolean
+          data_tentativa?: string | null
+          id?: string
+          quiz_id?: string
+          respostas_dadas?: Json | null
+          score?: number
+          trilha_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quiz_tentativas_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_tentativas_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "trilhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_tentativas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_trilha_progresso: {
+        Row: {
+          data_conclusao: string | null
+          data_inicio: string | null
+          id: string
+          status: string
+          trilha_id: string
+          user_id: string
+        }
+        Insert: {
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          id?: string
+          status?: string
+          trilha_id: string
+          user_id: string
+        }
+        Update: {
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          id?: string
+          status?: string
+          trilha_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_trilha_progresso_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "trilhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_trilha_progresso_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_video_progress: {
         Row: {
@@ -456,20 +711,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      deactivate_old_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      debug_auth_cartorio_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      debug_auth_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      deactivate_old_sessions: { Args: never; Returns: undefined }
+      debug_auth_cartorio_context: { Args: never; Returns: Json }
+      debug_auth_context: { Args: never; Returns: Json }
       debug_cartorios_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           cartorio_ativo: boolean
           cartorio_id: string
@@ -480,22 +726,10 @@ export type Database = {
           usuarios_count: number
         }[]
       }
-      get_current_cartorio_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_cartorio_id_from_jwt: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_cartorio_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_cartorio_usuario_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_cartorio_id: { Args: never; Returns: string }
+      get_current_cartorio_id_from_jwt: { Args: never; Returns: string }
+      get_current_cartorio_user_id: { Args: never; Returns: string }
+      get_current_cartorio_usuario_id: { Args: never; Returns: string }
       get_product_progress: {
         Args: { p_cartorio_id: string; p_produto_id: string }
         Returns: Json
@@ -542,14 +776,8 @@ export type Database = {
         Args: { p_cartorio_id: string; p_video_aula_id: string }
         Returns: Json
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      migrate_progress_data_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      is_admin: { Args: never; Returns: boolean }
+      migrate_progress_data_safe: { Args: never; Returns: undefined }
       register_video_progress: {
         Args: { p_completed?: boolean; p_video_aula_id: string }
         Returns: Json
@@ -580,10 +808,7 @@ export type Database = {
         Args: { cartorio_id_param: string }
         Returns: undefined
       }
-      test_cartorio_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      test_cartorio_context: { Args: never; Returns: Json }
       test_insert_visualizacao_cartorio: {
         Args: {
           p_cartorio_id: string
@@ -598,10 +823,7 @@ export type Database = {
         Args: { p_cartorio_id: string }
         Returns: undefined
       }
-      validate_custom_jwt: {
-        Args: { token: string }
-        Returns: string
-      }
+      validate_custom_jwt: { Args: { token: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
