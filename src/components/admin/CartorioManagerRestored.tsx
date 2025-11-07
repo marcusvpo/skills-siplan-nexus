@@ -5,6 +5,8 @@ import { Plus, AlertCircle, RefreshCw, Trash2, Users, Shield, Edit, Calendar, Ma
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { logger } from '@/utils/logger';
 import { useCartoriosAdminFixed } from '@/hooks/useCartoriosAdminFixed';
 import { useCartorioSessions } from '@/hooks/useCartorioSessions';
@@ -22,14 +24,46 @@ const CartorioManagerRestored: React.FC = () => {
   const [selectedCartorioForPermissions, setSelectedCartorioForPermissions] = useState<any>(null);
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [filterAccessStatus, setFilterAccessStatus] = useState<"all" | "recent" | "expired">("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "alpha">("alpha");
 
   const { cartorios, isLoading, error, refetch, deleteCartorio } = useCartoriosAdminFixed();
   const sessions = useCartorioSessions();
 
-  // Filtrar cartórios pelo termo de busca
-  const filteredCartorios = cartorios.filter(cartorio => 
-    cartorio.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar e ordenar cartórios
+  const filteredCartorios = cartorios
+    .filter(cartorio => {
+      // Filtro de busca por nome
+      if (searchTerm && !cartorio.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      
+      // Filtro de status ativo/inativo
+      if (filterStatus === "active" && !cartorio.is_active) return false;
+      if (filterStatus === "inactive" && cartorio.is_active) return false;
+      
+      // Filtro de status de acesso (token válido/expirado)
+      if (filterAccessStatus !== "all") {
+        const acesso = cartorio.acessos_cartorio?.[0];
+        if (!acesso) return filterAccessStatus === "expired";
+        const expDate = acesso.data_expiracao;
+        if (!expDate) return filterAccessStatus === "expired";
+        const isExpired = new Date(expDate) < new Date();
+        if (filterAccessStatus === "expired" && !isExpired) return false;
+        if (filterAccessStatus === "recent" && isExpired) return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "alpha") {
+        return a.nome.localeCompare(b.nome);
+      }
+      const dateA = new Date(a.data_cadastro || 0).getTime();
+      const dateB = new Date(b.data_cadastro || 0).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
 
   const handleDeleteCartorio = async (cartorio: any) => {
     if (!window.confirm(`Tem certeza que deseja deletar o cartório "${cartorio.nome}"? Esta ação não pode ser desfeita.`)) {
@@ -120,17 +154,65 @@ const CartorioManagerRestored: React.FC = () => {
         </Button>
       </div>
 
-      {/* Filtro de busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Buscar cartório por nome..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-400"
-        />
-      </div>
+      {/* Filtros avançados */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-gray-300">Pesquisar</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar cartório por nome..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-gray-300">Status</Label>
+              <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
+                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-gray-300">Acesso</Label>
+              <Select value={filterAccessStatus} onValueChange={(v: any) => setFilterAccessStatus(v)}>
+                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="recent">Token Válido</SelectItem>
+                  <SelectItem value="expired">Token Expirado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-gray-300">Ordenar</Label>
+              <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
+                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alpha">Ordem Alfabética</SelectItem>
+                  <SelectItem value="asc">Mais Antigos</SelectItem>
+                  <SelectItem value="desc">Mais Recentes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lista de cartórios */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
