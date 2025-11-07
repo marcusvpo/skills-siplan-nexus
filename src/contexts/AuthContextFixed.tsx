@@ -15,6 +15,7 @@ interface User {
   cartorio_name?: string;
   username?: string;
   email?: string;
+  active_trilha_id?: string | null;
 }
 
 interface AuthContextType {
@@ -40,33 +41,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      logger.info('[AuthContextFixed] Restaurando usuário cartório do localStorage');
-      const savedUserStr = localStorage.getItem('siplan-user');
-      if (savedUserStr) {
-        const savedUser: User = JSON.parse(savedUserStr);
-        if (savedUser.type === 'cartorio' && savedUser.token) {
-          // Verificar se o token está expirado
-          if (isTokenExpired(savedUser.token)) {
-            logger.warn('[AuthContextFixed] Token do usuário cartório expirado, removendo do localStorage');
-            localStorage.removeItem('siplan-user');
-            clearAuthToken();
-            setCartorioUser(null);
+    const restoreUser = async () => {
+      try {
+        logger.info('[AuthContextFixed] Restaurando usuário cartório do localStorage');
+        const savedUserStr = localStorage.getItem('siplan-user');
+        if (savedUserStr) {
+          const savedUser: User = JSON.parse(savedUserStr);
+          if (savedUser.type === 'cartorio' && savedUser.token) {
+            // Verificar se o token está expirado
+            if (isTokenExpired(savedUser.token)) {
+              logger.warn('[AuthContextFixed] Token do usuário cartório expirado, removendo do localStorage');
+              localStorage.removeItem('siplan-user');
+              clearAuthToken();
+              setCartorioUser(null);
+            } else {
+              // CRÍTICO: Re-buscar o active_trilha_id do banco ao restaurar da sessão
+              logger.info('[AuthContextFixed] Re-buscando active_trilha_id atualizado...');
+              const { data: userProfile, error: profileError } = await supabase
+                .from('cartorio_usuarios')
+                .select('active_trilha_id')
+                .eq('id', savedUser.id)
+                .single();
+
+              if (profileError) {
+                logger.error('[AuthContextFixed] Erro ao buscar perfil:', profileError);
+              } else {
+                logger.info('[AuthContextFixed] Perfil atualizado carregado:', userProfile);
+                savedUser.active_trilha_id = userProfile?.active_trilha_id ?? null;
+              }
+
+              setCartorioUser(savedUser);
+              setAuthToken(savedUser.token);
+              logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
+            }
           } else {
-            setCartorioUser(savedUser);
-            setAuthToken(savedUser.token);
-            logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}`);
+            localStorage.removeItem('siplan-user');
           }
-        } else {
-          localStorage.removeItem('siplan-user');
         }
+      } catch (error) {
+        logger.error('[AuthContextFixed] Erro ao restaurar user cartório:', error);
+        localStorage.removeItem('siplan-user');
+      } finally {
+        setIsLoadingCartorio(false);
       }
-    } catch (error) {
-      logger.error('[AuthContextFixed] Erro ao restaurar user cartório:', error);
-      localStorage.removeItem('siplan-user');
-    } finally {
-      setIsLoadingCartorio(false);
-    }
+    };
+
+    restoreUser();
   }, []);
 
   const user: User | null = cartorioUser || (stableAuth.session?.user ? {
@@ -116,6 +136,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(data.error || 'Login falhou');
         }
 
+        // CRÍTICO: Buscar o active_trilha_id do banco de dados
+        logger.info('[AuthContextFixed] Buscando active_trilha_id do usuário...');
+        const { data: userProfile, error: profileError } = await supabase
+          .from('cartorio_usuarios')
+          .select('active_trilha_id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          logger.error('[AuthContextFixed] Erro ao buscar perfil do usuário:', profileError);
+        }
+
+        logger.info('[AuthContextFixed] Perfil do usuário carregado:', userProfile);
+
         const newUser: User = {
           id: data.user.id,
           name: data.user.username,
@@ -124,14 +158,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           cartorio_id: data.user.cartorio_id,
           cartorio_name: data.user.cartorio_name ?? '',
           username: data.user.username,
-          email: data.user.email ?? ''
+          email: data.user.email ?? '',
+          active_trilha_id: userProfile?.active_trilha_id ?? null
         };
 
         setCartorioUser(newUser);
         setAuthToken(newUser.token!);
         localStorage.setItem('siplan-user', JSON.stringify(newUser));
 
-        logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}`);
+        logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}, active_trilha_id: ${newUser.active_trilha_id}`);
 
       } catch (error) {
         logger.error('[AuthContextFixed] Erro no login cartório:', error);
