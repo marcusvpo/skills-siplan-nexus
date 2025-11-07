@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 import { useCartoriosAdminFixed } from '@/hooks/useCartoriosAdminFixed';
 import { useCartorioSessions } from '@/hooks/useCartorioSessions';
 import { toast } from '@/hooks/use-toast';
@@ -24,12 +25,40 @@ const CartorioManagerRestored: React.FC = () => {
   const [selectedCartorioForPermissions, setSelectedCartorioForPermissions] = useState<any>(null);
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
-  const [filterAccessStatus, setFilterAccessStatus] = useState<"all" | "recent" | "expired">("all");
+  const [filterSistema, setFilterSistema] = useState<string>("all");
+  const [filterProduto, setFilterProduto] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "alpha">("alpha");
+  const [sistemas, setSistemas] = useState<any[]>([]);
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [cartorioPermissions, setCartorioPermissions] = useState<Map<string, any[]>>(new Map());
 
   const { cartorios, isLoading, error, refetch, deleteCartorio } = useCartoriosAdminFixed();
   const sessions = useCartorioSessions();
+
+  // Carregar sistemas e produtos
+  React.useEffect(() => {
+    const loadData = async () => {
+      const { data: sistemasData } = await supabase.from('sistemas').select('*').order('nome');
+      const { data: produtosData } = await supabase.from('produtos').select('*').order('nome');
+      const { data: permissionsData } = await supabase.from('cartorio_acesso_conteudo').select('*');
+      
+      if (sistemasData) setSistemas(sistemasData);
+      if (produtosData) setProdutos(produtosData);
+      
+      // Organizar permissões por cartório
+      if (permissionsData) {
+        const permMap = new Map();
+        permissionsData.forEach(perm => {
+          if (!permMap.has(perm.cartorio_id)) {
+            permMap.set(perm.cartorio_id, []);
+          }
+          permMap.get(perm.cartorio_id).push(perm);
+        });
+        setCartorioPermissions(permMap);
+      }
+    };
+    loadData();
+  }, []);
 
   // Filtrar e ordenar cartórios
   const filteredCartorios = cartorios
@@ -39,19 +68,27 @@ const CartorioManagerRestored: React.FC = () => {
         return false;
       }
       
-      // Filtro de status ativo/inativo
-      if (filterStatus === "active" && !cartorio.is_active) return false;
-      if (filterStatus === "inactive" && cartorio.is_active) return false;
+      const permissions = cartorioPermissions.get(cartorio.id) || [];
       
-      // Filtro de status de acesso (token válido/expirado)
-      if (filterAccessStatus !== "all") {
-        const acesso = cartorio.acessos_cartorio?.[0];
-        if (!acesso) return filterAccessStatus === "expired";
-        const expDate = acesso.data_expiracao;
-        if (!expDate) return filterAccessStatus === "expired";
-        const isExpired = new Date(expDate) < new Date();
-        if (filterAccessStatus === "expired" && !isExpired) return false;
-        if (filterAccessStatus === "recent" && isExpired) return false;
+      // Filtro por Sistema
+      if (filterSistema !== "all") {
+        const hasSystemAccess = permissions.some(perm => 
+          perm.ativo && (perm.sistema_id === filterSistema && !perm.produto_id)
+        );
+        const hasProductInSystem = permissions.some(perm => {
+          if (!perm.ativo || !perm.produto_id) return false;
+          const produto = produtos.find(p => p.id === perm.produto_id);
+          return produto && produto.sistema_id === filterSistema;
+        });
+        if (!hasSystemAccess && !hasProductInSystem) return false;
+      }
+      
+      // Filtro por Produto
+      if (filterProduto !== "all") {
+        const hasProductAccess = permissions.some(perm => 
+          perm.ativo && perm.produto_id === filterProduto
+        );
+        if (!hasProductAccess) return false;
       }
       
       return true;
@@ -172,28 +209,30 @@ const CartorioManagerRestored: React.FC = () => {
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">Status</Label>
-              <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
+              <Label className="text-gray-300">Sistema</Label>
+              <Select value={filterSistema} onValueChange={(v: any) => setFilterSistema(v)}>
                 <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativos</SelectItem>
-                  <SelectItem value="inactive">Inativos</SelectItem>
+                  <SelectItem value="all">Todos os Sistemas</SelectItem>
+                  {sistemas.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300">Acesso</Label>
-              <Select value={filterAccessStatus} onValueChange={(v: any) => setFilterAccessStatus(v)}>
+              <Label className="text-gray-300">Produto</Label>
+              <Select value={filterProduto} onValueChange={(v: any) => setFilterProduto(v)}>
                 <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="recent">Token Válido</SelectItem>
-                  <SelectItem value="expired">Token Expirado</SelectItem>
+                  <SelectItem value="all">Todos os Produtos</SelectItem>
+                  {produtos.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
