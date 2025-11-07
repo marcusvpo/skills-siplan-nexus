@@ -85,7 +85,13 @@ export const TrilhaPage = () => {
                 {error?.message || 'Não foi possível carregar os dados da sua trilha de aprendizagem.'}
               </p>
               <div className="flex gap-2">
-                <Button onClick={() => navigate('/login')} variant="outline">
+                <Button 
+                  onClick={async () => {
+                    await logout();
+                    navigate('/login');
+                  }} 
+                  variant="outline"
+                >
                   Voltar ao Login
                 </Button>
                 <Button onClick={handleLogout} variant="destructive">
