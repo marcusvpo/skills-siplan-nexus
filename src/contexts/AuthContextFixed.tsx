@@ -162,36 +162,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const data = await response.json();
 
-        if (!data.success) {
-          throw new Error(data.error || 'Login falhou');
+        if (!data.success || !data.user || !data.access_token) {
+          throw new Error(data.error || 'Login falhou, resposta inválida');
         }
 
         // PASSO 1: AUTENTICAR O CLIENTE IMEDIATAMENTE
         logger.info('[AuthContextFixed] Token recebido. Definindo cliente Supabase...');
         setAuthToken(data.access_token);
 
-        // PASSO 2: BUSCAR O PERFIL AGORA QUE ESTAMOS AUTENTICADOS
-        logger.info('[AuthContextFixed] Buscando active_trilha_id do usuário...');
-        let activeTrilhaId: string | null = null;
-        try {
-          const { data: userProfile, error: profileError } = await supabase
-            .from('cartorio_usuarios')
-            .select('active_trilha_id')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profileError) {
-            throw profileError;
-          }
-
-          activeTrilhaId = userProfile?.active_trilha_id ?? null;
-          logger.info(`[AuthContextFixed] Perfil do usuário carregado, active_trilha_id: ${activeTrilhaId}`);
-
-        } catch (err: any) {
-          // Loga o erro PGRST116 (ou outro) mas não impede o login
-          logger.error('[AuthContextFixed] Erro ao buscar perfil do usuário (RLS?):', err);
-          // O login continua, mas o usuário ficará sem trilha
-        }
+        // PASSO 2: CONFIAR NOS DADOS DO BACKEND (SEM SEGUNDA QUERY)
+        // A Edge Function AGORA é responsável por enviar o 'active_trilha_id'
+        const activeTrilhaId = data.user.active_trilha_id ?? null;
+        logger.info(`[AuthContextFixed] Perfil recebido do backend, active_trilha_id: ${activeTrilhaId}`);
 
         // PASSO 3: CONFIGURAR O ESTADO DO USUÁRIO
         const newUser: User = {
@@ -203,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           cartorio_name: data.user.cartorio_name ?? '',
           username: data.user.username,
           email: data.user.email ?? '',
-          active_trilha_id: activeTrilhaId
+          active_trilha_id: activeTrilhaId // Lendo diretamente da resposta
         };
 
         setCartorioUser(newUser);

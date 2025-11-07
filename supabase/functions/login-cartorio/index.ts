@@ -176,7 +176,8 @@ serve(async (req) => {
         username: userData.username,
         nome: userData.nome,
         email: userData.email || `${userData.username}@${userData.cartorio_id.replace(/-/g, '')}.siplan.internal`,
-        cartorio_id: userData.cartorio_id
+        cartorio_id: userData.cartorio_id,
+        active_trilha_id: userData.active_trilha_id ?? null // CRÍTICO: Incluir active_trilha_id na resposta
       }
     }), {
       status: 200,
