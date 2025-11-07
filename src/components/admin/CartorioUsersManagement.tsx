@@ -23,33 +23,16 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
   const { users, isLoading, createUser, updateUser, deleteUser } = useCartorioUsers(cartorioId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [trilhas, setTrilhas] = useState<any[]>([]);
   const [userForm, setUserForm] = useState({
     username: '',
     email: '',
-    is_active: true,
-    active_trilha_id: ''
+    is_active: true
   });
-
-  // Carregar trilhas disponíveis
-  useEffect(() => {
-    const loadTrilhas = async () => {
-      const { data, error } = await supabase
-        .from('trilhas')
-        .select('id, nome')
-        .order('nome');
-      
-      if (!error && data) {
-        setTrilhas(data);
-      }
-    };
-    loadTrilhas();
-  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
-    setUserForm({ username: '', email: '', is_active: true, active_trilha_id: '' });
+    setUserForm({ username: '', email: '', is_active: true });
   };
 
   const handleSaveUser = async () => {
@@ -71,15 +54,14 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
     setUserForm({
       username: user.username,
       email: user.email || '',
-      is_active: user.is_active,
-      active_trilha_id: user.active_trilha_id || ''
+      is_active: user.is_active
     });
     setIsModalOpen(true);
   };
 
   const openNewUserModal = () => {
     setEditingUser(null);
-    setUserForm({ username: '', email: '', is_active: true, active_trilha_id: '' });
+    setUserForm({ username: '', email: '', is_active: true });
     setIsModalOpen(true);
   };
 
@@ -126,27 +108,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                   className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                   placeholder="email@exemplo.com"
                 />
-              </div>
-              <div>
-                <Label htmlFor="active_trilha_id" className="text-gray-300">Trilha Ativa (opcional)</Label>
-                <Select
-                  value={userForm.active_trilha_id}
-                  onValueChange={(value) => setUserForm({...userForm, active_trilha_id: value})}
-                >
-                  <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
-                    <SelectValue placeholder="Selecione uma trilha ou deixe como usuário comum" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    <SelectItem value="" className="text-white">
-                      Sem trilha (Usuário comum)
-                    </SelectItem>
-                    {trilhas.map((trilha) => (
-                      <SelectItem key={trilha.id} value={trilha.id} className="text-white">
-                        {trilha.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="flex items-center space-x-2">
                 <input
@@ -198,7 +159,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
               <TableRow className="border-gray-600">
                 <TableHead className="text-gray-300">Usuário</TableHead>
                 <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Trilha Atribuída</TableHead>
                 <TableHead className="text-gray-300">Status</TableHead>
                 <TableHead className="text-gray-300">Criado em</TableHead>
                 <TableHead className="text-gray-300">Ações</TableHead>
@@ -209,34 +169,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                 <TableRow key={user.id} className="border-gray-700 hover:bg-gray-700/30">
                   <TableCell className="font-medium text-white">{user.username}</TableCell>
                   <TableCell className="text-gray-300">{user.email || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={user.active_trilha_id || 'none'}
-                      onValueChange={async (value) => {
-                        const trilhaId = value === 'none' ? '' : value;
-                        await updateUser(user.id, {
-                          username: user.username,
-                          email: user.email,
-                          is_active: user.is_active,
-                          active_trilha_id: trilhaId
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white w-[200px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600 z-50">
-                        <SelectItem value="none" className="text-white">
-                          Usuário Comum
-                        </SelectItem>
-                        {trilhas.map((trilha) => (
-                          <SelectItem key={trilha.id} value={trilha.id} className="text-white">
-                            {trilha.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
                   <TableCell>
                     <Badge 
                       variant={user.is_active ? 'secondary' : 'destructive'}

@@ -15,7 +15,6 @@ interface User {
   cartorio_name?: string;
   username?: string;
   email?: string;
-  active_trilha_id?: string | null;
 }
 
 interface AuthContextType {
@@ -80,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCartorioUser(savedUser);
         setAuthToken(savedUser.token);
         
-        logger.info(`[AuthContextFixed] Usuário cartório restaurado do localStorage: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
+        logger.info(`[AuthContextFixed] Usuário cartório restaurado do localStorage: ${savedUser.username}`);
 
         // SÓ AGORA é seguro dizer que o carregamento terminou
         setIsLoadingCartorio(false); // Fim do fluxo (sucesso)
@@ -149,9 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthToken(data.access_token);
 
         // PASSO 2: CONFIAR NOS DADOS DA EDGE FUNCTION (SEM SEGUNDA QUERY)
-        // A Edge Function DEVE retornar 'active_trilha_id' em 'data.user'
-        const activeTrilhaId = data.user.active_trilha_id ?? null;
-        logger.info(`[AuthContextFixed] Perfil recebido do backend, active_trilha_id: ${activeTrilhaId}`);
+        logger.info(`[AuthContextFixed] Perfil recebido do backend`);
 
         // PASSO 3: CONFIGURAR O ESTADO DO USUÁRIO
         const newUser: User = {
@@ -162,14 +159,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           cartorio_id: data.user.cartorio_id,
           cartorio_name: data.user.cartorio_name ?? '',
           username: data.user.username,
-          email: data.user.email ?? '',
-          active_trilha_id: activeTrilhaId // Lendo diretamente da resposta
+          email: data.user.email ?? ''
         };
 
         setCartorioUser(newUser);
         localStorage.setItem('siplan-user', JSON.stringify(newUser)); // Salva o usuário completo
 
-        logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}, active_trilha_id: ${newUser.active_trilha_id}`);
+        logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}`);
         setIsLoadingCartorio(false);
 
       } catch (error) {

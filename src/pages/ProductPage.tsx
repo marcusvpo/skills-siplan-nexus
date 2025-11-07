@@ -1,30 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductHeader from '@/components/product/ProductHeader';
 import { ProductProgressReativo } from '@/components/product/ProductProgressReativo';
 import VideoAulasList from '@/components/product/VideoAulasList';
-import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import LoadingState from '@/components/system/LoadingState';
 import ErrorState from '@/components/system/ErrorState';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Play, BookOpen } from 'lucide-react';
 import { logger } from '@/utils/logger';
 
 const ProductPage = () => {
   const { systemId, productId } = useParams<{ 
     systemId: string; 
     productId: string; 
-    videoId: string; 
   }>();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
 
-  useEffect(() => {
+  // Buscar trilhas do produto
+  const { data: trilhas, isLoading: isLoadingTrilhas } = useQuery({
+    queryKey: ['trilhas', productId],
+    queryFn: async () => {
+      if (!productId) return [];
+      const { data, error } = await supabase
+        .from('trilhas')
+        .select(`
+          *,
+          trilha_aulas(video_aula_id)
+        `)
+        .eq('produto_id', productId)
+        .order('nome', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!productId,
+  });
+
+  React.useEffect(() => {
     logger.info('🎯 [ProductPage] Page loaded', { 
       systemId, 
       productId, 
@@ -80,18 +102,8 @@ const ProductPage = () => {
     }
   }
 
-  useEffect(() => {
-    logger.info('🎯 [ProductPage] Final state check', {
-      sistemasCount: sistemas?.length,
-      currentSystemFound: !!currentSystem,
-      currentProductFound: !!currentProduct,
-      currentSystemName: currentSystem?.nome,
-      currentProductName: currentProduct?.nome
-    });
-  }, [sistemas, currentSystem, currentProduct]);
-
   // Early return for loading state
-  if (isLoading) {
+  if (isLoading || isLoadingTrilhas) {
     return <LoadingState message="Carregando produto..." />;
   }
 
@@ -137,7 +149,13 @@ const ProductPage = () => {
   }
 
   const videoAulas = currentProduct.video_aulas || [];
-  logger.info('🎯 [ProductPage] Video aulas found', { count: videoAulas.length });
+  const hasTrilhas = trilhas && trilhas.length > 0;
+
+  logger.info('🎯 [ProductPage] Final state', { 
+    videoAulasCount: videoAulas.length,
+    trilhasCount: trilhas?.length || 0,
+    willShowTrilhas: hasTrilhas
+  });
 
   return (
     <Layout>
@@ -158,14 +176,64 @@ const ProductPage = () => {
             produtoNome={currentProduct.nome} 
           />
 
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
-            
-            <VideoAulasList 
-              videoAulas={videoAulas} 
-              systemId={systemId!} 
-              productId={productId!} 
-            />
+          <div className="space-y-4 mt-8">
+            {hasTrilhas ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white text-enhanced">Trilhas de Aprendizagem</h2>
+                    <p className="text-gray-400 mt-1">
+                      Escolha uma trilha estruturada para aprender no seu ritmo
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {trilhas.map((trilha) => (
+                    <Card 
+                      key={trilha.id}
+                      className="gradient-card border-gray-600/50 hover:border-primary/50 transition-all cursor-pointer btn-hover-lift"
+                      onClick={() => navigate(`/system/${systemId}/product/${productId}/trilha/${trilha.id}`)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <BookOpen className="h-8 w-8 text-primary mb-2" />
+                          <Badge variant="secondary" className="bg-primary/20 text-primary">
+                            {trilha.trilha_aulas?.length || 0} aulas
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-white text-enhanced">{trilha.nome}</CardTitle>
+                        <CardDescription className="text-gray-400">
+                          Trilha estruturada de aprendizagem
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button 
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/system/${systemId}/product/${productId}/trilha/${trilha.id}`);
+                          }}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Iniciar Trilha
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
+                
+                <VideoAulasList 
+                  videoAulas={videoAulas} 
+                  systemId={systemId!} 
+                  productId={productId!} 
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
