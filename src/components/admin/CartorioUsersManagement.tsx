@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { useCartorioUsers } from '@/hooks/useCartorioUsers';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartorioUsersManagementProps {
   cartorioId: string;
@@ -21,11 +23,34 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
   const { users, isLoading, createUser, updateUser, deleteUser } = useCartorioUsers(cartorioId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [trilhas, setTrilhas] = useState<any[]>([]);
   const [userForm, setUserForm] = useState({
     username: '',
     email: '',
-    is_active: true
+    is_active: true,
+    active_trilha_id: ''
   });
+
+  // Carregar trilhas disponíveis
+  useEffect(() => {
+    const loadTrilhas = async () => {
+      const { data, error } = await supabase
+        .from('trilhas')
+        .select('id, nome')
+        .order('nome');
+      
+      if (!error && data) {
+        setTrilhas(data);
+      }
+    };
+    loadTrilhas();
+  }, []);
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingUser(null);
+    setUserForm({ username: '', email: '', is_active: true, active_trilha_id: '' });
+  };
 
   const handleSaveUser = async () => {
     if (!userForm.username.trim()) {
@@ -37,9 +62,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
       : await createUser(userForm);
 
     if (success) {
-      setIsModalOpen(false);
-      setEditingUser(null);
-      setUserForm({ username: '', email: '', is_active: true });
+      handleCloseModal();
     }
   };
 
@@ -48,14 +71,15 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
     setUserForm({
       username: user.username,
       email: user.email || '',
-      is_active: user.is_active
+      is_active: user.is_active,
+      active_trilha_id: user.active_trilha_id || ''
     });
     setIsModalOpen(true);
   };
 
   const openNewUserModal = () => {
     setEditingUser(null);
-    setUserForm({ username: '', email: '', is_active: true });
+    setUserForm({ username: '', email: '', is_active: true, active_trilha_id: '' });
     setIsModalOpen(true);
   };
 
@@ -103,6 +127,27 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                   placeholder="email@exemplo.com"
                 />
               </div>
+              <div>
+                <Label htmlFor="active_trilha_id" className="text-gray-300">Trilha Ativa (opcional)</Label>
+                <Select
+                  value={userForm.active_trilha_id}
+                  onValueChange={(value) => setUserForm({...userForm, active_trilha_id: value})}
+                >
+                  <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                    <SelectValue placeholder="Selecione uma trilha ou deixe como usuário comum" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="" className="text-white">
+                      Sem trilha (Usuário comum)
+                    </SelectItem>
+                    {trilhas.map((trilha) => (
+                      <SelectItem key={trilha.id} value={trilha.id} className="text-white">
+                        {trilha.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -130,7 +175,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                 >
                   Cancelar
@@ -153,6 +198,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
               <TableRow className="border-gray-600">
                 <TableHead className="text-gray-300">Usuário</TableHead>
                 <TableHead className="text-gray-300">Email</TableHead>
+                <TableHead className="text-gray-300">Trilha</TableHead>
                 <TableHead className="text-gray-300">Status</TableHead>
                 <TableHead className="text-gray-300">Criado em</TableHead>
                 <TableHead className="text-gray-300">Ações</TableHead>
@@ -163,6 +209,17 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                 <TableRow key={user.id} className="border-gray-700 hover:bg-gray-700/30">
                   <TableCell className="font-medium text-white">{user.username}</TableCell>
                   <TableCell className="text-gray-300">{user.email || 'N/A'}</TableCell>
+                  <TableCell>
+                    {user.active_trilha_id ? (
+                      <Badge className="bg-blue-600 text-white">
+                        {trilhas.find(t => t.id === user.active_trilha_id)?.nome || 'Trilha'}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-gray-600 text-gray-400">
+                        Usuário Comum
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge 
                       variant={user.is_active ? 'secondary' : 'destructive'}

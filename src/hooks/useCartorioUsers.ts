@@ -9,6 +9,7 @@ interface CartorioUser {
   email?: string;
   is_active: boolean;
   created_at: string;
+  active_trilha_id?: string;
 }
 
 export const useCartorioUsers = (cartorioId: string) => {
@@ -46,7 +47,7 @@ export const useCartorioUsers = (cartorioId: string) => {
     }
   };
 
-  const createUser = async (userData: { username: string; email?: string; is_active: boolean }) => {
+  const createUser = async (userData: { username: string; email?: string; is_active: boolean; active_trilha_id?: string }) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -55,7 +56,8 @@ export const useCartorioUsers = (cartorioId: string) => {
           cartorio_id: cartorioId,
           username: userData.username.trim(),
           email: userData.email?.trim() || null,
-          is_active: userData.is_active
+          is_active: userData.is_active,
+          active_trilha_id: userData.active_trilha_id || null
         });
 
       if (error) throw error;
@@ -80,7 +82,7 @@ export const useCartorioUsers = (cartorioId: string) => {
     }
   };
 
-  const updateUser = async (userId: string, userData: { username: string; email?: string; is_active: boolean }) => {
+  const updateUser = async (userId: string, userData: { username: string; email?: string; is_active: boolean; active_trilha_id?: string }) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -88,7 +90,8 @@ export const useCartorioUsers = (cartorioId: string) => {
         .update({
           username: userData.username.trim(),
           email: userData.email?.trim() || null,
-          is_active: userData.is_active
+          is_active: userData.is_active,
+          active_trilha_id: userData.active_trilha_id || null
         })
         .eq('id', userId);
 
