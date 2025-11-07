@@ -62,6 +62,15 @@ verify_jwt = false
 [functions.delete-cartorio]
 verify_jwt = false
 
+[functions.delete-trilha]
+verify_jwt = false
+
+[functions.create-trilha]
+verify_jwt = false
+
+[functions.update-trilha]
+verify_jwt = false
+
 [functions.update-bunny-video-ids]
 verify_jwt = true
 
