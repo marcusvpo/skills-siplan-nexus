@@ -17,6 +17,8 @@ export const QuizManager = () => {
   const [tipoQuiz, setTipoQuiz] = useState<"aula" | "bronze" | "prata">("aula");
   const [selectedId, setSelectedId] = useState(""); // video_aula_id ou trilha_id
   const [quizAtual, setQuizAtual] = useState<any>(null);
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const [itemSortOrder, setItemSortOrder] = useState<"asc" | "desc" | "alpha">("asc");
   const [perguntaForm, setPerguntaForm] = useState<any>({
     pergunta: "",
     tipo_pergunta: "multipla_escolha",
@@ -163,6 +165,23 @@ export const QuizManager = () => {
     });
   };
 
+  // Filter and sort items (aulas or trilhas)
+  const filteredAndSortedItems = items
+    .filter((item: any) => {
+      const name = item.titulo || item.nome || "";
+      return name.toLowerCase().includes(itemSearchTerm.toLowerCase());
+    })
+    .sort((a: any, b: any) => {
+      const nameA = a.titulo || a.nome || "";
+      const nameB = b.titulo || b.nome || "";
+      if (itemSortOrder === "alpha") {
+        return nameA.localeCompare(nameB);
+      }
+      const ordemA = a.ordem || 0;
+      const ordemB = b.ordem || 0;
+      return itemSortOrder === "asc" ? ordemA - ordemB : ordemB - ordemA;
+    });
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Gestão de Quizzes</h2>
@@ -210,14 +229,29 @@ export const QuizManager = () => {
       </div>
 
       {produtoId && (
-        <div>
+        <div className="space-y-2">
           <Label>{tipoQuiz === "aula" ? "Aulas" : "Trilhas"}</Label>
+          <Input
+            placeholder={`Pesquisar ${tipoQuiz === "aula" ? "aulas" : "trilhas"}...`}
+            value={itemSearchTerm}
+            onChange={(e) => setItemSearchTerm(e.target.value)}
+          />
+          <Select value={itemSortOrder} onValueChange={(v: any) => setItemSortOrder(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Ordem Crescente</SelectItem>
+              <SelectItem value="desc">Ordem Decrescente</SelectItem>
+              <SelectItem value="alpha">Ordem Alfabética</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={selectedId} onValueChange={setSelectedId}>
             <SelectTrigger>
               <SelectValue placeholder={`Selecione ${tipoQuiz === "aula" ? "uma aula" : "uma trilha"}`} />
             </SelectTrigger>
             <SelectContent>
-              {items.map((item: any) => (
+              {filteredAndSortedItems.map((item: any) => (
                 <SelectItem key={item.id} value={item.id}>
                   {item.titulo || item.nome}
                 </SelectItem>
