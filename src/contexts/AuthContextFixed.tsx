@@ -166,20 +166,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error(data.error || 'Login falhou');
         }
 
-        // CRÍTICO: Buscar o active_trilha_id do banco de dados
-        logger.info('[AuthContextFixed] Buscando active_trilha_id do usuário...');
-        const { data: userProfile, error: profileError } = await supabase
-          .from('cartorio_usuarios')
-          .select('active_trilha_id')
-          .eq('id', data.user.id)
-          .single();
+        // PASSO 1: AUTENTICAR O CLIENTE IMEDIATAMENTE
+        logger.info('[AuthContextFixed] Token recebido. Definindo cliente Supabase...');
+        setAuthToken(data.access_token);
 
-        if (profileError) {
-          logger.error('[AuthContextFixed] Erro ao buscar perfil do usuário:', profileError);
+        // PASSO 2: BUSCAR O PERFIL AGORA QUE ESTAMOS AUTENTICADOS
+        logger.info('[AuthContextFixed] Buscando active_trilha_id do usuário...');
+        let activeTrilhaId: string | null = null;
+        try {
+          const { data: userProfile, error: profileError } = await supabase
+            .from('cartorio_usuarios')
+            .select('active_trilha_id')
+            .eq('id', data.user.id)
+            .single();
+
+          if (profileError) {
+            throw profileError;
+          }
+
+          activeTrilhaId = userProfile?.active_trilha_id ?? null;
+          logger.info(`[AuthContextFixed] Perfil do usuário carregado, active_trilha_id: ${activeTrilhaId}`);
+
+        } catch (err: any) {
+          // Loga o erro PGRST116 (ou outro) mas não impede o login
+          logger.error('[AuthContextFixed] Erro ao buscar perfil do usuário (RLS?):', err);
+          // O login continua, mas o usuário ficará sem trilha
         }
 
-        logger.info('[AuthContextFixed] Perfil do usuário carregado:', userProfile);
-
+        // PASSO 3: CONFIGURAR O ESTADO DO USUÁRIO
         const newUser: User = {
           id: data.user.id,
           name: data.user.username,
@@ -189,20 +203,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           cartorio_name: data.user.cartorio_name ?? '',
           username: data.user.username,
           email: data.user.email ?? '',
-          active_trilha_id: userProfile?.active_trilha_id ?? null
+          active_trilha_id: activeTrilhaId
         };
 
         setCartorioUser(newUser);
-        setAuthToken(newUser.token!);
         localStorage.setItem('siplan-user', JSON.stringify(newUser));
 
         logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}, active_trilha_id: ${newUser.active_trilha_id}`);
+        setIsLoadingCartorio(false);
 
       } catch (error) {
         logger.error('[AuthContextFixed] Erro no login cartório:', error);
-        throw error;
-      } finally {
         setIsLoadingCartorio(false);
+        throw error;
       }
     } else {
       logger.info('[AuthContextFixed] Login admin via Supabase Auth');
