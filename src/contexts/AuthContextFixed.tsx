@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    const restoreUser = async () => {
+    const restoreUser = () => {
       try {
         logger.info('[AuthContextFixed] Iniciando restauração de usuário...');
         const savedUserStr = localStorage.getItem('siplan-user');
@@ -74,35 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // Token é válido. AGORA, BUSCAR O PERFIL ATUALIZADO (A PARTE CRÍTICA)
-        logger.info(`[AuthContextFixed] Token válido para ${savedUser.id}. Revalidando perfil...`);
+        // SUCESSO: Token e usuário são válidos e do localStorage
+        // NÃO FAZEMOS QUERY DE REDE. Confiamos no localStorage.
         
-        const { data: userProfile, error: profileError } = await supabase
-          .from('cartorio_usuarios')
-          .select('active_trilha_id') // Só precisamos deste campo
-          .eq('id', savedUser.id)
-          .single();
-
-        if (profileError) {
-          // Erro ao buscar o perfil. Não podemos confiar no usuário. Deslogar.
-          logger.error('[AuthContextFixed] Erro ao revalidar perfil:', profileError);
-          localStorage.removeItem('siplan-user');
-          setCartorioUser(null);
-          clearAuthToken();
-          setIsLoadingCartorio(false); // Fim do fluxo (erro de perfil)
-          return;
-        }
-
-        // SUCESSO!
-        logger.info('[AuthContextFixed] Perfil revalidado com sucesso:', userProfile);
-        
-        // Atualiza o objeto 'savedUser' ANTES de enviá-lo para o estado
-        savedUser.active_trilha_id = userProfile?.active_trilha_id ?? null;
-
         setCartorioUser(savedUser);
         setAuthToken(savedUser.token);
         
-        logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
+        logger.info(`[AuthContextFixed] Usuário cartório restaurado do localStorage: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
 
         // SÓ AGORA é seguro dizer que o carregamento terminou
         setIsLoadingCartorio(false); // Fim do fluxo (sucesso)
@@ -170,8 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logger.info('[AuthContextFixed] Token recebido. Definindo cliente Supabase...');
         setAuthToken(data.access_token);
 
-        // PASSO 2: CONFIAR NOS DADOS DO BACKEND (SEM SEGUNDA QUERY)
-        // A Edge Function AGORA é responsável por enviar o 'active_trilha_id'
+        // PASSO 2: CONFIAR NOS DADOS DA EDGE FUNCTION (SEM SEGUNDA QUERY)
+        // A Edge Function DEVE retornar 'active_trilha_id' em 'data.user'
         const activeTrilhaId = data.user.active_trilha_id ?? null;
         logger.info(`[AuthContextFixed] Perfil recebido do backend, active_trilha_id: ${activeTrilhaId}`);
 
@@ -189,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         setCartorioUser(newUser);
-        localStorage.setItem('siplan-user', JSON.stringify(newUser));
+        localStorage.setItem('siplan-user', JSON.stringify(newUser)); // Salva o usuário completo
 
         logger.info(`[AuthContextFixed] Login cartório efetuado com sucesso: ${newUser.username}, active_trilha_id: ${newUser.active_trilha_id}`);
         setIsLoadingCartorio(false);
