@@ -16,29 +16,28 @@ const Dashboard = () => {
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
-    console.log('🎯 [Dashboard] Current auth state:', { 
-      isAuthenticated, 
-      userType: user?.type,
-      cartorioId: (user as any)?.cartorio_id,
-      activeTrilhaId: (user as any)?.active_trilha_id,
-      user: user,
-      isLoading
-    });
+    console.log('🎯 [Dashboard] ======== VERIFICAÇÃO DE ROTEAMENTO ========');
+    console.log('🎯 [Dashboard] isLoading:', isLoading);
+    console.log('🎯 [Dashboard] isAuthenticated:', isAuthenticated);
+    console.log('🎯 [Dashboard] user.type:', user?.type);
+    console.log('🎯 [Dashboard] user.cartorio_id:', (user as any)?.cartorio_id);
+    console.log('🎯 [Dashboard] user.active_trilha_id:', (user as any)?.active_trilha_id);
+    console.log('🎯 [Dashboard] user completo:', user);
 
     // Não fazer verificações se ainda estiver carregando
     if (isLoading) {
-      console.log('⏳ [Dashboard] Still loading, waiting...');
+      console.log('⏳ [Dashboard] Ainda carregando, aguardando...');
       return;
     }
 
     if (!isAuthenticated) {
-      console.warn('⚠️ [Dashboard] User not authenticated, redirecting to login');
+      console.warn('⚠️ [Dashboard] Usuário não autenticado, redirecionando para /login');
       navigate('/login');
       return;
     }
 
     if (user?.type !== 'cartorio') {
-      console.warn('⚠️ [Dashboard] User is not cartorio type, redirecting');
+      console.warn('⚠️ [Dashboard] Usuário não é do tipo cartório, redirecionando');
       if (user?.type === 'admin') {
         navigate('/admin');
       } else {
@@ -48,7 +47,7 @@ const Dashboard = () => {
     }
 
     if (!(user as any)?.cartorio_id) {
-      console.error('❌ [Dashboard] User has no cartorio_id');
+      console.error('❌ [Dashboard] Usuário não tem cartorio_id');
       toast({
         title: "Erro de configuração",
         description: "Usuário não está associado a um cartório.",
@@ -60,14 +59,20 @@ const Dashboard = () => {
 
     // BIFURCAÇÃO CRÍTICA: Redirecionar usuários com trilha ativa para o fluxo de trilha
     const activeTrilhaId = (user as any)?.active_trilha_id;
+    console.log('🔍 [Dashboard] Verificando active_trilha_id:', activeTrilhaId);
+    
     if (activeTrilhaId) {
-      console.log('🎯 [Dashboard] FLUXO B: Usuário de Trilha detectado. Redirecionando para /trilha/roadmap');
+      console.log('🚀 [Dashboard] *** FLUXO B DETECTADO ***');
+      console.log('🚀 [Dashboard] Usuário de Trilha com active_trilha_id:', activeTrilhaId);
+      console.log('🚀 [Dashboard] Redirecionando para /trilha/roadmap');
       navigate('/trilha/roadmap', { replace: true });
       return;
     }
 
     // Se chegou aqui, é um Usuário Comum (sem trilha ativa) - FLUXO A
-    console.log('✅ [Dashboard] FLUXO A: Usuário Comum detectado. Exibindo dashboard padrão.');
+    console.log('✅ [Dashboard] *** FLUXO A CONFIRMADO ***');
+    console.log('✅ [Dashboard] Usuário Comum (sem trilha). Exibindo dashboard padrão.');
+    console.log('🎯 [Dashboard] ======== FIM DA VERIFICAÇÃO ========');
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const handleLogout = async () => {
