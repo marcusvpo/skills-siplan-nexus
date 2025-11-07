@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Lock, PlayCircle, Award, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import Layout from "@/components/Layout";
 
 export const TrilhaPage = () => {
   const navigate = useNavigate();
@@ -111,28 +112,7 @@ export const TrilhaPage = () => {
   const progresso = totalAulas > 0 ? (aulasCompletas / totalAulas) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-4xl mx-auto px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img 
-              src="/lovable-uploads/938cc4b0-f47e-4bb5-9eb9-1848eaade9af.png" 
-              alt="Siplan Logo" 
-              className="h-8"
-            />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Siplan Skills</h1>
-              <p className="text-xs text-muted-foreground">Trilha de Aprendizagem</p>
-            </div>
-          </div>
-          <Button onClick={handleLogout} variant="outline" size="sm">
-            Sair
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
+    <Layout>
       <div className="max-w-4xl mx-auto p-8 space-y-6">
         {/* Trilha Header */}
         <div className="space-y-2">
@@ -145,10 +125,10 @@ export const TrilhaPage = () => {
         </div>
 
         {/* Progress Card */}
-        <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50">
+        <Card className="gradient-card border-gray-600/50">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-foreground">Progresso da Trilha</span>
+              <span className="text-sm font-medium text-white">Progresso da Trilha</span>
               <span className="text-sm text-muted-foreground">
                 {aulasCompletas}/{totalAulas} aulas completas
               </span>
@@ -178,11 +158,11 @@ export const TrilhaPage = () => {
             return (
               <Card 
                 key={aula.id}
-                className={`transition-all ${
+                className={`gradient-card border-gray-600/50 transition-all ${
                   isClickable 
-                    ? 'cursor-pointer hover:border-primary hover:shadow-md' 
+                    ? 'cursor-pointer hover:border-primary hover:shadow-lg' 
                     : 'opacity-60 cursor-not-allowed'
-                } ${aula.status === 'concluido' ? 'border-green-500/30' : ''}`}
+                } ${aula.status === 'concluido' ? 'border-green-500/50' : ''}`}
                 onClick={() => isClickable && navigate(`/trilha/aula/${aula.id}`)}
               >
                 <CardContent className="flex items-center gap-4 p-6">
@@ -203,7 +183,7 @@ export const TrilhaPage = () => {
                   </div>
                   
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-foreground">
+                    <h3 className="font-semibold text-lg text-white">
                       Aula {index + 1}: {aula.titulo}
                     </h3>
                     {aula.descricao && (
@@ -235,6 +215,6 @@ export const TrilhaPage = () => {
           })}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };

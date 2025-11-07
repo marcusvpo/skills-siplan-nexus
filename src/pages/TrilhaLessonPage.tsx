@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import VideoPlayer from "@/components/VideoPlayer";
 import { useAuth } from "@/hooks/useAuth";
 import AIChat from "@/components/AIChat";
+import Layout from "@/components/Layout";
 
 export const TrilhaLessonPage = () => {
   const { video_aula_id } = useParams();
@@ -47,7 +48,7 @@ export const TrilhaLessonPage = () => {
   const { aula, quiz } = aulaData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <Layout>
       <div className="max-w-7xl mx-auto p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -131,6 +132,6 @@ export const TrilhaLessonPage = () => {
 
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };

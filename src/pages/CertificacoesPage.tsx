@@ -3,34 +3,64 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Lock, CheckCircle2 } from "lucide-react";
+import { Award, Lock, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const CertificacoesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: certStatus, isLoading } = useQuery({
+  const { data: certStatus, isLoading, error } = useQuery({
     queryKey: ['certification-status', (user as any)?.id, (user as any)?.active_trilha_id],
     queryFn: async () => {
-      if (!(user as any)?.id || !(user as any)?.active_trilha_id) return null;
+      if (!(user as any)?.id || !(user as any)?.active_trilha_id || !(user as any)?.token) {
+        throw new Error('Dados de autenticação incompletos');
+      }
+      
+      const authToken = (user as any).token;
       
       const { data, error } = await supabase.functions.invoke('get-certification-status', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
         body: { user_id: (user as any).id, trilha_id: (user as any).active_trilha_id }
       });
       
       if (error) throw error;
       return data;
     },
-    enabled: !!(user as any)?.id && !!(user as any)?.active_trilha_id
+    enabled: !!(user as any)?.id && !!(user as any)?.active_trilha_id && !!(user as any)?.token
   });
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Carregando...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Carregando status das certificações...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!certStatus) {
-    return <div className="p-8">Nenhuma trilha ativa encontrada.</div>;
+  if (error || !certStatus) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-destructive">
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold text-destructive mb-2">Erro ao carregar certificações</h2>
+              <p className="text-muted-foreground mb-4">
+                {error?.message || 'Não foi possível carregar o status das suas certificações.'}
+              </p>
+              <Button onClick={() => navigate('/trilha/inicio')} variant="outline">
+                Voltar para Trilha
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   const certificates = [
