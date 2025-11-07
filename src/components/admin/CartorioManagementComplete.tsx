@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -59,6 +60,10 @@ export const CartorioManagementComplete: React.FC = () => {
   const [expandedCartorio, setExpandedCartorio] = useState<string | null>(null);
   const [editingCartorio, setEditingCartorio] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [filterAccessStatus, setFilterAccessStatus] = useState<"all" | "recent" | "expired">("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "alpha">("alpha");
   const [newCartorioForm, setNewCartorioForm] = useState<NewCartorioForm>({
     nome: '',
     cidade: '',
@@ -258,6 +263,36 @@ export const CartorioManagementComplete: React.FC = () => {
     }
   };
 
+  // Filter and sort cartorios
+  const filteredAndSortedCartorios = cartorios
+    ?.filter(c => {
+      // Search filter
+      if (searchTerm && !c.nome.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      
+      // Status filter
+      if (filterStatus === "active" && !c.is_active) return false;
+      if (filterStatus === "inactive" && c.is_active) return false;
+      
+      // Access status filter
+      if (filterAccessStatus !== "all") {
+        const expDate = c.acessos_cartorio?.[0]?.data_expiracao;
+        if (!expDate) return filterAccessStatus === "expired";
+        const isExpired = new Date(expDate) < new Date();
+        if (filterAccessStatus === "expired" && !isExpired) return false;
+        if (filterAccessStatus === "recent" && isExpired) return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "alpha") {
+        return a.nome.localeCompare(b.nome);
+      }
+      const dateA = new Date(a.data_cadastro).getTime();
+      const dateB = new Date(b.data_cadastro).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    }) || [];
+
   // Set default expiration date (1 year from now)
   React.useEffect(() => {
     if (!newCartorioForm.data_expiracao) {
@@ -300,7 +335,62 @@ export const CartorioManagementComplete: React.FC = () => {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
-          {cartorios?.map((cartorio) => (
+          <Card className="bg-gray-800/50 border-gray-600 mb-4">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-gray-300">Pesquisar</Label>
+                  <Input
+                    placeholder="Nome do cartório..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-gray-700/50 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300">Status</Label>
+                  <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
+                    <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="active">Ativos</SelectItem>
+                      <SelectItem value="inactive">Inativos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-gray-300">Acesso</Label>
+                  <Select value={filterAccessStatus} onValueChange={(v: any) => setFilterAccessStatus(v)}>
+                    <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="recent">Token Válido</SelectItem>
+                      <SelectItem value="expired">Token Expirado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-gray-300">Ordenar</Label>
+                  <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
+                    <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alpha">Ordem Alfabética</SelectItem>
+                      <SelectItem value="asc">Mais Antigos</SelectItem>
+                      <SelectItem value="desc">Mais Recentes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {filteredAndSortedCartorios?.map((cartorio) => (
             <Card key={cartorio.id} className="bg-gray-800/50 border-gray-600">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -409,6 +499,16 @@ export const CartorioManagementComplete: React.FC = () => {
               </CardContent>
             </Card>
           ))}
+
+          {filteredAndSortedCartorios?.length === 0 && cartorios && cartorios.length > 0 && (
+            <div className="text-center py-12">
+              <Building className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 text-lg">Nenhum cartório encontrado</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Ajuste os filtros para ver mais resultados
+              </p>
+            </div>
+          )}
 
           {cartorios?.length === 0 && (
             <div className="text-center py-12">

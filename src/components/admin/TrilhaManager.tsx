@@ -14,7 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 export const TrilhaManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTrilha, setEditingTrilha] = useState<any>(null);
+  const [sistemaId, setSistemaId] = useState("");
   const [formData, setFormData] = useState({ nome: "", produto_id: "", aulas: [] as any[] });
+  const [aulaSearchTerm, setAulaSearchTerm] = useState("");
+  const [aulaSortOrder, setAulaSortOrder] = useState<"asc" | "desc" | "alpha">("asc");
   const queryClient = useQueryClient();
 
   const { data: trilhas = [] } = useQuery({
@@ -29,13 +32,28 @@ export const TrilhaManager = () => {
     }
   });
 
-  const { data: produtos = [] } = useQuery({
-    queryKey: ['produtos'],
+  const { data: sistemas = [] } = useQuery({
+    queryKey: ['sistemas'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('produtos').select('*').order('nome');
+      const { data, error } = await supabase.from('sistemas').select('*').order('nome');
       if (error) throw error;
       return data;
     }
+  });
+
+  const { data: produtos = [] } = useQuery({
+    queryKey: ['produtos', sistemaId],
+    queryFn: async () => {
+      if (!sistemaId) return [];
+      const { data, error } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('sistema_id', sistemaId)
+        .order('nome');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!sistemaId
   });
 
   const { data: videoAulas = [] } = useQuery({
@@ -101,10 +119,15 @@ export const TrilhaManager = () => {
   const resetForm = () => {
     setFormData({ nome: "", produto_id: "", aulas: [] });
     setEditingTrilha(null);
+    setSistemaId("");
+    setAulaSearchTerm("");
+    setAulaSortOrder("asc");
   };
 
   const handleEdit = (trilha: any) => {
     setEditingTrilha(trilha);
+    const produto = produtos.find(p => p.id === trilha.produto_id);
+    if (produto) setSistemaId(produto.sistema_id);
     setFormData({
       nome: trilha.nome,
       produto_id: trilha.produto_id,
@@ -117,6 +140,8 @@ export const TrilhaManager = () => {
   };
 
   const handleDuplicate = (trilha: any) => {
+    const produto = produtos.find(p => p.id === trilha.produto_id);
+    if (produto) setSistemaId(produto.sistema_id);
     setFormData({
       nome: `${trilha.nome} (Cópia)`,
       produto_id: trilha.produto_id,
@@ -143,6 +168,16 @@ export const TrilhaManager = () => {
     }
   };
 
+  // Filter and sort video aulas
+  const filteredAndSortedAulas = videoAulas
+    .filter(va => va.titulo.toLowerCase().includes(aulaSearchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (aulaSortOrder === "alpha") {
+        return a.titulo.localeCompare(b.titulo);
+      }
+      return aulaSortOrder === "asc" ? a.ordem - b.ordem : b.ordem - a.ordem;
+    });
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -167,8 +202,21 @@ export const TrilhaManager = () => {
                 />
               </div>
               <div>
+                <Label>Sistema</Label>
+                <Select value={sistemaId} onValueChange={(v) => { setSistemaId(v); setFormData({ ...formData, produto_id: "", aulas: [] }); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um sistema" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sistemas.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Produto</Label>
-                <Select value={formData.produto_id} onValueChange={(v) => setFormData({ ...formData, produto_id: v, aulas: [] })}>
+                <Select value={formData.produto_id} onValueChange={(v) => setFormData({ ...formData, produto_id: v, aulas: [] })} disabled={!sistemaId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um produto" />
                   </SelectTrigger>
@@ -182,8 +230,25 @@ export const TrilhaManager = () => {
               {formData.produto_id && (
                 <div>
                   <Label>Aulas da Trilha</Label>
+                  <div className="space-y-2 mb-2">
+                    <Input
+                      placeholder="Pesquisar aulas..."
+                      value={aulaSearchTerm}
+                      onChange={(e) => setAulaSearchTerm(e.target.value)}
+                    />
+                    <Select value={aulaSortOrder} onValueChange={(v: any) => setAulaSortOrder(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asc">Ordem Crescente</SelectItem>
+                        <SelectItem value="desc">Ordem Decrescente</SelectItem>
+                        <SelectItem value="alpha">Ordem Alfabética</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="border rounded p-4 max-h-60 overflow-y-auto space-y-2">
-                    {videoAulas.map(va => (
+                    {filteredAndSortedAulas.map(va => (
                       <div key={va.id} className="flex items-center space-x-2">
                         <Checkbox
                           checked={formData.aulas.some(a => a.video_aula_id === va.id)}
