@@ -43,46 +43,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const restoreUser = async () => {
       try {
-        logger.info('[AuthContextFixed] Restaurando usuário cartório do localStorage');
+        logger.info('[AuthContextFixed] Iniciando restauração de usuário...');
         const savedUserStr = localStorage.getItem('siplan-user');
-        if (savedUserStr) {
-          const savedUser: User = JSON.parse(savedUserStr);
-          if (savedUser.type === 'cartorio' && savedUser.token) {
-            // Verificar se o token está expirado
-            if (isTokenExpired(savedUser.token)) {
-              logger.warn('[AuthContextFixed] Token do usuário cartório expirado, removendo do localStorage');
-              localStorage.removeItem('siplan-user');
-              clearAuthToken();
-              setCartorioUser(null);
-            } else {
-              // CRÍTICO: Re-buscar o active_trilha_id do banco ao restaurar da sessão
-              logger.info('[AuthContextFixed] Re-buscando active_trilha_id atualizado...');
-              const { data: userProfile, error: profileError } = await supabase
-                .from('cartorio_usuarios')
-                .select('active_trilha_id')
-                .eq('id', savedUser.id)
-                .single();
 
-              if (profileError) {
-                logger.error('[AuthContextFixed] Erro ao buscar perfil:', profileError);
-              } else {
-                logger.info('[AuthContextFixed] Perfil atualizado carregado:', userProfile);
-                savedUser.active_trilha_id = userProfile?.active_trilha_id ?? null;
-              }
-
-              setCartorioUser(savedUser);
-              setAuthToken(savedUser.token);
-              logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
-            }
-          } else {
-            localStorage.removeItem('siplan-user');
-          }
+        if (!savedUserStr) {
+          logger.info('[AuthContextFixed] Nenhum usuário salvo no localStorage.');
+          setCartorioUser(null);
+          clearAuthToken();
+          setIsLoadingCartorio(false); // Fim do fluxo (sem usuário)
+          return;
         }
+
+        const savedUser: User = JSON.parse(savedUserStr);
+
+        if (savedUser.type !== 'cartorio' || !savedUser.token) {
+          logger.warn('[AuthContextFixed] Usuário salvo inválido.');
+          localStorage.removeItem('siplan-user');
+          setCartorioUser(null);
+          clearAuthToken();
+          setIsLoadingCartorio(false); // Fim do fluxo (usuário inválido)
+          return;
+        }
+
+        if (isTokenExpired(savedUser.token)) {
+          logger.warn('[AuthContextFixed] Token expirado.');
+          localStorage.removeItem('siplan-user');
+          setCartorioUser(null);
+          clearAuthToken();
+          setIsLoadingCartorio(false); // Fim do fluxo (token expirado)
+          return;
+        }
+
+        // Token é válido. AGORA, BUSCAR O PERFIL ATUALIZADO (A PARTE CRÍTICA)
+        logger.info(`[AuthContextFixed] Token válido para ${savedUser.id}. Revalidando perfil...`);
+        
+        const { data: userProfile, error: profileError } = await supabase
+          .from('cartorio_usuarios')
+          .select('active_trilha_id') // Só precisamos deste campo
+          .eq('id', savedUser.id)
+          .single();
+
+        if (profileError) {
+          // Erro ao buscar o perfil. Não podemos confiar no usuário. Deslogar.
+          logger.error('[AuthContextFixed] Erro ao revalidar perfil:', profileError);
+          localStorage.removeItem('siplan-user');
+          setCartorioUser(null);
+          clearAuthToken();
+          setIsLoadingCartorio(false); // Fim do fluxo (erro de perfil)
+          return;
+        }
+
+        // SUCESSO!
+        logger.info('[AuthContextFixed] Perfil revalidado com sucesso:', userProfile);
+        
+        // Atualiza o objeto 'savedUser' ANTES de enviá-lo para o estado
+        savedUser.active_trilha_id = userProfile?.active_trilha_id ?? null;
+
+        setCartorioUser(savedUser);
+        setAuthToken(savedUser.token);
+        
+        logger.info(`[AuthContextFixed] Usuário cartório restaurado: ${savedUser.username}, active_trilha_id: ${savedUser.active_trilha_id}`);
+
+        // SÓ AGORA é seguro dizer que o carregamento terminou
+        setIsLoadingCartorio(false); // Fim do fluxo (sucesso)
+
       } catch (error) {
-        logger.error('[AuthContextFixed] Erro ao restaurar user cartório:', error);
+        logger.error('[AuthContextFixed] Erro catastrófico ao restaurar user:', error);
         localStorage.removeItem('siplan-user');
-      } finally {
-        setIsLoadingCartorio(false);
+        setCartorioUser(null);
+        clearAuthToken();
+        setIsLoadingCartorio(false); // Fim do fluxo (erro geral)
       }
     };
 
