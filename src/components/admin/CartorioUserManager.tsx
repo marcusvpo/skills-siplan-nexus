@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Plus, 
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useCartorioUsers } from '@/hooks/useCartorioUsers';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartorioUserManagerProps {
   cartorioId: string;
@@ -29,6 +31,7 @@ interface UserForm {
   username: string;
   email: string;
   is_active: boolean;
+  active_trilha_id?: string;
 }
 
 export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
@@ -40,11 +43,28 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
   const { users, isLoading, createUser, updateUser, deleteUser } = useCartorioUsers(cartorioId);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [trilhas, setTrilhas] = useState<any[]>([]);
   const [userForm, setUserForm] = useState<UserForm>({
     username: '',
     email: '',
-    is_active: true
+    is_active: true,
+    active_trilha_id: ''
   });
+
+  // Carregar trilhas disponíveis
+  useEffect(() => {
+    const loadTrilhas = async () => {
+      const { data, error } = await supabase
+        .from('trilhas')
+        .select('id, nome')
+        .order('nome');
+      
+      if (!error && data) {
+        setTrilhas(data);
+      }
+    };
+    loadTrilhas();
+  }, []);
 
   const handleCreateUser = async () => {
     if (!userForm.username.trim()) {
@@ -84,7 +104,8 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
     setUserForm({
       username: user.username,
       email: user.email || '',
-      is_active: Boolean(user.is_active)
+      is_active: Boolean(user.is_active),
+      active_trilha_id: user.active_trilha_id || ''
     });
     setEditingUser(user.id);
   };
@@ -92,7 +113,28 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
   const cancelEdit = () => {
     setEditingUser(null);
     setIsCreating(false);
-    setUserForm({ username: '', email: '', is_active: true });
+    setUserForm({ username: '', email: '', is_active: true, active_trilha_id: '' });
+  };
+
+  const handleTrilhaChange = async (userId: string, trilhaId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    const success = await updateUser(userId, {
+      username: user.username,
+      email: user.email,
+      is_active: user.is_active,
+      active_trilha_id: trilhaId === 'none' ? '' : trilhaId
+    });
+
+    if (success) {
+      toast({
+        title: "Trilha atualizada",
+        description: trilhaId === 'none' 
+          ? "Usuário marcado como usuário comum"
+          : `Trilha atribuída com sucesso ao usuário "${user.username}"`,
+      });
+    }
   };
 
   return (
@@ -229,8 +271,8 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div>
+                      <div className="flex-1 flex items-center space-x-3">
+                        <div className="flex-1">
                           <h4 className="text-white font-medium">{user.username}</h4>
                           {user.email && (
                             <p className="text-gray-400 text-sm">{user.email}</p>
@@ -246,25 +288,51 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                           {user.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEdit(user)}
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                          disabled={editingUser !== null || isCreating}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteUser(user)}
-                          className="border-red-600 text-red-400 hover:bg-red-700/20"
-                          disabled={editingUser !== null || isCreating}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="flex items-center space-x-3 ml-4">
+                        {/* Dropdown de Trilha */}
+                        <div className="flex flex-col items-start">
+                          <Label className="text-gray-400 text-xs mb-1">Atribuir Trilha</Label>
+                          <Select
+                            value={user.active_trilha_id || 'none'}
+                            onValueChange={(value) => handleTrilhaChange(user.id, value)}
+                            disabled={editingUser !== null || isCreating}
+                          >
+                            <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-[180px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-600 z-50">
+                              <SelectItem value="none" className="text-white">
+                                Usuário Comum
+                              </SelectItem>
+                              {trilhas.map((trilha) => (
+                                <SelectItem key={trilha.id} value={trilha.id} className="text-white">
+                                  {trilha.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {/* Botões de ação */}
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEdit(user)}
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                            disabled={editingUser !== null || isCreating}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteUser(user)}
+                            className="border-red-600 text-red-400 hover:bg-red-700/20"
+                            disabled={editingUser !== null || isCreating}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
