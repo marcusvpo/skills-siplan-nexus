@@ -58,13 +58,16 @@ const Dashboard = () => {
       return;
     }
 
-    // Verificar se tem trilha ativa e redirecionar
+    // BIFURCAÇÃO CRÍTICA: Redirecionar usuários com trilha ativa para o fluxo de trilha
     const activeTrilhaId = (user as any)?.active_trilha_id;
     if (activeTrilhaId) {
-      console.log('🎯 [Dashboard] User has active trilha, redirecting to /trilha/inicio');
-      navigate('/trilha/inicio');
+      console.log('🎯 [Dashboard] FLUXO B: Usuário de Trilha detectado. Redirecionando para /trilha/roadmap');
+      navigate('/trilha/roadmap', { replace: true });
       return;
     }
+
+    // Se chegou aqui, é um Usuário Comum (sem trilha ativa) - FLUXO A
+    console.log('✅ [Dashboard] FLUXO A: Usuário Comum detectado. Exibindo dashboard padrão.');
   }, [isAuthenticated, user, navigate, isLoading]);
 
   const handleLogout = async () => {
