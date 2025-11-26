@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 
 // Componentes
 import { CartorioManagementComplete } from '@/components/admin/CartorioManagementComplete';
-import { ContentManagerSimple } from '@/components/admin/ContentManagerSimple';
+import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 import { TrilhaManager } from '@/components/admin/TrilhaManager';
 import { QuizManager } from '@/components/admin/QuizManager';
@@ -168,7 +168,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="conteudo" className="space-y-6">
-            <ContentManagerSimple />
+            <ContentManagerFixed />
           </TabsContent>
 
           <TabsContent value="personalizacao" className="space-y-6">
