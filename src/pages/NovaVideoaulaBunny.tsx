@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { VideoAulaFormWithBunny } from '@/components/admin/VideoAulaFormWithBunny';
+import { VideoAulaFormFixed } from '@/components/admin/VideoAulaFormFixed';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -140,7 +140,7 @@ const NovaVideoaulaBunny: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <VideoAulaFormWithBunny 
+        <VideoAulaFormFixed 
           sistema={sistema}
           produto={produto}
           onSuccess={handleSuccess}
