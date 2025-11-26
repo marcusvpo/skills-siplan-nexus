@@ -10,7 +10,7 @@ import { ProductProgressReativo } from '@/components/product/ProductProgressReat
 import VideoAulasList from '@/components/product/VideoAulasList';
 import LoadingState from '@/components/system/LoadingState';
 import ErrorState from '@/components/system/ErrorState';
-import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

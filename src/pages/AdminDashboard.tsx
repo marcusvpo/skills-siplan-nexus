@@ -9,11 +9,10 @@ import { Users, LogOut, FileText, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
-// Componentes restaurados
-import CartorioManagerRestored from '@/components/admin/CartorioManagerRestored';
-import { ContentManagerFixed } from '@/components/admin/ContentManagerFixed';
+// Componentes
+import { CartorioAccessManager } from '@/components/admin/CartorioAccessManager';
+import { ContentManagerSimple } from '@/components/admin/ContentManagerSimple';
 import { DashboardStats } from '@/components/admin/DashboardStats';
-import { UserProgressViewFinal } from '@/components/admin/UserProgressViewFinal';
 import { TrilhaManager } from '@/components/admin/TrilhaManager';
 import { QuizManager } from '@/components/admin/QuizManager';
 
@@ -165,11 +164,20 @@ const AdminDashboard = () => {
           </Card>
 
           <TabsContent value="cartorios" className="space-y-6">
-            <CartorioManagerRestored />
+            <Card className="gradient-card shadow-modern border-gray-600/50">
+              <CardHeader>
+                <CardTitle className="text-white">Gerenciamento de Cartórios</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Use o painel de gerenciamento de cartórios para controlar acessos e permissões.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="conteudo" className="space-y-6">
-            <ContentManagerFixed />
+            <ContentManagerSimple />
           </TabsContent>
 
           <TabsContent value="personalizacao" className="space-y-6">
@@ -196,7 +204,16 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
-            <UserProgressViewFinal />
+            <Card className="gradient-card shadow-modern border-gray-600/50">
+              <CardHeader>
+                <CardTitle className="text-white">Progresso dos Usuários</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-400">
+                  Visualize o progresso de aprendizagem dos usuários dos cartórios.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

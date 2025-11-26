@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
-import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAccess';
 import { logger } from '@/utils/logger';
 // Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
