@@ -9,7 +9,7 @@ import ProductsList from '@/components/system/ProductsList';
 import LoadingState from '@/components/system/LoadingState';
 import ErrorState from '@/components/system/ErrorState';
 import { BookOpen } from 'lucide-react';
-import { useSistemasCartorioWithAccess } from '@/hooks/useSupabaseDataWithAccess';
+import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAccess';
 import { logger } from '@/utils/logger';
 
 const SystemPage = () => {

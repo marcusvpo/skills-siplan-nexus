@@ -6,8 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, Shield, Users } from 'lucide-react';
-import { useCartorioAccess } from '@/hooks/useSupabaseDataWithAccess';
-import { useSistemasFixed } from '@/hooks/useSupabaseDataFixed';
+import { useCartorioAccess, useSistemasWithVideoAulas } from '@/hooks/useSupabaseDataRefactored';
 import { toast } from '@/hooks/use-toast';
 
 interface CartorioAccessManagerProps {
@@ -28,7 +27,7 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
   const [isGranting, setIsGranting] = useState(false);
 
   const { getCartorioAccess, grantAccess, revokeAccess } = useCartorioAccess();
-  const { data: allSistemas = [] } = useSistemasFixed();
+  const { data: allSistemas = [] } = useSistemasWithVideoAulas();
   const { data: currentAccess = [], refetch } = getCartorioAccess(cartorioId);
 
   const availableProducts = selectedSistema 
