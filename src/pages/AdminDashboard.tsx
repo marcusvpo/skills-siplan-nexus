@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
 // Componentes
-import { CartorioAccessManager } from '@/components/admin/CartorioAccessManager';
+import { CartorioManagementComplete } from '@/components/admin/CartorioManagementComplete';
 import { ContentManagerSimple } from '@/components/admin/ContentManagerSimple';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 import { TrilhaManager } from '@/components/admin/TrilhaManager';
@@ -164,16 +164,7 @@ const AdminDashboard = () => {
           </Card>
 
           <TabsContent value="cartorios" className="space-y-6">
-            <Card className="gradient-card shadow-modern border-gray-600/50">
-              <CardHeader>
-                <CardTitle className="text-white">Gerenciamento de Cartórios</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-400">
-                  Use o painel de gerenciamento de cartórios para controlar acessos e permissões.
-                </p>
-              </CardContent>
-            </Card>
+            <CartorioManagementComplete />
           </TabsContent>
 
           <TabsContent value="conteudo" className="space-y-6">
