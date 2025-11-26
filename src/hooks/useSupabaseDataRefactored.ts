@@ -473,3 +473,116 @@ export const useDeleteVideoAula = () => {
     }
   });
 };
+
+export const useVideoAulaData = (videoId: string) => {
+  return useQuery({
+    queryKey: ['video-aula', videoId],
+    queryFn: async () => {
+      if (!videoId) throw new Error('Video ID is required');
+      
+      logger.info('🔍 [useVideoAulaData] Fetching video aula:', { videoId });
+      
+      const { data, error } = await supabase
+        .from('video_aulas')
+        .select(`
+          *,
+          produtos (
+            *,
+            sistemas (*)
+          )
+        `)
+        .eq('id', videoId)
+        .single();
+      
+      if (error) {
+        logger.error('❌ [useVideoAulaData] Error:', error);
+        throw error;
+      }
+      
+      logger.info('✅ [useVideoAulaData] Success');
+      return data;
+    },
+    enabled: !!videoId,
+    retry: 3,
+    retryDelay: 1000
+  });
+};
+
+export const useCartorioAccess = () => {
+  const queryClient = useQueryClient();
+
+  const getCartorioAccess = (cartorioId: string) => {
+    return useQuery({
+      queryKey: ['cartorio-access', cartorioId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('cartorio_acesso_conteudo')
+          .select('*')
+          .eq('cartorio_id', cartorioId)
+          .eq('ativo', true);
+        
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!cartorioId
+    });
+  };
+
+  const grantAccess = useMutation({
+    mutationFn: async ({ cartorioId, sistemaId, produtoId }: {
+      cartorioId: string;
+      sistemaId: string;
+      produtoId?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .insert({
+          cartorio_id: cartorioId,
+          sistema_id: sistemaId,
+          produto_id: produtoId || null,
+          ativo: true,
+          nivel_acesso: 'completo'
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cartorio-access'] });
+      toast({ title: "Acesso concedido com sucesso" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Erro ao conceder acesso", 
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const revokeAccess = useMutation({
+    mutationFn: async (accessId: string) => {
+      const { error } = await supabase
+        .from('cartorio_acesso_conteudo')
+        .delete()
+        .eq('id', accessId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cartorio-access'] });
+      toast({ title: "Acesso revogado com sucesso" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Erro ao revogar acesso", 
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: "destructive" 
+      });
+    }
+  });
+
+  return { getCartorioAccess, grantAccess, revokeAccess };
+};

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
 import { VideoProgressButton } from '@/components/VideoProgressButton';
-import { useVideoAulaData } from '@/hooks/useSupabaseDataSimplified';
+import { useVideoAulaData } from '@/hooks/useSupabaseDataRefactored';
 import { logger } from '@/utils/logger';
 
 const VideoLesson: React.FC = () => {
