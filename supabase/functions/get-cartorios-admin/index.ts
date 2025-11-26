@@ -38,14 +38,19 @@ serve(async (req) => {
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        }
+        },
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
       }
     );
 
-    // Verificar token do usuário
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    // Verificar token do usuário usando o header Authorization, como no admin-auth
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
-    if (userError || !userData.user) {
+    if (userError || !user) {
       console.error('❌ [AUTH] Invalid Supabase token:', userError?.message);
       return new Response(JSON.stringify({ error: 'Token inválido' }), {
         status: 401,
@@ -53,24 +58,24 @@ serve(async (req) => {
       });
     }
 
-    console.log('✅ [AUTH] Token verified for user:', userData.user.email);
+    console.log('✅ [AUTH] Token verified for user:', user.email);
 
     // Verificar se o usuário é admin
     const { data: adminCheck, error: adminError } = await supabaseClient
       .from('admins')
       .select('*')
-      .eq('email', userData.user.email)
+      .eq('email', user.email)
       .single();
 
     if (adminError || !adminCheck) {
-      console.error('❌ [AUTH] User is not admin:', userData.user.email);
+      console.error('❌ [AUTH] User is not admin:', user.email);
       return new Response(JSON.stringify({ error: 'Usuário não é administrador' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('✅ [AUTH] Admin verified:', userData.user.email)
+    console.log('✅ [AUTH] Admin verified:', user.email)
 
     console.log('🏢 [get-cartorios-admin] Admin cartorios list requested')
 
