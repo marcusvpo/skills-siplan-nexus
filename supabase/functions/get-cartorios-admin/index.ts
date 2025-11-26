@@ -1,18 +1,10 @@
-// v2 - migrado para CUSTOM_SERVICE_KEY + jwtVerify
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { jwtVerify } from 'https://deno.land/x/jose@v4.14.6/index.ts';
 
-// Configuração de chaves - prioriza CUSTOM_SERVICE_KEY
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-const customServiceKey = Deno.env.get('CUSTOM_SERVICE_KEY');
-const legacyServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const jwtSecret = Deno.env.get('JWT_SECRET');
+const serviceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Log de inicialização
-console.log('🔧 [Init] Using service key:', customServiceKey ? 'Present' : 'Missing');
-console.log('🔧 [Init] Key source:', customServiceKey ? 'CUSTOM_SERVICE_KEY (NEW)' : 'LEGACY_FALLBACK');
-console.log('🔧 [Init] JWT Secret:', jwtSecret ? 'Present' : 'Missing');
+console.log('🔧 [Init] Service key configured:', serviceKey ? 'Yes' : 'No');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verificar se é admin via JWT
+    // Verificar se é admin via Supabase Auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('❌ [AUTH] Missing or invalid authorization header');
@@ -36,95 +28,49 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log('🔐 [JWT] Processing admin JWT token');
+    console.log('🔐 [AUTH] Verifying Supabase token');
 
-    if (!jwtSecret) {
-      console.error('❌ [JWT] JWT_SECRET not configured');
-      return new Response(JSON.stringify({ error: 'JWT configuration missing' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Verificar se é admin - duas formas: JWT customizado ou Supabase Auth
-    let isAdmin = false;
-    let adminData = null;
-    
-    try {
-      // Tentativa 1: JWT customizado (HS256)
-      const secret = new TextEncoder().encode(jwtSecret);
-      const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
-      console.log('🔐 [JWT] Custom token verified, checking admin status');
-      isAdmin = payload.role === 'admin' || payload.is_admin === true;
-      
-      if (isAdmin) {
-        console.log('✅ [AUTH] Admin verified via custom JWT');
-      }
-    } catch (customJwtError) {
-      console.log('🔄 [JWT] Custom JWT verification failed, trying Supabase Auth:', customJwtError.message);
-      
-      // Tentativa 2: Token do Supabase Auth
-      try {
-        const supabaseClient = createClient(
-          supabaseUrl,
-          customServiceKey || legacyServiceKey || '',
-          {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          }
-        );
-
-        // Usar o token para fazer uma requisição autenticada ao Supabase
-        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-        
-        if (userError || !userData.user) {
-          throw new Error('Token Supabase inválido');
-        }
-
-        // Verificar se o usuário é admin
-        const { data: adminCheck, error: adminError } = await supabaseClient
-          .from('admins')
-          .select('*')
-          .eq('email', userData.user.email)
-          .single();
-
-        if (adminError || !adminCheck) {
-          throw new Error('Usuário não é administrador');
-        }
-
-        isAdmin = true;
-        adminData = adminCheck;
-        console.log('✅ [AUTH] Admin verified via Supabase Auth:', userData.user.email);
-        
-      } catch (supabaseAuthError) {
-        console.error('❌ [AUTH] Both JWT verifications failed:', supabaseAuthError.message);
-        return new Response(JSON.stringify({ error: 'Token inválido ou usuário não é admin' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    if (!isAdmin) {
-      console.error('❌ [AUTH] User is not admin');
-      return new Response(JSON.stringify({ error: 'Acesso negado: apenas administradores' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
+    // Criar cliente Supabase com service key para verificação
     const supabaseClient = createClient(
       supabaseUrl,
-      customServiceKey || legacyServiceKey || '',
+      serviceKey,
       {
         auth: {
           autoRefreshToken: false,
           persistSession: false
         }
       }
-    )
+    );
+
+    // Verificar token do usuário
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      console.error('❌ [AUTH] Invalid Supabase token:', userError?.message);
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('✅ [AUTH] Token verified for user:', userData.user.email);
+
+    // Verificar se o usuário é admin
+    const { data: adminCheck, error: adminError } = await supabaseClient
+      .from('admins')
+      .select('*')
+      .eq('email', userData.user.email)
+      .single();
+
+    if (adminError || !adminCheck) {
+      console.error('❌ [AUTH] User is not admin:', userData.user.email);
+      return new Response(JSON.stringify({ error: 'Usuário não é administrador' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('✅ [AUTH] Admin verified:', userData.user.email)
 
     console.log('🏢 [get-cartorios-admin] Admin cartorios list requested')
 
