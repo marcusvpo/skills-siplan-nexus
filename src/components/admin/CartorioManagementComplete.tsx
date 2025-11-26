@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2 } from 'lucide-react';
+import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2, Search, ChevronRight, ChevronDown } from 'lucide-react';
 import { useCartoriosWithAcessos } from '@/hooks/useSupabaseDataRefactored';
 import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioPermissionsManager } from './CartorioPermissionsManager';
@@ -16,6 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const CartorioManagementComplete: React.FC = () => {
   const { data: cartorios, isLoading, refetch } = useCartoriosWithAcessos();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCartorioId, setExpandedCartorioId] = useState<string | null>(null);
   const [selectedCartorio, setSelectedCartorio] = useState<any>(null);
   const [userManagerOpen, setUserManagerOpen] = useState(false);
   const [permissionsManagerOpen, setPermissionsManagerOpen] = useState(false);
@@ -203,6 +205,16 @@ export const CartorioManagementComplete: React.FC = () => {
     );
   }
 
+  const filteredCartorios = (cartorios || []).filter((cartorio: any) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+
+    return (
+      (cartorio.nome && cartorio.nome.toLowerCase().includes(term)) ||
+      (cartorio.cidade && cartorio.cidade.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <>
       <div className="space-y-6">
@@ -223,77 +235,131 @@ export const CartorioManagementComplete: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {cartorios?.map((cartorio: any) => (
-                <Card key={cartorio.id} className="bg-gray-700/50 border-gray-600">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h4 className="text-white font-medium text-lg">{cartorio.nome}</h4>
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Buscar cartório por nome..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <Badge variant="outline" className="border-gray-700 text-gray-300">
+                {filteredCartorios.length} cartório{filteredCartorios.length === 1 ? '' : 's'}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {filteredCartorios.map((cartorio: any, index: number) => {
+                const isExpanded = expandedCartorioId === cartorio.id;
+
+                return (
+                  <Card
+                    key={cartorio.id}
+                    className="bg-gray-800/60 border border-gray-700/80 hover:border-red-500/60 transition-colors rounded-xl"
+                  >
+                    <CardContent className="p-4">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCartorioId(isExpanded ? null : cartorio.id)}
+                        className="flex w-full items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-xs font-mono text-gray-500">#{index + 1}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{cartorio.nome}</p>
+                            {cartorio.cidade && cartorio.estado && (
+                              <p className="text-xs text-gray-400 truncate">
+                                {cartorio.cidade} - {cartorio.estado}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
                           <CartorioStatusIndicator
                             isActive={cartorio.is_active}
                             lastActivity={cartorio.acessos_cartorio?.[0]?.data_criacao || null}
                           />
-                        </div>
-                        <div className="text-sm text-gray-400 space-y-1">
-                          {cartorio.cidade && cartorio.estado && (
-                            <p>{cartorio.cidade} - {cartorio.estado}</p>
+                          {cartorio.acessos_cartorio?.[0]?.data_expiracao && (
+                            <span className="hidden text-xs text-gray-500 sm:inline-flex">
+                              Expira em {new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}
+                            </span>
                           )}
-                          {cartorio.observacoes && (
-                            <p className="text-gray-500">{cartorio.observacoes}</p>
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           )}
-                          <p className="text-xs text-gray-500">
-                            Tokens: {cartorio.acessos_cartorio?.length || 0}
-                          </p>
                         </div>
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenUserManager(cartorio)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Users className="h-4 w-4 mr-1" />
-                          Usuários
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenPermissions(cartorio)}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          <Shield className="h-4 w-4 mr-1" />
-                          Permissões
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenTokenModal(cartorio)}
-                          className="bg-orange-600 hover:bg-orange-700"
-                        >
-                          <Key className="h-4 w-4 mr-1" />
-                          Token
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenEditModal(cartorio)}
-                          className="border-gray-600 text-gray-300"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteCartorio(cartorio)}
-                          className="border-red-600 text-red-400 hover:bg-red-700/20"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-4 border-t border-gray-700 pt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1 text-sm text-gray-300">
+                            {cartorio.observacoes && (
+                              <p className="text-gray-400">{cartorio.observacoes}</p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              Tokens: {cartorio.acessos_cartorio?.length || 0}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 md:justify-end">
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenUserManager(cartorio)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Users className="mr-1 h-4 w-4" />
+                              Usuários
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenPermissions(cartorio)}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              <Shield className="mr-1 h-4 w-4" />
+                              Permissões
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenTokenModal(cartorio)}
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              <Key className="mr-1 h-4 w-4" />
+                              Token
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenEditModal(cartorio)}
+                              className="border-gray-600 text-gray-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteCartorio(cartorio)}
+                              className="border-red-600 text-red-400 hover:bg-red-700/20"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {filteredCartorios.length === 0 && (
+                <div className="col-span-full py-8 text-center text-sm text-gray-400">
+                  {'Nenhum cartório encontrado' + (searchTerm ? ' para "' + searchTerm + '"' : '') + '.'}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
