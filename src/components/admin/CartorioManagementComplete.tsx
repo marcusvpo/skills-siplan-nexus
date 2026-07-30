@@ -326,12 +326,41 @@ export const CartorioManagementComplete: React.FC = () => {
                             {cartorio.observacoes && (
                               <p className="text-gray-400">{cartorio.observacoes}</p>
                             )}
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-400">
+                                Usuário: <span className="font-mono text-gray-200">{getUsuario(cartorio)}</span>
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400">Token do Cartório:</span>
+                                <code className="rounded bg-gray-900/70 px-2 py-1 font-mono text-xs text-gray-100">
+                                  {getToken(cartorio) || 'Sem token'}
+                                </code>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!getToken(cartorio)}
+                                  onClick={() => copyToClipboard(getToken(cartorio), 'Token copiado para a área de transferência.')}
+                                  className="h-7 border-gray-600 px-2 text-gray-300"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
                             <p className="text-xs text-gray-500">
                               Tokens: {cartorio.acessos_cartorio?.length || 0}
                             </p>
                           </div>
 
                           <div className="flex flex-wrap gap-2 md:justify-end">
+                            <Button
+                              size="sm"
+                              disabled={!getToken(cartorio)}
+                              onClick={() => handleCopyModeloAcesso(cartorio)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <ClipboardCheck className="mr-1 h-4 w-4" />
+                              Copiar Modelo Acesso
+                            </Button>
                             <Button
                               size="sm"
                               onClick={() => handleOpenUserManager(cartorio)}
