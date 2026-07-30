@@ -28,7 +28,18 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Mantém a MESMA instância de contexto entre recarregamentos de HMR.
+// Sem isso, o módulo recarregado cria um novo contexto enquanto o
+// AuthProvider montado ainda usa o antigo -> "useAuth deve ser usado dentro do AuthProvider".
+const globalScope = globalThis as unknown as {
+  __siplanAuthContext?: React.Context<AuthContextType | undefined>;
+};
+
+const AuthContext =
+  globalScope.__siplanAuthContext ??
+  createContext<AuthContextType | undefined>(undefined);
+
+globalScope.__siplanAuthContext = AuthContext;
 
 const EDGE_FUNCTION_URL = 'https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/login-cartorio';
 
