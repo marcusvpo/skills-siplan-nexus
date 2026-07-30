@@ -1,6 +1,6 @@
 
 export const debugAuthState = (context: string, state: any) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.group(`🔍 [${context}] Auth Debug`);
     console.log('Session:', state.session ? 'Present' : 'Null');
     console.log('User:', state.user ? state.user.email : 'Null');
@@ -15,7 +15,7 @@ export const debugAuthState = (context: string, state: any) => {
 };
 
 export const debugSupabaseClient = () => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.group('🔧 [Supabase] Client Debug');
     console.log('URL:', 'https://bnulocsnxiffavvabfdj.supabase.co');
     console.log('Client initialized:', 'Yes');
