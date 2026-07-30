@@ -1,0 +1,1 @@
+UPDATE public.acessos_cartorio SET data_expiracao = '2027-12-31T00:00:00+00' WHERE login_token = 'CART-1751554048539-2H6W7O';
