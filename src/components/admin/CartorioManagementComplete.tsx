@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2, Search, ChevronRight, ChevronDown } from 'lucide-react';
+import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2, Search, ChevronRight, ChevronDown, Copy, ClipboardCheck } from 'lucide-react';
 import { useCartoriosWithAcessos } from '@/hooks/useSupabaseDataRefactored';
 import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioPermissionsManager } from './CartorioPermissionsManager';
@@ -46,6 +46,31 @@ export const CartorioManagementComplete: React.FC = () => {
   const handleOpenTokenModal = (cartorio: any) => {
     setSelectedCartorio(cartorio);
     setTokenModalOpen(true);
+  };
+
+  const copyToClipboard = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: 'Copiado!', description: successMessage });
+    } catch (error) {
+      toast({
+        title: 'Erro ao copiar',
+        description: 'Não foi possível acessar a área de transferência.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getToken = (cartorio: any) => cartorio.acessos_cartorio?.[0]?.login_token || '';
+
+  const getUsuario = (cartorio: any) =>
+    cartorio.cartorio_usuarios?.find((u: any) => u.is_active !== false)?.username ||
+    cartorio.cartorio_usuarios?.[0]?.username ||
+    cartorio.nome;
+
+  const handleCopyModeloAcesso = (cartorio: any) => {
+    const modelo = `https://skills.siplan.com.br/\n\nUsuário: ${getUsuario(cartorio)}\nToken de Acesso: ${getToken(cartorio)}`;
+    copyToClipboard(modelo, 'Modelo de acesso copiado para a área de transferência.');
   };
 
   const handleOpenEditModal = (cartorio: any) => {
