@@ -41,13 +41,16 @@ serve(async (req) => {
       }
     });
 
-    // 1. Validar login_token na tabela acessos_cartorio.
+    // 1. Validar login_token na tabela acessos_cartorio (tolerante a espaços/caixa).
+    const tokenNormalizado = String(login_token).trim();
     console.log(`ℹ️ [LOGIN] Validando login_token na tabela acessos_cartorio`);
-    const { data: acessoData, error: acessoError } = await supabase
+    const { data: acessosData, error: acessoError } = await supabase
       .from('acessos_cartorio')
       .select('*')
-      .eq('login_token', login_token)
-      .single();
+      .ilike('login_token', tokenNormalizado)
+      .limit(1);
+
+    const acessoData = acessosData?.[0];
 
     if (acessoError || !acessoData) {
       console.error("❌ [LOGIN] Login token inválido ou não encontrado:", acessoError);
@@ -55,10 +58,27 @@ serve(async (req) => {
         error: "Token de login inválido"
       }), {
         status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (acessoData.ativo === false) {
+      console.error("❌ [LOGIN] Token desativado");
+      return new Response(JSON.stringify({
+        error: "Este token de acesso está desativado. Contate o administrador."
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (acessoData.data_expiracao && new Date(acessoData.data_expiracao) < new Date()) {
+      console.error("❌ [LOGIN] Token expirado");
+      return new Response(JSON.stringify({
+        error: "Este token de acesso expirou. Contate o administrador."
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -66,10 +86,11 @@ serve(async (req) => {
 
     // 2. Buscar usuário na tabela cartorio_usuarios com depuração detalhada
     console.log(`ℹ️ [LOGIN] Buscando usuário na tabela cartorio_usuarios com filtros: username=${username}, cartorio_id=${acessoData.cartorio_id}`);
+    const usernameNormalizado = String(username).trim();
     let { data: userData, error: userError } = await supabase
       .from('cartorio_usuarios')
       .select('*')
-      .eq('username', username)
+      .eq('username', usernameNormalizado)
       .eq('cartorio_id', acessoData.cartorio_id)
       .single();
 
@@ -80,7 +101,7 @@ serve(async (req) => {
       const { data: userDataIlike, error: ilikeError } = await supabase
         .from('cartorio_usuarios')
         .select('*')
-        .ilike('username', username)
+        .ilike('username', usernameNormalizado)
         .eq('cartorio_id', acessoData.cartorio_id)
         .single();
 
