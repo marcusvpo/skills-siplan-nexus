@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { TreinamentosSection } from '@/components/user/TreinamentosSection';
+import { LearnerHero } from '@/components/user/LearnerHero';
+import { LearnerStats } from '@/components/user/LearnerStats';
+import { ContinueWatchingBanner } from '@/components/user/ContinueWatchingBanner';
 import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 
 
@@ -144,20 +147,15 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <Card className="gradient-card shadow-elevated border-gray-600/50 mb-8 card-enter">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold text-white text-enhanced">
-              Bem-vindo(a), {user?.username || user?.name}!
-            </CardTitle>
-            <p className="text-gray-400 text-lg">
-              Selecione um sistema para começar seu treinamento
-            </p>
-          </CardHeader>
-        </Card>
-
+      <main className="container mx-auto space-y-8 px-4 py-8">
+        <LearnerHero
+          nome={user?.username || user?.name || 'aluno'}
+          cartorio={user?.cartorio_name}
+        />
+        <LearnerStats />
+        <ContinueWatchingBanner />
         <TreinamentosSection />
-      </div>
+      </main>
     </div>
   );
 };
