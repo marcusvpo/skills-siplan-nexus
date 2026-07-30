@@ -1,68 +1,63 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
+import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAccess';
+import { useProgressoGeral } from '@/hooks/useProgressoGeral';
+import { SistemaCard } from '@/components/user/SistemaCard';
 import { logger } from '@/utils/logger';
-// Importa useAuth da versão FIXA
-import { useAuth } from '@/contexts/AuthContextFixed'; 
+import { useAuth } from '@/contexts/AuthContextFixed';
+
+const SkeletonCard = () => (
+  <div className="h-64 animate-pulse rounded-xl border border-border/40 bg-card/60" />
+);
 
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
+  const { progressos } = useProgressoGeral();
 
   React.useEffect(() => {
     logger.info('📚 [TreinamentosSection] Component state:', {
       categoriasCount: sistemas.length,
       isLoading,
       hasError: !!error,
-      errorMessage: error?.message,
       userType: user?.type,
-      cartorioId: user?.cartorio_id
+      cartorioId: user?.cartorio_id,
     });
   }, [sistemas.length, isLoading, error, user]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando categorias...</p>
-        </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }
 
   if (error) {
-    logger.error('❌ [TreinamentosSection] Error details:', { 
-      error: error.message,
-      stack: error.stack
-    });
-    
+    logger.error('❌ [TreinamentosSection] Error details:', { error: error.message });
+
     return (
-      <div className="flex items-center justify-center h-64">
-        <Card className="bg-gray-800/50 border-red-600 max-w-lg">
+      <div className="flex items-center justify-center py-16">
+        <Card className="max-w-lg border-destructive/40">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-400 mb-2">Erro ao carregar categorias</h3>
-            <p className="text-gray-400 text-center mb-6">
-              {error instanceof Error ? error.message : 'Erro desconhecido ao carregar categorias.'}
+            <AlertCircle className="mx-auto mb-4 h-14 w-14 text-destructive" />
+            <h3 className="mb-2 text-xl font-bold text-foreground">Erro ao carregar sistemas</h3>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : 'Erro desconhecido ao carregar sistemas.'}
             </p>
-            <div className="space-y-3">
-              <Button
-                onClick={() => refetch()}
-                className="bg-red-600 hover:bg-red-700 text-white w-full"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar Novamente
-              </Button>
-              <p className="text-xs text-gray-500">
-                Se o problema persistir, contate o administrador
-              </p>
-            </div>
+            <Button onClick={() => refetch()} className="w-full" variant="glow">
+              <RefreshCw className="h-4 w-4" />
+              Tentar novamente
+            </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Se o problema persistir, contate o administrador.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -71,15 +66,17 @@ export const TreinamentosSection: React.FC = () => {
 
   if (sistemas.length === 0) {
     return (
-      <div className="text-center py-16">
-        <Card className="bg-gray-800/50 border-yellow-600 max-w-lg mx-auto">
-          <CardContent className="p-8 text-center">
-            <div className="text-6xl mb-6">📚</div>
-            <h3 className="text-2xl font-semibold text-yellow-400 mb-3">Nenhuma categoria disponível</h3>
-            <p className="text-gray-400 mb-6">
-              As categorias aparecerão aqui quando estiverem disponíveis para seu cartório.
-            </p>
-            <p className="text-sm text-gray-500">
+      <div className="py-16 text-center">
+        <Card className="mx-auto max-w-lg">
+          <CardContent className="p-10 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <BookOpen className="h-8 w-8" />
+            </div>
+            <h3 className="mb-3 text-2xl font-semibold text-foreground">
+              Nenhum sistema disponível
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Os sistemas aparecerão aqui quando estiverem liberados para o seu cartório.
               Entre em contato com o administrador para mais informações.
             </p>
           </CardContent>
@@ -89,76 +86,42 @@ export const TreinamentosSection: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white flex items-center">
-            <BookOpen className="h-6 w-6 mr-3 text-blue-400" />
-            Categorias
-          </h2>
-          <p className="text-gray-400 mt-1">
-            Selecione uma categoria para acessar seus produtos
-          </p>
-        </div>
+    <section className="space-y-6">
+      <div>
+        <h2 className="flex items-center gap-3 text-2xl font-bold text-foreground">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <BookOpen className="h-5 w-5" />
+          </span>
+          Seus sistemas
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Selecione um sistema para acessar os produtos e videoaulas.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {sistemas.map((categoria) => {
-          const totalProdutos = categoria.produtos?.length || 0;
-          const totalVideoaulas = categoria.produtos?.reduce((acc, produto) => 
-            acc + (produto.video_aulas?.length || 0), 0) || 0;
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        {sistemas.map((categoria, index) => {
+          const produtos = categoria.produtos || [];
+          const totalVideoaulas = produtos.reduce((acc, p) => acc + (p.video_aulas?.length || 0), 0);
+          const aulasConcluidas = produtos.reduce(
+            (acc, p) => acc + (progressos[p.id]?.completas || 0),
+            0
+          );
 
           return (
-            <Card 
-              key={categoria.id} 
-              className="bg-gray-800/50 border-gray-600 hover:border-red-500/50 transition-all duration-300 cursor-pointer group hover:scale-105"
-              onClick={() => navigate(`/system/${categoria.id}`)}
-            >
-              <CardHeader>
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                    <span className="text-xl font-bold text-white">
-                      {categoria.nome.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-white group-hover:text-red-400 transition-colors">
-                      {categoria.nome}
-                    </CardTitle>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant="secondary" className="bg-blue-600/20 text-blue-300">
-                        {totalProdutos} produto(s)
-                      </Badge>
-                      <Badge variant="secondary" className="bg-green-600/20 text-green-300">
-                        {totalVideoaulas} videoaula(s)
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                {categoria.descricao && (
-                  <p className="text-gray-400 text-sm leading-relaxed">
-                    {categoria.descricao}
-                  </p>
-                )}
-              </CardHeader>
-              
-              <CardContent>
-                <Button 
-                  className="w-full bg-red-600 hover:bg-red-700 transition-all duration-200 group-hover:scale-105"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/system/${categoria.id}`);
-                  }}
-                >
-                  Acessar Categoria
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
+            <SistemaCard
+              key={categoria.id}
+              index={index}
+              nome={categoria.nome}
+              descricao={categoria.descricao}
+              totalProdutos={produtos.length}
+              totalVideoaulas={totalVideoaulas}
+              aulasConcluidas={aulasConcluidas}
+              onOpen={() => navigate(`/system/${categoria.id}`)}
+            />
           );
         })}
       </div>
-    </div>
+    </section>
   );
 };
