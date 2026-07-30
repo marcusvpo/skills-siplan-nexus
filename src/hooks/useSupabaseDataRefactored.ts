@@ -73,7 +73,8 @@ export const useCartoriosWithAcessos = () => {
         .from('cartorios')
         .select(`
           *,
-          acessos_cartorio (*)
+          acessos_cartorio (*),
+          cartorio_usuarios (id, username, email, is_active)
         `)
         .order('nome', { ascending: true });
       
