@@ -1,88 +1,75 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getAuthToken } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { logger } from '@/utils/logger';
 
+const SUPABASE_URL = 'https://bnulocsnxiffavvabfdj.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Qf2Fc0CgFvljfVhk3v9IYg_PrDm9z4J';
+
+/**
+ * Busca os sistemas/produtos/videoaulas que o cartório PODE acessar.
+ *
+ * IMPORTANTE: a filtragem é feita 100% no backend (Edge Function com service role
+ * + verificação do JWT customizado). Consultas diretas ao PostgREST com o JWT
+ * customizado são rejeitadas (assinatura inválida) e caem no papel `anon`,
+ * onde as políticas de RLS liberam todo o conteúdo — era essa a causa de todos
+ * os cartórios verem tudo.
+ */
 export const useSistemasCartorioWithAccess = () => {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['sistemas-cartorio-with-access', user?.cartorio_id],
     queryFn: async () => {
-      if (!user?.cartorio_id) {
-        logger.warn('⚠️ [useSistemasCartorioWithAccess] No cartorio_id found');
+      const token = getAuthToken();
+
+      if (!user?.cartorio_id || !token) {
+        logger.warn('⚠️ [useSistemasCartorioWithAccess] Sem cartorio_id ou token');
         return [];
       }
-      
-      logger.info('🔍 [useSistemasCartorioWithAccess] Fetching sistemas for cartorio:', { 
-        cartorioId: user.cartorio_id 
+
+      logger.info('🔍 [useSistemasCartorioWithAccess] Buscando conteúdo permitido', {
+        cartorioId: user.cartorio_id,
       });
-      
-      // First, check if cartorio has any specific access restrictions
-      const { data: acessos, error: acessosError } = await supabase
-        .from('cartorio_acesso_conteudo')
-        .select('sistema_id, produto_id')
-        .eq('cartorio_id', user.cartorio_id)
-        .eq('ativo', true);
-      
-      if (acessosError) {
-        logger.error('❌ [useSistemasCartorioWithAccess] Error fetching acessos:', acessosError);
-        throw acessosError;
-      }
-      
-      // If no specific access, return all sistemas
-      const hasRestrictions = acessos && acessos.length > 0;
-      
-      const { data, error } = await supabase
-        .from('sistemas')
-        .select(`
-          *,
-          produtos (
-            *,
-            video_aulas (*)
-          )
-        `)
-        .order('ordem', { ascending: true });
-      
-      if (error) {
-        logger.error('❌ [useSistemasCartorioWithAccess] Error fetching sistemas:', error);
-        throw error;
-      }
-      
-      if (!hasRestrictions) {
-        logger.info('✅ [useSistemasCartorioWithAccess] No restrictions, returning all sistemas');
-        return data || [];
-      }
-      
-      // Filter sistemas and produtos based on access
-      const filteredSistemas = data?.map(sistema => {
-        const sistemaAccess = acessos.filter(a => a.sistema_id === sistema.id);
-        
-        if (sistemaAccess.length === 0) return null;
-        
-        // Check if there are product-specific restrictions
-        const produtoIds = sistemaAccess.map(a => a.produto_id).filter(Boolean);
-        
-        if (produtoIds.length === 0) {
-          // Full system access
-          return sistema;
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/get-sistemas-cartorio-with-permissions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${token}`,
+            'x-custom-auth': `Bearer ${token}`,
+          },
+          body: JSON.stringify({}),
         }
-        
-        // Filter products
-        return {
-          ...sistema,
-          produtos: sistema.produtos?.filter(p => produtoIds.includes(p.id))
-        };
-      }).filter(Boolean);
-      
-      logger.info('✅ [useSistemasCartorioWithAccess] Success:', { 
-        count: filteredSistemas?.length 
+      );
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message = payload?.error || 'Erro ao carregar conteúdo permitido';
+        logger.error('❌ [useSistemasCartorioWithAccess] Falha na Edge Function', {
+          status: response.status,
+          message,
+        });
+        throw new Error(message);
+      }
+
+      const sistemas = (payload?.sistemas || []).filter(
+        (s: any) => !payload?.hasPermissions || (s.produtos && s.produtos.length > 0)
+      );
+
+      logger.info('✅ [useSistemasCartorioWithAccess] Conteúdo permitido carregado', {
+        hasPermissions: payload?.hasPermissions,
+        sistemas: sistemas.length,
       });
-      
-      return filteredSistemas || [];
+
+      return sistemas;
     },
     enabled: !!user?.cartorio_id,
-    retry: 3,
-    retryDelay: 1000
+    retry: 1,
+    retryDelay: 1000,
   });
 };
