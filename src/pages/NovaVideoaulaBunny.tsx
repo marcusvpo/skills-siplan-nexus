@@ -92,13 +92,13 @@ const NovaVideoaulaBunny: React.FC = () => {
   }, [sistemaId, produtoId]);
 
   const handleSuccess = () => {
-    logger.info('✅ [NovaVideoaulaBunny] Videoaula created successfully, navigating to admin');
-    navigate('/admin');
+    logger.info('✅ [NovaVideoaulaBunny] Videoaula created successfully, navigating back to videoaulas');
+    navigate('/admin?tab=conteudo');
   };
 
   const handleCancel = () => {
-    logger.info('ℹ️ [NovaVideoaulaBunny] User cancelled, navigating to admin');
-    navigate('/admin');
+    logger.info('ℹ️ [NovaVideoaulaBunny] User cancelled, navigating back to videoaulas');
+    navigate('/admin?tab=conteudo');
   };
 
   if (isLoading) {

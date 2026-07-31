@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,59 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSistemasWithVideoAulas } from '@/hooks/useSupabaseDataRefactored';
+import { useNavigate } from 'react-router-dom';
 
 type ViewMode = 'sistemas' | 'produtos' | 'videoaulas';
 
+interface NavState {
+  viewMode: ViewMode;
+  sistemaId: string | null;
+  produtoId: string | null;
+}
+
+const NAV_STORAGE_KEY = 'admin:content-manager:nav';
+
+const loadNav = (): NavState => {
+  try {
+    const raw = sessionStorage.getItem(NAV_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as NavState;
+      if (parsed && parsed.viewMode) return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return { viewMode: 'sistemas', sistemaId: null, produtoId: null };
+};
+
 export const ContentManagerFixed: React.FC = () => {
+  const navigate = useNavigate();
   const { data: sistemasData, isLoading, refetch } = useSistemasWithVideoAulas();
-  const [viewMode, setViewMode] = useState<ViewMode>('sistemas');
-  const [selectedSistema, setSelectedSistema] = useState<any>(null);
-  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [nav, setNav] = useState<NavState>(() => loadNav());
+  const { viewMode, sistemaId, produtoId } = nav;
+
+  const setViewMode = (mode: ViewMode) => setNav(prev => ({ ...prev, viewMode: mode }));
+  const setSistemaId = (id: string | null) =>
+    setNav(prev => ({ ...prev, sistemaId: id, produtoId: id ? prev.produtoId : null }));
+  const setProdutoId = (id: string | null) => setNav(prev => ({ ...prev, produtoId: id }));
+
+  // Persiste a navegação para que o admin volte exatamente onde estava
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(nav));
+    } catch {
+      /* ignore */
+    }
+  }, [nav]);
+
+  const selectedSistema = useMemo(
+    () => (sistemaId ? sistemasData?.find((s: any) => s.id === sistemaId) ?? null : null),
+    [sistemasData, sistemaId]
+  );
+  const selectedProduto = useMemo(
+    () => (produtoId ? selectedSistema?.produtos?.find((p: any) => p.id === produtoId) ?? null : null),
+    [selectedSistema, produtoId]
+  );
   const [createSistemaOpen, setCreateSistemaOpen] = useState(false);
   const [createProdutoOpen, setCreateProdutoOpen] = useState(false);
   const [editSistemaOpen, setEditSistemaOpen] = useState(false);
@@ -60,7 +105,6 @@ export const ContentManagerFixed: React.FC = () => {
       if (error) throw error;
       toast({ title: "Sistema atualizado com sucesso!" });
       setEditSistemaOpen(false);
-      setSelectedSistema(null);
       refetch();
     } catch (error: any) {
       toast({ title: "Erro ao atualizar sistema", description: error.message, variant: "destructive" });
@@ -118,7 +162,6 @@ export const ContentManagerFixed: React.FC = () => {
       if (error) throw error;
       toast({ title: "Produto atualizado com sucesso!" });
       setEditProdutoOpen(false);
-      setSelectedProduto(null);
       refetch();
     } catch (error: any) {
       toast({ title: "Erro ao atualizar produto", description: error.message, variant: "destructive" });
@@ -150,6 +193,16 @@ export const ContentManagerFixed: React.FC = () => {
       toast({ title: "Erro ao excluir videoaula", description: error.message, variant: "destructive" });
     }
   };
+
+  // Fallback: se o item salvo não existe mais, volta ao nível anterior
+  useEffect(() => {
+    if (isLoading || !sistemasData) return;
+    if (viewMode === 'videoaulas' && !selectedProduto) {
+      setNav(prev => ({ ...prev, viewMode: selectedSistema ? 'produtos' : 'sistemas', produtoId: null }));
+    } else if (viewMode === 'produtos' && !selectedSistema) {
+      setNav({ viewMode: 'sistemas', sistemaId: null, produtoId: null });
+    }
+  }, [isLoading, sistemasData, viewMode, selectedSistema, selectedProduto]);
 
   if (isLoading) {
     return (
@@ -183,7 +236,7 @@ export const ContentManagerFixed: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <Button
                       onClick={() => {
-                        setSelectedSistema(sistema);
+                        setSistemaId(sistema.id);
                         setViewMode('produtos');
                       }}
                       variant="outline"
@@ -198,7 +251,7 @@ export const ContentManagerFixed: React.FC = () => {
                         size="icon"
                         variant="outline"
                         onClick={() => {
-                          setSelectedSistema(sistema);
+                          setSistemaId(sistema.id);
                           setFormData({ nome: sistema.nome, descricao: sistema.descricao || '' });
                           setEditSistemaOpen(true);
                         }}
@@ -311,8 +364,7 @@ export const ContentManagerFixed: React.FC = () => {
               <Button
                 onClick={() => {
                   setViewMode('sistemas');
-                  setSelectedSistema(null);
-                }}
+                            }}
                 variant="outline"
                 className="mb-4 border-gray-600 text-gray-300"
               >
@@ -338,7 +390,7 @@ export const ContentManagerFixed: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <Button
                       onClick={() => {
-                        setSelectedProduto(produto);
+                        setProdutoId(produto.id);
                         setViewMode('videoaulas');
                       }}
                       variant="outline"
@@ -353,7 +405,7 @@ export const ContentManagerFixed: React.FC = () => {
                         size="icon"
                         variant="outline"
                         onClick={() => {
-                          setSelectedProduto(produto);
+                          setProdutoId(produto.id);
                           setFormData({ nome: produto.nome, descricao: produto.descricao || '' });
                           setEditProdutoOpen(true);
                         }}
@@ -465,8 +517,7 @@ export const ContentManagerFixed: React.FC = () => {
             <Button
               onClick={() => {
                 setViewMode('produtos');
-                setSelectedProduto(null);
-              }}
+                        }}
               variant="outline"
               className="mb-4 border-gray-600 text-gray-300"
             >
@@ -479,7 +530,7 @@ export const ContentManagerFixed: React.FC = () => {
             </p>
           </div>
           <Button
-            onClick={() => window.location.href = `/admin/nova-videoaula?produto_id=${selectedProduto.id}`}
+            onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
             className="bg-orange-600 hover:bg-orange-700"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -516,7 +567,7 @@ export const ContentManagerFixed: React.FC = () => {
                     <Button
                       size="icon"
                       variant="outline"
-                      onClick={() => window.location.href = `/admin/editar-videoaula/${videoAula.id}`}
+                      onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
                       className="border-gray-600 text-gray-300 hover:bg-gray-700"
                     >
                       <Edit className="h-4 w-4" />
