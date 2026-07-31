@@ -35,31 +35,31 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
   const daysSinceLastActivity = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
   const isOnline = elapsedMs >= 0 && elapsedMs < ONLINE_WINDOW_MS;
 
-  // Online (verde)
+  // Online (success)
   if (isOnline) {
     return (
       <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
-        <Circle className="h-3 w-3 shrink-0 fill-green-500 text-green-500 animate-pulse" />
-        <span className="text-green-600 dark:text-green-400 font-medium">Online</span>
+        <Circle className="h-3 w-3 shrink-0 fill-success text-success animate-pulse" />
+        <span className="text-success font-medium">Online</span>
       </div>
     );
   }
 
-  // Offline recente (amarelo) - menos de 5 dias
+  // Offline recente (atenção) - menos de 5 dias
   if (daysSinceLastActivity < 5) {
     return (
       <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
-        <Circle className="h-3 w-3 shrink-0 fill-yellow-500 text-yellow-500" />
-        <span className="text-yellow-600 dark:text-yellow-400">{formatTimeAgo(lastActivityDate)}</span>
+        <Circle className="h-3 w-3 shrink-0 fill-primary text-primary" />
+        <span className="text-primary">{formatTimeAgo(lastActivityDate)}</span>
       </div>
     );
   }
 
-  // Offline há muito tempo (vermelho) - 5+ dias
+  // Offline há muito tempo (destructive) - 5+ dias
   return (
     <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
-      <Circle className="h-3 w-3 shrink-0 fill-red-500 text-red-500" />
-      <span className="text-red-600 dark:text-red-400">{formatTimeAgo(lastActivityDate)}</span>
+      <Circle className="h-3 w-3 shrink-0 fill-destructive text-destructive" />
+      <span className="text-destructive">{formatTimeAgo(lastActivityDate)}</span>
     </div>
   );
 };

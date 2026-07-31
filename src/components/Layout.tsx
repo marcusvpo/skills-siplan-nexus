@@ -2,6 +2,7 @@ import React from 'react';
 // Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,51 +23,51 @@ const Layout: React.FC<LayoutProps> = ({ children, showNavigation = true }) => {
   // Mostrar loading apenas se realmente estiver carregando e não há usuário
   if (isLoading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <div className="text-white text-enhanced">Carregando...</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="text-foreground">Carregando...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {showNavigation && user && (
-        <header className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
+        <header className="border-b border-border/50 bg-card/70 backdrop-blur-md">
           <div className="flex items-center justify-between max-w-7xl mx-auto px-6 py-4">
             <div 
-              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity btn-hover-lift"
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
               onClick={() => navigate(user.type === 'admin' ? '/admin' : '/dashboard')}
             >
               <img 
                 src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
                 alt="Siplan Logo" 
-                className="h-8 w-auto object-contain"
+                className="h-8 w-auto object-contain shrink-0"
               />
-              <span className="text-2xl font-bold text-white text-enhanced">Siplan Skills</span>
+              <span className="text-2xl font-bold text-foreground truncate">Siplan Skills</span>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-gray-300 text-enhanced">
-                Bem-vindo(a), {user.name}!
+              <div className="text-muted-foreground flex items-center gap-2">
+                <span className="truncate">Bem-vindo(a), {user.name}!</span>
                 {user.type === 'cartorio' && (
-                  <span className="ml-2 px-3 py-1 text-xs bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full shadow-modern">
+                  <Badge variant="secondary" className="rounded-full">
                     Cartório
-                  </span>
+                  </Badge>
                 )}
                 {user.type === 'admin' && (
-                  <span className="ml-2 px-3 py-1 text-xs bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-modern">
+                  <Badge variant="destructive" className="rounded-full">
                     Admin
-                  </span>
+                  </Badge>
                 )}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white btn-hover-lift shadow-modern"
+                className="rounded-xl"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair

@@ -139,11 +139,13 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-600 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-md border-border/50 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Users className="h-5 w-5 mr-2" />
-            Gerenciar Usuários - {cartorioName}
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Users className="h-5 w-5" />
+            </span>
+            <span className="truncate">Gerenciar Usuários - {cartorioName}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -151,8 +153,8 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
           {/* Botão para criar novo usuário */}
           <div className="flex justify-end">
             <Button
+              variant="glow"
               onClick={() => setIsCreating(true)}
-              className="bg-green-600 hover:bg-green-700 text-white"
               disabled={isCreating || editingUser !== null}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -162,28 +164,26 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
 
           {/* Formulário de criação */}
           {isCreating && (
-            <Card className="bg-gray-700/50 border-gray-600">
+            <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
               <CardHeader>
-                <CardTitle className="text-green-400">Criar Novo Usuário</CardTitle>
+                <CardTitle className="text-success">Criar Novo Usuário</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-300">Nome de Usuário *</Label>
+                    <Label>Nome de Usuário *</Label>
                     <Input
                       value={userForm.username}
                       onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
                       placeholder="Digite o nome de usuário"
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-300">Email</Label>
+                    <Label>Email</Label>
                     <Input
                       type="email"
                       value={userForm.email}
                       onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
                       placeholder="email@exemplo.com"
                     />
                   </div>
@@ -193,13 +193,13 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                     checked={userForm.is_active}
                     onCheckedChange={(checked: boolean) => setUserForm({...userForm, is_active: checked})}
                   />
-                  <Label className="text-gray-300">Usuário ativo</Label>
+                  <Label>Usuário ativo</Label>
                 </div>
                 <div className="flex space-x-2">
                   <Button
+                    variant="glow"
                     onClick={handleCreateUser}
                     disabled={isLoading}
-                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Criar Usuário
@@ -207,7 +207,6 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                   <Button
                     onClick={cancelEdit}
                     variant="outline"
-                    className="border-gray-600 text-gray-300"
                   >
                     <X className="h-4 w-4 mr-2" />
                     Cancelar
@@ -220,26 +219,24 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
           {/* Lista de usuários */}
           <div className="space-y-3">
             {users.map((user) => (
-              <Card key={user.id} className="bg-gray-700/50 border-gray-600">
+              <Card key={user.id} className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
                 <CardContent className="p-4">
                   {editingUser === user.id ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-gray-300">Nome de Usuário *</Label>
+                          <Label>Nome de Usuário *</Label>
                           <Input
                             value={userForm.username}
                             onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                            className="bg-gray-600 border-gray-500 text-white"
                           />
                         </div>
                         <div>
-                          <Label className="text-gray-300">Email</Label>
+                          <Label>Email</Label>
                           <Input
                             type="email"
                             value={userForm.email}
                             onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                            className="bg-gray-600 border-gray-500 text-white"
                           />
                         </div>
                       </div>
@@ -248,13 +245,13 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                           checked={userForm.is_active}
                           onCheckedChange={(checked: boolean) => setUserForm({...userForm, is_active: checked})}
                         />
-                        <Label className="text-gray-300">Usuário ativo</Label>
+                        <Label>Usuário ativo</Label>
                       </div>
                       <div className="flex space-x-2">
                         <Button
+                          variant="glow"
                           onClick={() => handleUpdateUser(user.id)}
                           disabled={isLoading}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           <Save className="h-4 w-4 mr-2" />
                           Salvar
@@ -262,7 +259,6 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                         <Button
                           onClick={cancelEdit}
                           variant="outline"
-                          className="border-gray-600 text-gray-300"
                         >
                           <X className="h-4 w-4 mr-2" />
                           Cancelar
@@ -270,42 +266,42 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 flex items-center space-x-3">
-                        <div className="flex-1">
-                          <h4 className="text-white font-medium">{user.username}</h4>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0 flex items-center space-x-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium truncate">{user.username}</h4>
                           {user.email && (
-                            <p className="text-gray-400 text-sm">{user.email}</p>
+                            <p className="text-muted-foreground text-sm truncate">{user.email}</p>
                           )}
-                          <p className="text-gray-500 text-xs">
+                          <p className="text-muted-foreground/70 text-xs">
                             Criado em: {new Date(user.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
                         <Badge 
                           variant={user.is_active ? 'secondary' : 'destructive'}
-                          className={user.is_active ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}
+                          className={user.is_active ? 'bg-success text-success-foreground' : ''}
                         >
                           {user.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </div>
-                      <div className="flex items-center space-x-3 ml-4">
+                      <div className="flex items-center space-x-3">
                         {/* Dropdown de Trilha */}
                         <div className="flex flex-col items-start">
-                          <Label className="text-gray-400 text-xs mb-1">Atribuir Trilha</Label>
+                          <Label className="text-muted-foreground text-xs mb-1">Atribuir Trilha</Label>
                           <Select
                             value={user.active_trilha_id || 'none'}
                             onValueChange={(value) => handleTrilhaChange(user.id, value)}
                             disabled={editingUser !== null || isCreating}
                           >
-                            <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-[180px]">
+                            <SelectTrigger className="w-[180px]">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-gray-800 border-gray-600 z-50">
-                              <SelectItem value="none" className="text-white">
+                            <SelectContent>
+                              <SelectItem value="none">
                                 Usuário Comum
                               </SelectItem>
                               {trilhas.map((trilha) => (
-                                <SelectItem key={trilha.id} value={trilha.id} className="text-white">
+                                <SelectItem key={trilha.id} value={trilha.id}>
                                   {trilha.nome}
                                 </SelectItem>
                               ))}
@@ -318,7 +314,6 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => startEdit(user)}
-                            className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                             disabled={editingUser !== null || isCreating}
                           >
                             <Edit2 className="h-4 w-4" />
@@ -327,7 +322,7 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => deleteUser(user)}
-                            className="border-red-600 text-red-400 hover:bg-red-700/20"
+                            className="border-destructive/50 text-destructive hover:bg-destructive/10"
                             disabled={editingUser !== null || isCreating}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -342,9 +337,9 @@ export const CartorioUserManager: React.FC<CartorioUserManagerProps> = ({
 
             {users.length === 0 && (
               <div className="text-center py-8">
-                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Nenhum usuário cadastrado</p>
-                <p className="text-gray-500 text-sm mt-2">
+                <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhum usuário cadastrado</p>
+                <p className="text-muted-foreground/70 text-sm mt-2">
                   Clique em "Novo Usuário" para adicionar o primeiro usuário
                 </p>
               </div>

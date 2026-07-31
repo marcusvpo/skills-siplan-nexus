@@ -51,7 +51,7 @@ export const CertificacoesPage = () => {
     return (
       <div className="min-h-screen bg-background p-8">
         <div className="max-w-4xl mx-auto">
-          <Card className="border-destructive">
+          <Card className="border-destructive/50 bg-card/70 backdrop-blur-md">
             <CardContent className="pt-6">
               <h2 className="text-xl font-semibold text-destructive mb-2">Erro ao carregar certificações</h2>
               <p className="text-muted-foreground mb-4">
@@ -71,8 +71,6 @@ export const CertificacoesPage = () => {
     {
       nivel: "Bronze",
       icon: "🥉",
-      color: "border-amber-600",
-      bgColor: "bg-amber-50",
       unlocked: certStatus.bronze_unlocked,
       aprovado: certStatus.bronze_aprovado,
       quiz_id: certStatus.bronze_quiz_id,
@@ -81,8 +79,6 @@ export const CertificacoesPage = () => {
     {
       nivel: "Prata",
       icon: "🥈",
-      color: "border-gray-400",
-      bgColor: "bg-gray-50",
       unlocked: certStatus.prata_unlocked,
       aprovado: certStatus.prata_aprovado,
       quiz_id: certStatus.prata_quiz_id,
@@ -91,8 +87,6 @@ export const CertificacoesPage = () => {
     {
       nivel: "Ouro",
       icon: "🥇",
-      color: "border-yellow-500",
-      bgColor: "bg-yellow-50",
       unlocked: certStatus.ouro_unlocked,
       aprovado: false,
       descricao: "Aprovação na Prata necessária"
@@ -110,9 +104,9 @@ export const CertificacoesPage = () => {
         </div>
 
         {!certStatus.trilhaCompleta && (
-          <Card className="border-blue-500 bg-blue-50">
+          <Card className="border-primary/40 bg-primary/10 backdrop-blur-md">
             <CardContent className="pt-6">
-              <p className="text-center text-blue-900">
+              <p className="text-center text-primary">
                 Complete todas as aulas da trilha para desbloquear as certificações
               </p>
             </CardContent>
@@ -123,29 +117,40 @@ export const CertificacoesPage = () => {
           {certificates.map((cert) => (
             <Card
               key={cert.nivel}
-              className={`${cert.color} ${!cert.unlocked && 'opacity-50'}`}
+              className={`bg-card/70 backdrop-blur-md border-border/50 ${
+                cert.aprovado ? 'border-success/60 shadow-lg shadow-success/20' : ''
+              } ${!cert.unlocked ? 'opacity-50' : ''}`}
             >
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 min-w-0">
                     <span className="text-4xl">{cert.icon}</span>
-                    {cert.nivel}
+                    <span className="truncate">{cert.nivel}</span>
                   </span>
-                  {cert.aprovado && <CheckCircle2 className="h-6 w-6 text-green-500" />}
-                  {!cert.unlocked && <Lock className="h-6 w-6 text-muted-foreground" />}
+                  {cert.aprovado && (
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-success/15 text-success">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </span>
+                  )}
+                  {!cert.unlocked && (
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      <Lock className="h-4 w-4" />
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">{cert.descricao}</p>
                 
                 {cert.aprovado && (
-                  <div className="p-4 bg-green-50 rounded border border-green-200">
-                    <p className="text-green-800 font-semibold text-center">✓ Certificado Obtido</p>
+                  <div className="p-4 bg-success/10 rounded-xl border border-success/30">
+                    <p className="text-success font-semibold text-center">✓ Certificado Obtido</p>
                   </div>
                 )}
 
                 {cert.unlocked && !cert.aprovado && cert.quiz_id && (
                   <Button
+                    variant="glow"
                     className="w-full"
                     onClick={() => navigate(`/quiz/${cert.quiz_id}?tipo=${cert.nivel.toLowerCase()}`)}
                   >

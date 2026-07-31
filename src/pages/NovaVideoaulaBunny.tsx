@@ -105,10 +105,10 @@ const NovaVideoaulaBunny: React.FC = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <Card className="bg-gray-800/50 border-gray-600">
+          <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
             <CardContent className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500 mr-3" />
-              <span className="text-white">Carregando dados...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+              <span className="text-foreground">Carregando dados...</span>
             </CardContent>
           </Card>
         </div>
@@ -120,13 +120,13 @@ const NovaVideoaulaBunny: React.FC = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <Card className="bg-gray-800/50 border-gray-600">
+          <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
             <CardContent className="py-8 text-center">
-              <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-              <p className="text-red-400 mb-4">{error || 'Sistema ou produto não encontrado'}</p>
+              <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+              <p className="text-destructive mb-4">{error || 'Sistema ou produto não encontrado'}</p>
               <Button
                 onClick={() => navigate('/admin')}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 Voltar ao Painel Admin
               </Button>
