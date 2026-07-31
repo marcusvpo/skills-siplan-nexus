@@ -181,8 +181,8 @@ const ProductPage = () => {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-white text-enhanced">Trilhas de Aprendizagem</h2>
-                    <p className="text-gray-400 mt-1">
+                    <h2 className="text-2xl font-bold text-foreground">Trilhas de Aprendizagem</h2>
+                    <p className="mt-1 text-muted-foreground">
                       Escolha uma trilha estruturada para aprender no seu ritmo
                     </p>
                   </div>
@@ -192,23 +192,27 @@ const ProductPage = () => {
                   {trilhas.map((trilha) => (
                     <Card 
                       key={trilha.id}
-                      className="gradient-card border-gray-600/50 hover:border-primary/50 transition-all cursor-pointer btn-hover-lift"
+                      interactive
+                      className="cursor-pointer"
                       onClick={() => navigate(`/system/${systemId}/product/${productId}/trilha/${trilha.id}`)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
-                          <BookOpen className="h-8 w-8 text-primary mb-2" />
-                          <Badge variant="secondary" className="bg-primary/20 text-primary">
+                          <span className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                            <BookOpen className="h-5 w-5" />
+                          </span>
+                          <Badge variant="secondary">
                             {trilha.trilha_aulas?.length || 0} aulas
                           </Badge>
                         </div>
-                        <CardTitle className="text-white text-enhanced">{trilha.nome}</CardTitle>
-                        <CardDescription className="text-gray-400">
+                        <CardTitle className="text-lg">{trilha.nome}</CardTitle>
+                        <CardDescription>
                           Trilha estruturada de aprendizagem
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <Button 
+                          variant="glow"
                           className="w-full"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -225,7 +229,7 @@ const ProductPage = () => {
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-white mb-4 text-enhanced">Videoaulas</h2>
+                <h2 className="mb-4 text-2xl font-bold text-foreground">Videoaulas</h2>
                 
                 <VideoAulasList 
                   videoAulas={videoAulas} 
