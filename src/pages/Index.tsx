@@ -1,149 +1,200 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Bot, GraduationCap, ShieldCheck, Sparkle, Video } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate, Link } from 'react-router-dom';
-import { AmbientBackdrop } from '@/components/layout/AmbientBackdrop';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
 
-const features = [
+const LOGO = '/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png';
+
+const capitulos = [
   {
-    icon: Video,
-    title: 'Videoaulas interativas',
-    description: 'Conteúdo em vídeo de alta qualidade sobre todos os sistemas e produtos Siplan.',
+    n: '01',
+    titulo: 'Escolha o sistema',
+    texto: 'Orion REG, Orion TN, Orion PRO, Siplan RC e LCW. Cada sistema com seus produtos catalogados.',
   },
   {
-    icon: Bot,
-    title: 'Assistente de IA',
-    description: 'Tire dúvidas em tempo real com a assistente contextualizada em cada videoaula.',
+    n: '02',
+    titulo: 'Assista a aula certa',
+    texto: 'Videoaulas curtas, gravadas pela equipe Siplan, direto ao ponto da rotina do balcão.',
   },
   {
-    icon: ShieldCheck,
-    title: 'Acesso seguro por token',
-    description: 'Ambiente controlado e exclusivo para os cartórios clientes da Siplan.',
+    n: '03',
+    titulo: 'Pergunte durante a aula',
+    texto: 'A assistente lê a transcrição da videoaula aberta e responde no contexto exato dela.',
+  },
+  {
+    n: '04',
+    titulo: 'Acompanhe o progresso',
+    texto: 'O cartório vê o que já foi concluído e o que falta para cada escrevente.',
   },
 ];
 
-const stats = [
-  { value: '8', label: 'Sistemas' },
-  { value: '34', label: 'Produtos' },
-  { value: '149', label: 'Videoaulas' },
+const numeros = [
+  { valor: '8', label: 'sistemas' },
+  { valor: '34', label: 'produtos' },
+  { valor: '149', label: 'videoaulas' },
+  { valor: '296', label: 'escreventes' },
 ];
 
 const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <AmbientBackdrop />
-
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <img
-          src="/lovable-uploads/938cc4b0-f47e-4bb5-9eb9-1848eaade9af.png"
-          alt="Siplan Skills"
-          className="h-9 w-auto object-contain"
-        />
-        <Link
-          to="/admin-login"
-          className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Área administrativa
-        </Link>
-      </header>
-
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
-        <motion.section
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="pt-16 text-center md:pt-24"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            <Sparkle className="h-3.5 w-3.5" />
-            Capacitação para cartórios
+    <div className="min-h-screen bg-background text-foreground">
+      {/* barra superior */}
+      <div className="border-b border-border/60">
+        <div className="mx-auto flex h-14 max-w-[1180px] items-center justify-between px-6">
+          <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+            Siplan · treinamento oficial
           </span>
+          <Link
+            to="/admin-login"
+            className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground underline decoration-border decoration-1 underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
+          >
+            Administração
+          </Link>
+        </div>
+      </div>
 
-          <h1 className="mt-8 text-5xl font-bold leading-[0.95] tracking-tight text-foreground md:text-7xl">
-            Domine os sistemas
-            <span className="block bg-gradient-to-r from-primary via-primary to-foreground bg-clip-text text-transparent">
-              Siplan de ponta a ponta
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Plataforma de treinamento oficial para os cartórios clientes Siplan: trilhas organizadas por
-            sistema e produto, videoaulas objetivas e uma assistente de IA sempre disponível.
-          </p>
-
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button variant="glow" size="lg" className="group px-8" onClick={() => navigate('/login')}>
-              Acessar plataforma
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </Button>
-            <Button variant="outline" size="lg" className="px-8" onClick={() => navigate('/admin-login')}>
-              Sou administrador
-            </Button>
-          </div>
-
-          <div className="mx-auto mt-16 grid max-w-2xl grid-cols-3 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-border/60 bg-card/50 px-4 py-5 backdrop-blur-md"
-              >
-                <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        <section className="mt-28 grid gap-6 md:grid-cols-3">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Card interactive className="h-full border-border/60 bg-card/60">
-                <CardContent className="p-7">
-                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </section>
-
-        <section className="mt-28">
-          <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 px-8 py-14 text-center backdrop-blur-xl">
-            <div
-              aria-hidden
-              className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/25 blur-[110px]"
+      {/* wordmark */}
+      <header className="border-b border-border/60">
+        <div className="mx-auto max-w-[1180px] px-6 py-14 md:py-20">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:gap-10">
+            <img
+              src={LOGO}
+              alt="Siplan"
+              className="h-16 w-auto shrink-0 object-contain md:h-24"
             />
-            <div className="relative">
-              <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
-                <GraduationCap className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">Pronto para começar?</h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Fale com seu representante Siplan para receber o usuário e o token de acesso do seu cartório.
-              </p>
-              <Button variant="glow" size="lg" className="mt-8 px-8" onClick={() => navigate('/login')}>
+            <h1 className="text-[15vw] font-black leading-[0.82] tracking-[-0.05em] md:text-[7.5rem]">
+              Siplan<span className="text-primary">.</span>
+              <br className="md:hidden" />
+              <span className="md:ml-4">Skills</span>
+            </h1>
+          </div>
+
+          <div className="mt-10 grid gap-10 border-t border-border/60 pt-8 md:grid-cols-[1.1fr_0.9fr] md:gap-16">
+            <p className="max-w-xl text-lg leading-snug text-foreground/85 md:text-2xl">
+              A escola dos sistemas Siplan. Feita para escrevente aprender de verdade —
+              sem manual de 200 páginas, sem esperar visita técnica.
+            </p>
+
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center md:justify-end">
+              <button
+                onClick={() => navigate('/login')}
+                className="group inline-flex items-center gap-3 bg-primary px-7 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90"
+              >
                 Entrar com meu token
-              </Button>
+                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </button>
+              <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                acesso exclusivo
+                <br />
+                de cartórios clientes
+              </span>
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </header>
 
-      <footer className="relative z-10 border-t border-border/50 py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Siplan Skills — Plataforma de treinamento Siplan.
+      {/* faixa de números */}
+      <section className="border-b border-border/60 bg-card/40">
+        <div className="mx-auto grid max-w-[1180px] grid-cols-2 divide-border/60 px-6 md:grid-cols-4 md:divide-x">
+          {numeros.map((item, i) => (
+            <div
+              key={item.label}
+              className={`py-7 ${i % 2 === 1 ? 'border-l border-border/60 pl-6 md:border-l-0 md:pl-0' : ''} ${
+                i < 2 ? 'border-b border-border/60 md:border-b-0' : ''
+              } md:px-8 md:first:pl-0`}
+            >
+              <p className="font-mono text-4xl font-bold tabular-nums text-foreground">{item.valor}</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                {item.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* como funciona — lista editorial */}
+      <section className="mx-auto max-w-[1180px] px-6 py-16 md:py-24">
+        <div className="mb-10 flex items-baseline justify-between border-b border-border/60 pb-4">
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Como o treinamento funciona</h2>
+          <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+            04 etapas
+          </span>
+        </div>
+
+        <ol className="divide-y divide-border/60">
+          {capitulos.map((c) => (
+            <li
+              key={c.n}
+              className="group grid gap-2 py-7 transition-colors hover:bg-card/50 md:grid-cols-[5rem_16rem_1fr] md:items-baseline md:gap-8 md:px-3"
+            >
+              <span className="font-mono text-sm text-primary md:text-base">{c.n}</span>
+              <h3 className="text-xl font-semibold tracking-tight md:text-2xl">{c.titulo}</h3>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+                {c.texto}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* citação / posicionamento */}
+      <section className="border-y border-border/60 bg-card/40">
+        <div className="mx-auto max-w-[1180px] px-6 py-16 md:py-20">
+          <blockquote className="max-w-4xl text-2xl font-medium leading-snug tracking-tight md:text-4xl">
+            <span className="text-primary">“</span>
+            Sistema bom é sistema que a equipe sabe usar.
+            <span className="text-muted-foreground">
+              {' '}
+              O Skills existe para que nenhum recurso da Siplan fique parado por falta de treino.
+            </span>
+            <span className="text-primary">”</span>
+          </blockquote>
+          <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+            Equipe de implantação · Siplan
+          </p>
+        </div>
+      </section>
+
+      {/* acesso */}
+      <section className="mx-auto max-w-[1180px] px-6 py-16 md:py-24">
+        <div className="grid gap-10 md:grid-cols-2 md:gap-20">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
+              Já tem seu token<span className="text-primary">?</span>
+            </h2>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">
+              O usuário e o token de acesso são entregues pelo representante Siplan responsável pelo seu
+              cartório. Um acesso por cartório, válido até a data de expiração combinada.
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-end gap-3 border-t border-border/60 pt-8 md:border-l md:border-t-0 md:pl-16 md:pt-0">
+            <button
+              onClick={() => navigate('/login')}
+              className="group flex w-full items-center justify-between border border-border/60 px-6 py-5 text-left transition-colors hover:border-primary hover:bg-primary/5"
+            >
+              <span className="text-base font-semibold">Sou do cartório</span>
+              <ArrowUpRight className="h-5 w-5 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </button>
+            <button
+              onClick={() => navigate('/admin-login')}
+              className="group flex w-full items-center justify-between border border-border/60 px-6 py-5 text-left transition-colors hover:border-primary hover:bg-primary/5"
+            >
+              <span className="text-base font-semibold text-muted-foreground group-hover:text-foreground">
+                Sou da equipe Siplan
+              </span>
+              <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-border/60">
+        <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-6 py-8 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} Siplan Skills</span>
+          <span>skills.siplan.com.br</span>
+        </div>
       </footer>
     </div>
   );
