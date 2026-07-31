@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 // Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,13 @@ import { QuizManager } from '@/components/admin/QuizManager';
 const AdminDashboard = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('cartorios');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'cartorios');
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'cartorios' ? {} : { tab }, { replace: true });
+  };
 
   // Verificações de segurança críticas
   React.useEffect(() => {
@@ -118,7 +124,7 @@ const AdminDashboard = () => {
         {/* Indicadores de estatísticas */}
         <DashboardStats />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 gap-1 lg:grid-cols-4">
             <TabsTrigger value="cartorios">
               <Building className="h-4 w-4 mr-2" />
