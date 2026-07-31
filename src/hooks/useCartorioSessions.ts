@@ -12,8 +12,11 @@ interface CartorioSession {
 
 export const useCartorioSessions = () => {
   const [sessions, setSessions] = useState<Map<string, CartorioSession>>(new Map());
+  // "tick" força re-render periódico para recalcular tempo relativo/online
+  const [, setTick] = useState(0);
 
   useEffect(() => {
+    let mounted = true;
     // Buscar sessões iniciais
     const fetchSessions = async () => {
       const { data, error } = await supabase
@@ -25,7 +28,7 @@ export const useCartorioSessions = () => {
         return;
       }
 
-      if (data) {
+      if (data && mounted) {
         const sessionMap = new Map(data.map(session => [session.cartorio_id, session]));
         setSessions(sessionMap);
         logger.info('✅ [Sessions] Loaded sessions:', { count: data.length });
@@ -34,10 +37,14 @@ export const useCartorioSessions = () => {
 
     fetchSessions();
 
-    // Limpar sessões inativas periodicamente
+    // Marcar sessões antigas como inativas + re-sincronizar (fallback ao realtime)
     const cleanupInterval = setInterval(async () => {
       await supabase.rpc('deactivate_old_sessions');
+      await fetchSessions();
     }, 30000); // A cada 30 segundos
+
+    // Atualizar o "farol" e o tempo relativo a cada 15s
+    const tickInterval = setInterval(() => setTick(t => t + 1), 15000);
 
     // Inscrever para atualizações em tempo real
     const channel = supabase
@@ -68,7 +75,9 @@ export const useCartorioSessions = () => {
       .subscribe();
 
     return () => {
+      mounted = false;
       clearInterval(cleanupInterval);
+      clearInterval(tickInterval);
       supabase.removeChannel(channel);
     };
   }, []);
