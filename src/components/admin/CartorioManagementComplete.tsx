@@ -31,7 +31,6 @@ export const CartorioManagementComplete: React.FC = () => {
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     cidade: '',
@@ -90,83 +89,6 @@ export const CartorioManagementComplete: React.FC = () => {
       data_expiracao: ''
     });
     setEditModalOpen(true);
-  };
-
-  const handleCreateCartorio = async () => {
-    if (!formData.nome.trim()) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Digite um nome para o cartório",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.data_expiracao) {
-      toast({
-        title: "Data de expiração obrigatória",
-        description: "Selecione uma data de expiração",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreating(true);
-
-    try {
-      // Criar cartório
-      const { data: cartorio, error: cartorioError } = await supabase
-        .from('cartorios')
-        .insert({
-          nome: formData.nome.trim(),
-          cidade: formData.cidade?.trim() || null,
-          estado: formData.estado?.trim() || 'SP',
-          observacoes: formData.observacoes?.trim() || null,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (cartorioError) throw cartorioError;
-
-      // Gerar token
-      const timestamp = Date.now().toString();
-      const randomNum = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-      const login_token = `CART${timestamp.slice(-8)}${randomNum}`;
-
-      // Criar acesso
-      const { error: acessoError } = await supabase
-        .from('acessos_cartorio')
-        .insert({
-          login_token,
-          cartorio_id: cartorio.id,
-          data_expiracao: formData.data_expiracao,
-          ativo: true
-        });
-
-      if (acessoError) {
-        // Limpar cartório criado
-        await supabase.from('cartorios').delete().eq('id', cartorio.id);
-        throw acessoError;
-      }
-
-      toast({
-        title: "Cartório criado com sucesso!",
-        description: `Token gerado: ${login_token}`,
-      });
-
-      setFormData({ nome: '', cidade: '', estado: 'SP', observacoes: '', data_expiracao: '' });
-      setCreateModalOpen(false);
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar cartório",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
   };
 
   const handleUpdateCartorio = async () => {
