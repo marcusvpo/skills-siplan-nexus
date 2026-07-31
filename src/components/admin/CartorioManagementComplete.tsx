@@ -10,6 +10,7 @@ import { useCartoriosWithAcessos } from '@/hooks/useSupabaseDataRefactored';
 import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioPermissionsManager } from './CartorioPermissionsManager';
 import { EditTokenModal } from './EditTokenModal';
+import { CreateCartorioWizard } from './CreateCartorioWizard';
 import { CartorioStatusIndicator } from './CartorioStatusIndicator';
 import { useCartorioSessions } from '@/hooks/useCartorioSessions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,7 +31,6 @@ export const CartorioManagementComplete: React.FC = () => {
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     cidade: '',
@@ -89,83 +89,6 @@ export const CartorioManagementComplete: React.FC = () => {
       data_expiracao: ''
     });
     setEditModalOpen(true);
-  };
-
-  const handleCreateCartorio = async () => {
-    if (!formData.nome.trim()) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Digite um nome para o cartório",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.data_expiracao) {
-      toast({
-        title: "Data de expiração obrigatória",
-        description: "Selecione uma data de expiração",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreating(true);
-
-    try {
-      // Criar cartório
-      const { data: cartorio, error: cartorioError } = await supabase
-        .from('cartorios')
-        .insert({
-          nome: formData.nome.trim(),
-          cidade: formData.cidade?.trim() || null,
-          estado: formData.estado?.trim() || 'SP',
-          observacoes: formData.observacoes?.trim() || null,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (cartorioError) throw cartorioError;
-
-      // Gerar token
-      const timestamp = Date.now().toString();
-      const randomNum = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-      const login_token = `CART${timestamp.slice(-8)}${randomNum}`;
-
-      // Criar acesso
-      const { error: acessoError } = await supabase
-        .from('acessos_cartorio')
-        .insert({
-          login_token,
-          cartorio_id: cartorio.id,
-          data_expiracao: formData.data_expiracao,
-          ativo: true
-        });
-
-      if (acessoError) {
-        // Limpar cartório criado
-        await supabase.from('cartorios').delete().eq('id', cartorio.id);
-        throw acessoError;
-      }
-
-      toast({
-        title: "Cartório criado com sucesso!",
-        description: `Token gerado: ${login_token}`,
-      });
-
-      setFormData({ nome: '', cidade: '', estado: 'SP', observacoes: '', data_expiracao: '' });
-      setCreateModalOpen(false);
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar cartório",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
   };
 
   const handleUpdateCartorio = async () => {
@@ -603,69 +526,11 @@ export const CartorioManagementComplete: React.FC = () => {
         </Card>
       </div>
 
-      {/* Modal de Criação */}
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="bg-gray-800 border-gray-600 text-white">
-          <DialogHeader>
-            <DialogTitle>Criar Novo Cartório</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-gray-300">Nome do Cartório *</Label>
-              <Input
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-300">Cidade</Label>
-                <Input
-                  value={formData.cidade}
-                  onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-gray-300">Estado</Label>
-                <Input
-                  value={formData.estado}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
-                  maxLength={2}
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-gray-300">Data de Expiração *</Label>
-              <Input
-                type="date"
-                value={formData.data_expiracao}
-                onChange={(e) => setFormData({ ...formData, data_expiracao: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div>
-              <Label className="text-gray-300">Observações</Label>
-              <Input
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setCreateModalOpen(false)} className="border-gray-600">
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateCartorio} disabled={isCreating} className="bg-green-600 hover:bg-green-700">
-                {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                Criar Cartório
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateCartorioWizard
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={() => refetch()}
+      />
 
       {/* Modal de Edição */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
