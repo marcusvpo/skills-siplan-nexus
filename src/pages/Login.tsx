@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, KeyRound, Loader2, Settings, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AmbientBackdrop } from '@/components/layout/AmbientBackdrop';
 
 interface LoginFormData {
   username: string;
@@ -89,155 +91,122 @@ const Login: React.FC = () => {
     }
   };
 
+  const StatusScreen = ({ label }: { label: string }) => (
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <AmbientBackdrop />
+      <div className="relative z-10 flex flex-col items-center gap-4 rounded-2xl border border-border/60 bg-card/70 px-10 py-8 backdrop-blur-xl">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm font-medium text-foreground">{label}</p>
+      </div>
+    </div>
+  );
+
   // Show loading screen while auth is being determined
   if (isAuthGlobalLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 page-transition">
-        <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-white text-enhanced">Autenticando...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <StatusScreen label="Autenticando..." />;
   }
 
   // Don't show login form if already authenticated (redirect will happen via useEffect)
   if (isAuthenticated && user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 page-transition">
-        <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-white text-enhanced">Redirecionando...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <StatusScreen label="Redirecionando..." />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 page-transition">
-      {/* Ícone Admin no canto superior direito */}
-      <Link 
-        to="/admin-login"
-        className="fixed top-4 right-4 z-10 flex items-center space-x-2 bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm border border-gray-600 rounded-lg px-3 py-2 transition-all duration-300 group hover:border-red-500/50"
-      >
-        <div className="relative">
-          <div className="w-6 h-6 flex items-center justify-center">
-            <svg 
-              className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+    <AuthShell
+      eyebrow="Acesso do cartório"
+      title="Login do Cartório"
+      subtitle="Use o usuário e o token de acesso fornecidos pela equipe Siplan."
+      topRight={
+        <Link
+          to="/admin-login"
+          className="group flex items-center gap-2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md transition-colors hover:border-primary/50"
+        >
+          <Settings className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+          <span className="text-xs font-medium text-muted-foreground transition-colors group-hover:text-primary">
+            Admin
+          </span>
+        </Link>
+      }
+    >
+      <div className="space-y-5">
+        {error && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive-foreground">
+            {error}
           </div>
-        </div>
-        <span className="text-xs text-gray-400 group-hover:text-red-400 transition-colors font-medium">Admin</span>
-      </Link>
+        )}
 
-      <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-6">
-            <img 
-              src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
-              alt="Siplan Logo" 
-              className="h-16 w-auto object-contain"
-            />
+        {loginSuccess ? (
+          <div className="space-y-4 text-center">
+            <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-foreground">
+              Login efetuado com sucesso! Redirecionando para o dashboard...
+            </div>
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold text-white text-enhanced">Login do Cartório</CardTitle>
-          <p className="text-gray-300 mt-3 text-lg">
-            Acesso exclusivo para cartórios
-          </p>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {error && (
-            <div className="bg-red-900/20 border border-red-500/50 rounded-md p-3 text-red-200 text-sm">
-              {error}
-            </div>
-          )}
-          
-          {loginSuccess ? (
-            <div className="text-center space-y-4">
-              <div className="bg-green-900/20 border border-green-500/50 rounded-md p-4 text-green-200 text-sm">
-                Login efetuado com sucesso! Redirecionando para o dashboard...
-              </div>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Usuário
+              </Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  id="username"
                   type="text"
                   name="username"
-                  placeholder="Nome de usuário"
+                  placeholder="nome.do.cartorio"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
+                  className="h-11 border-border/60 bg-background/50 pl-10 backdrop-blur-sm transition-all placeholder:text-muted-foreground focus-visible:border-primary/60"
                   disabled={isFormSubmitting}
                   required
                 />
               </div>
-              
-              <div className="space-y-2">
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    name="login_token"
-                    placeholder="Token de Login"
-                    value={formData.login_token}
-                    onChange={handleInputChange}
-                    className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                    disabled={isFormSubmitting}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isFormSubmitting}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="login_token" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Token de acesso
+              </Label>
+              <div className="relative">
+                <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login_token"
+                  type={showPassword ? 'text' : 'password'}
+                  name="login_token"
+                  placeholder="CART00000000000000"
+                  value={formData.login_token}
+                  onChange={handleInputChange}
+                  className="h-11 border-border/60 bg-background/50 pl-10 pr-11 font-mono text-sm backdrop-blur-sm transition-all placeholder:font-sans placeholder:text-muted-foreground focus-visible:border-primary/60"
+                  disabled={isFormSubmitting}
+                  required
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Ocultar token' : 'Mostrar token'}
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isFormSubmitting}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
-                disabled={isFormSubmitting}
-              >
-                {isFormSubmitting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Fazendo login...
-                  </div>
-                ) : (
-                  'Fazer Login'
-                )}
-              </Button>
-            </form>
-          )}
-          
-          <div className="space-y-4 pt-4 border-t border-gray-700/50">
-            <Link 
-              to="/"
-              className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar ao Início
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+
+            <Button type="submit" variant="glow" size="lg" className="w-full" disabled={isFormSubmitting}>
+              {isFormSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Fazendo login...
+                </>
+              ) : (
+                'Entrar na plataforma'
+              )}
+            </Button>
+          </form>
+        )}
+      </div>
+    </AuthShell>
   );
 };
 
