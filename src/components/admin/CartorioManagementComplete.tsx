@@ -306,8 +306,7 @@ export const CartorioManagementComplete: React.FC = () => {
 
                         <div className="flex items-center gap-3">
                           <CartorioStatusIndicator
-                            isActive={cartorio.is_active}
-                            lastActivity={cartorio.acessos_cartorio?.[0]?.data_criacao || null}
+                            lastActivity={sessions.get(cartorio.id)?.last_activity || null}
                           />
                           {cartorio.acessos_cartorio?.[0]?.data_expiracao && (
                             <span className="hidden text-xs text-gray-500 sm:inline-flex">
