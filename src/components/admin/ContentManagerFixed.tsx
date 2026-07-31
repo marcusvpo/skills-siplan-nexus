@@ -203,6 +203,16 @@ export const ContentManagerFixed: React.FC = () => {
     );
   }
 
+  // Fallback: se o item salvo não existe mais, volta ao nível anterior
+  if (viewMode === 'videoaulas' && !selectedProduto) {
+    setNav(prev => ({ ...prev, viewMode: selectedSistema ? 'produtos' : 'sistemas', produtoId: null }));
+    return null;
+  }
+  if (viewMode === 'produtos' && !selectedSistema) {
+    setNav({ viewMode: 'sistemas', sistemaId: null, produtoId: null });
+    return null;
+  }
+
   // VIEW: SISTEMAS
   if (viewMode === 'sistemas') {
     return (
