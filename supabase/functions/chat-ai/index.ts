@@ -25,7 +25,7 @@ type AssistantConfig = {
 const ORION_PRO: AssistantConfig = {
   name: 'Orion PRO',
   promptId: Deno.env.get('PROMPT_ID_ORION_PRO') ?? 'pmpt_6a2c55e4969c8194ae9f66de2eefeca00e0cef6be4891706',
-  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_PRO') ?? '1',
+  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_PRO') ?? '2',
   vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_PRO') ?? 'vs_6a2c550854f88191af5edf3b43984b37',
   allowedDomains: [
     'cenprot.com.br',
@@ -42,7 +42,7 @@ const ORION_PRO: AssistantConfig = {
 const ORION_TN: AssistantConfig = {
   name: 'Orion TN',
   promptId: Deno.env.get('PROMPT_ID_ORION_TN') ?? 'pmpt_6a2abdbe2da08197bfb29aaa958492800bdd6be9f0df3ecf',
-  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_TN') ?? '7',
+  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_TN') ?? '8',
   vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_TN') ?? 'vs_6a2ab8c56ae881918fc9c2a8fb24748d',
   allowedDomains: [
     'e-notariado.org.br',
