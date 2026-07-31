@@ -340,31 +340,31 @@ export const CartorioManagementComplete: React.FC = () => {
                         onClick={() => setExpandedCartorioId(isExpanded ? null : cartorio.id)}
                         className="flex w-full items-center justify-between gap-4"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
                           <span className="text-xs font-mono text-gray-500">#{index + 1}</span>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{cartorio.nome}</p>
+                            <p className="truncate text-left text-sm font-semibold text-white">{cartorio.nome}</p>
                             {cartorio.cidade && cartorio.estado && (
-                              <p className="text-xs text-gray-400 truncate">
+                              <p className="truncate text-left text-xs text-gray-400">
                                 {cartorio.cidade} - {cartorio.estado}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex shrink-0 items-center gap-3">
                           <CartorioStatusIndicator
                             lastActivity={sessions.get(cartorio.id)?.last_activity || null}
                           />
                           {cartorio.acessos_cartorio?.[0]?.data_expiracao && (
-                            <span className="hidden text-xs text-gray-500 sm:inline-flex">
+                            <span className="hidden whitespace-nowrap text-xs text-gray-500 xl:inline-flex">
                               Expira em {new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}
                             </span>
                           )}
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                            <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                            <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
                           )}
                         </div>
                       </button>
