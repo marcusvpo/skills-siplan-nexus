@@ -98,10 +98,10 @@ const SystemPage = () => {
 
           <div className="mb-8">
             <div className="flex items-center mb-6">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white text-enhanced">
+              <span className="mr-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <BookOpen className="h-5 w-5" />
+              </span>
+              <h2 className="text-2xl font-bold text-foreground">
                 Produtos
               </h2>
             </div>
