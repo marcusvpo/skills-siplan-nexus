@@ -279,6 +279,62 @@ export const TrilhaManager = () => {
                   </div>
                 </div>
               )}
+              {formData.produto_id && formData.aulas.length > 0 && (
+                <div>
+                  <Label>Sequência da Trilha</Label>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Defina a ordem em que as aulas aparecerão para o usuário final.
+                  </p>
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-card/60 p-3 backdrop-blur-md">
+                    {formData.aulas.map((aula, index) => (
+                      <div
+                        key={aula.video_aula_id}
+                        className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/60 px-3 py-2"
+                      >
+                        <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm">{aulaTitulo(aula.video_aula_id)}</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={index === 0}
+                            onClick={() => moveAula(index, -1)}
+                            aria-label="Mover para cima"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={index === formData.aulas.length - 1}
+                            onClick={() => moveAula(index, 1)}
+                            aria-label="Mover para baixo"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => toggleAula(aula.video_aula_id)}
+                            aria-label="Remover da trilha"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Button onClick={handleSubmit} className="w-full">
                 {editingTrilha ? 'Atualizar' : 'Criar'} Trilha
               </Button>
