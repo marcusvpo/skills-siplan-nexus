@@ -3,8 +3,9 @@ import { Circle } from "lucide-react";
 
 interface CartorioStatusIndicatorProps {
   lastActivity: string | null;
-  isActive: boolean;
 }
+
+const ONLINE_WINDOW_MS = 2 * 60 * 1000; // 2 minutos (heartbeat = 60s)
 
 const formatTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -13,29 +14,31 @@ const formatTimeAgo = (date: Date): string => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMinutes < 1) return "agora";
-  if (diffInMinutes < 60) return `${diffInMinutes} ${diffInMinutes === 1 ? "min" : "min"}`;
-  if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? "h" : "h"}`;
+  if (diffInMinutes < 1) return "há segundos";
+  if (diffInMinutes < 60) return `há ${diffInMinutes} min`;
+  if (diffInHours < 24) return `há ${diffInHours} h`;
   return `há ${diffInDays} ${diffInDays === 1 ? "dia" : "dias"}`;
 };
 
-export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = ({ lastActivity, isActive }) => {
+export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = ({ lastActivity }) => {
   if (!lastActivity) {
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />
-        <span>Sem acesso</span>
+        <Circle className="h-3 w-3 fill-muted-foreground/60 text-muted-foreground/60" />
+        <span>Nunca acessou</span>
       </div>
     );
   }
 
   const lastActivityDate = new Date(lastActivity);
-  const daysSinceLastActivity = Math.floor((Date.now() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
+  const elapsedMs = Date.now() - lastActivityDate.getTime();
+  const daysSinceLastActivity = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+  const isOnline = elapsedMs >= 0 && elapsedMs < ONLINE_WINDOW_MS;
 
   // Online (verde)
-  if (isActive) {
+  if (isOnline) {
     return (
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2 text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
         <Circle className="h-3 w-3 fill-green-500 text-green-500 animate-pulse" />
         <span className="text-green-600 dark:text-green-400 font-medium">Online</span>
       </div>
@@ -45,7 +48,7 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
   // Offline recente (amarelo) - menos de 5 dias
   if (daysSinceLastActivity < 5) {
     return (
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2 text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
         <Circle className="h-3 w-3 fill-yellow-500 text-yellow-500" />
         <span className="text-yellow-600 dark:text-yellow-400">{formatTimeAgo(lastActivityDate)}</span>
       </div>
@@ -54,7 +57,7 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
 
   // Offline há muito tempo (vermelho) - 5+ dias
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
       <Circle className="h-3 w-3 fill-red-500 text-red-500" />
       <span className="text-red-600 dark:text-red-400">{formatTimeAgo(lastActivityDate)}</span>
     </div>
