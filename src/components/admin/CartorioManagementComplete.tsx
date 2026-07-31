@@ -10,12 +10,14 @@ import { CartorioUserManager } from './CartorioUserManager';
 import { CartorioPermissionsManager } from './CartorioPermissionsManager';
 import { EditTokenModal } from './EditTokenModal';
 import { CartorioStatusIndicator } from './CartorioStatusIndicator';
+import { useCartorioSessions } from '@/hooks/useCartorioSessions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export const CartorioManagementComplete: React.FC = () => {
   const { data: cartorios, isLoading, refetch } = useCartoriosWithAcessos();
+  const sessions = useCartorioSessions();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCartorioId, setExpandedCartorioId] = useState<string | null>(null);
   const [selectedCartorio, setSelectedCartorio] = useState<any>(null);
