@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { CheckCircle2, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import { useProgressoProduto } from '@/hooks/useProgressoProduto';
 
 interface ProductProgressReativoProps {
@@ -26,23 +27,16 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
 
   if (isLoading || !produtoId) {
     return (
-      <Card className="glass-effect border-gray-600/50 mb-6">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <BookOpen className="h-5 w-5 text-blue-400 mr-2" />
-              <h3 className="text-lg font-semibold text-white">{produtoNome}</h3>
-            </div>
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-600 rounded w-24 text-sm">Carregando...</div>
-            </div>
+      <Card className="mb-6">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-40 animate-pulse rounded bg-muted/50" />
+            <div className="h-4 w-20 animate-pulse rounded bg-muted/50" />
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div className="bg-gray-600 h-2 rounded-full animate-pulse" style={{ width: '30%' }} />
-          </div>
-          <div className="mt-2 text-xs text-gray-400">
-            {!produtoId ? 'Aguardando produto...' : 'Aguardando autenticação completa...'}
-          </div>
+          <div className="h-2 w-full animate-pulse rounded-full bg-muted/40" />
+          <p className="text-xs text-muted-foreground">
+            {!produtoId ? 'Aguardando produto...' : 'Carregando seu progresso...'}
+          </p>
         </CardContent>
       </Card>
     );
@@ -50,62 +44,65 @@ export const ProductProgressReativo: React.FC<ProductProgressReativoProps> = ({
 
   if (error) {
     return (
-      <Card className="glass-effect border-red-500/50 mb-6">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <BookOpen className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-semibold text-white">{produtoNome}</h3>
-            </div>
-            <span className="text-red-400 text-sm">Erro</span>
+      <Card className="mb-6 border-destructive/30">
+        <CardContent className="flex items-start gap-3 p-6">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div>
+            <h3 className="font-semibold text-foreground">Não foi possível carregar o progresso</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
           </div>
-          <p className="text-red-400 text-sm">{error}</p>
         </CardContent>
       </Card>
     );
   }
 
+  const concluido = percentual === 100;
+
   return (
-    <Card className="glass-effect border-gray-600/50 hover:border-blue-500/50 transition-all duration-300 mb-6">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <BookOpen className="h-5 w-5 text-blue-400 mr-2" />
-            <h3 className="text-lg font-semibold text-white text-enhanced">{produtoNome}</h3>
+    <Card className="relative mb-6 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-primary/15 blur-[100px]"
+      />
+      <CardContent className="relative space-y-4 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span
+              className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                concluido ? 'bg-primary text-primary-foreground' : 'bg-primary/15 text-primary'
+              }`}
+            >
+              {concluido ? <CheckCircle2 className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
+            </span>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu progresso</p>
+              <h3 className="text-lg font-semibold text-foreground">{produtoNome}</h3>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {percentual === 100 ? (
-              <CheckCircle className="h-5 w-5 text-green-400" />
-            ) : (
-              <Clock className="h-5 w-5 text-yellow-400" />
-            )}
-            <span className="text-white font-medium">
+          <div className="text-right">
+            <p className="text-3xl font-bold leading-none text-foreground">{percentual}%</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {aulasCompletas}/{totalAulas} aulas
-            </span>
+            </p>
           </div>
         </div>
 
-        <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-          <div
-            className={`h-3 rounded-full transition-all duration-500 ease-out ${
-              percentual === 100
-                ? 'bg-gradient-to-r from-green-500 to-green-600'
-                : 'bg-gradient-to-r from-blue-500 to-blue-600'
-            }`}
-            style={{ width: `${percentual}%` }}
-          />
-        </div>
+        <Progress value={percentual} className="h-2" />
 
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-400">
-            {percentual === 100 ? 'Produto concluído' : `${totalAulas - aulasCompletas} aulas restantes`}
-          </span>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-white">
-              {percentual}%
-            </span>
-          </div>
-        </div>
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          {concluido ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Produto concluído — parabéns!
+            </>
+          ) : (
+            <>
+              <Clock className="h-4 w-4" />
+              {totalAulas - aulasCompletas} aula{totalAulas - aulasCompletas !== 1 ? 's' : ''} restante
+              {totalAulas - aulasCompletas !== 1 ? 's' : ''}
+            </>
+          )}
+        </p>
       </CardContent>
     </Card>
   );

@@ -1,7 +1,8 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 interface SystemHeaderProps {
   system: {
@@ -13,28 +14,35 @@ interface SystemHeaderProps {
 
 const SystemHeader: React.FC<SystemHeaderProps> = ({ system }) => {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-8 border border-gray-600">
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
-          <span className="text-2xl font-bold text-white">
-            {system.nome.charAt(0).toUpperCase()}
-          </span>
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/70 p-8 backdrop-blur-md"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/20 blur-[110px]"
+      />
+      <div className="relative flex flex-wrap items-center gap-5">
+        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+          <span className="text-2xl font-bold">{system.nome.charAt(0).toUpperCase()}</span>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-white">{system.nome}</h1>
-          <Badge variant="secondary" className="bg-blue-600/20 text-blue-300 border-0 mt-2">
-            <BookOpen className="h-3 w-3 mr-1" />
+        <div className="min-w-0">
+          <Badge variant="secondary" className="mb-2">
+            <Layers className="mr-1 h-3 w-3" />
             Categoria
           </Badge>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{system.nome}</h1>
         </div>
       </div>
-      
+
       {system.descricao && (
-        <p className="text-gray-300 text-lg leading-relaxed">
+        <p className="relative mt-6 max-w-3xl border-l-2 border-primary/50 pl-4 text-base leading-relaxed text-muted-foreground">
           {system.descricao}
         </p>
       )}
-    </div>
+    </motion.section>
   );
 };
 
