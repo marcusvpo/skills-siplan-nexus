@@ -69,10 +69,10 @@ const AdminDashboard = () => {
   if (!isAuthenticated || (!isAdmin && user?.type !== 'admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center page-transition">
-        <Card className="gradient-card shadow-elevated border-gray-600/50">
+        <Card>
           <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-white text-enhanced">Verificando permissões...</p>
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+            <p className="text-foreground">Verificando permissões...</p>
           </CardContent>
         </Card>
       </div>
@@ -80,9 +80,9 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen text-white page-transition">
+    <div className="page-transition min-h-screen text-foreground">
       {/* Header */}
-      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -92,35 +92,26 @@ const AdminDashboard = () => {
                 className="h-8 w-auto object-contain"
               />
               <div>
-                <h1 className="text-2xl font-bold text-enhanced">Siplan Skills - Admin</h1>
-                <p className="text-sm text-gray-400">
-                  Painel de Administração
+                <h1 className="text-xl font-bold tracking-tight">Siplan Skills · Admin</h1>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Painel de administração
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <Card className="gradient-card shadow-modern border-gray-600/50">
-                <CardContent className="p-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-white text-enhanced">{user?.name || 'Administrador'}</p>
-                    <p className="text-xs text-gray-400">{user?.email}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift shadow-modern"
-              >
+            <div className="flex items-center gap-3">
+              <div className="hidden rounded-xl border border-border/50 bg-card/60 px-3 py-2 text-right backdrop-blur-md sm:block">
+                <p className="text-sm font-medium text-foreground">{user?.name || 'Administrador'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+              <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
@@ -128,40 +119,24 @@ const AdminDashboard = () => {
         <DashboardStats />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <Card className="gradient-card shadow-modern border-gray-600/50">
-            <CardContent className="p-1">
-              <TabsList className="grid w-full grid-cols-4 glass-effect border-gray-700/50 p-1">
-                <TabsTrigger 
-                  value="cartorios"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
-                >
-                  <Building className="h-4 w-4 mr-2" />
-                  Gerenciamento de Cartórios
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="conteudo"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Gerenciamento de Conteúdo
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="personalizacao"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Personalização
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="configuracoes"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white transition-all duration-300 btn-hover-lift hover:bg-gray-700/50"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Progresso dos Usuários
-                </TabsTrigger>
-              </TabsList>
-            </CardContent>
-          </Card>
+          <TabsList className="grid w-full grid-cols-2 gap-1 lg:grid-cols-4">
+            <TabsTrigger value="cartorios">
+              <Building className="h-4 w-4 mr-2" />
+              Cartórios
+            </TabsTrigger>
+            <TabsTrigger value="conteudo">
+              <FileText className="h-4 w-4 mr-2" />
+              Conteúdo
+            </TabsTrigger>
+            <TabsTrigger value="personalizacao">
+              <FileText className="h-4 w-4 mr-2" />
+              Personalização
+            </TabsTrigger>
+            <TabsTrigger value="configuracoes">
+              <Users className="h-4 w-4 mr-2" />
+              Progresso
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="cartorios" className="space-y-6">
             <CartorioManagementComplete />
@@ -173,19 +148,19 @@ const AdminDashboard = () => {
 
           <TabsContent value="personalizacao" className="space-y-6">
             <Tabs defaultValue="trilhas" className="space-y-4">
-              <TabsList className="glass-effect border-gray-700/50">
+              <TabsList>
                 <TabsTrigger value="trilhas">Gestão de Trilhas</TabsTrigger>
                 <TabsTrigger value="quizzes">Gestão de Quizzes</TabsTrigger>
               </TabsList>
               <TabsContent value="trilhas">
-                <Card className="gradient-card shadow-modern border-gray-600/50">
+                <Card>
                   <CardContent className="p-6">
                     <TrilhaManager />
                   </CardContent>
                 </Card>
               </TabsContent>
               <TabsContent value="quizzes">
-                <Card className="gradient-card shadow-modern border-gray-600/50">
+                <Card>
                   <CardContent className="p-6">
                     <QuizManager />
                   </CardContent>
@@ -195,12 +170,12 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="configuracoes" className="space-y-6">
-            <Card className="gradient-card shadow-modern border-gray-600/50">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white">Progresso dos Usuários</CardTitle>
+                <CardTitle className="text-xl">Progresso dos Usuários</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   Visualize o progresso de aprendizagem dos usuários dos cartórios.
                 </p>
               </CardContent>
