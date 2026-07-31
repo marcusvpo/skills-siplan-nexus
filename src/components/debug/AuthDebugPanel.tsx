@@ -215,16 +215,18 @@ const AuthDebugPanel: React.FC = () => { // AGORA DEFINIDO SEM 'export' AQUI
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <User className="h-5 w-5" />
+          </span>
           Debug de Autenticação e Progresso
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Status de Autenticação */}
-        <div className="p-4 bg-gray-50 rounded-lg">
+        <div className="p-4 rounded-xl border border-border/50 bg-muted/40">
           <h3 className="font-semibold mb-2">Status de Autenticação</h3>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -245,7 +247,7 @@ const AuthDebugPanel: React.FC = () => { // AGORA DEFINIDO SEM 'export' AQUI
 
         {/* Testes de Banco */}
         {testResults && (
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="p-4 rounded-xl border border-border/50 bg-accent/40">
             <h3 className="font-semibold mb-2 flex items-center gap-2">
               <Database className="h-4 w-4" />
               Resultados do Teste de Banco
@@ -264,6 +266,7 @@ const AuthDebugPanel: React.FC = () => { // AGORA DEFINIDO SEM 'export' AQUI
           <Button 
             onClick={handleTestCartorioLogin}
             disabled={isTestingLogin}
+            variant="glow"
             className="w-full"
           >
             {isTestingLogin ? "Fazendo Login..." : "Testar Login de Demonstração"}

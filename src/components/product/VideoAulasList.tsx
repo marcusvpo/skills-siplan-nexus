@@ -198,7 +198,9 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                 <Card
                   interactive
                   className={`group flex h-full cursor-pointer flex-col ${
-                    isCompleted ? 'border-primary/40' : ''
+                    isCompleted
+                      ? 'border-success/60 shadow-lg shadow-success/20 hover:border-success'
+                      : ''
                   }`}
                   onClick={goToLesson}
                 >
@@ -207,7 +209,7 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                       <span
                         className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
                           isCompleted
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-success/20 text-success'
                             : 'bg-primary/15 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
                         }`}
                       >
@@ -222,21 +224,27 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                       </span>
                     </div>
 
-                    <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+                    <h3
+                      className={`line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors ${
+                        isCompleted ? 'group-hover:text-success' : 'group-hover:text-primary'
+                      }`}
+                    >
                       {aula.titulo}
                     </h3>
 
                     {isCompleted && (
-                      <Badge variant="secondary" className="w-fit">
+                      <span className="flex w-fit items-center rounded-full border border-success/40 bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                         <CheckCircle2 className="mr-1 h-3 w-3" />
                         Concluída
-                      </Badge>
+                      </span>
                     )}
 
                     <Button
                       size="sm"
                       variant={isCompleted ? 'outline' : 'glow'}
-                      className="mt-auto w-full text-xs"
+                      className={`mt-auto w-full text-xs ${
+                        isCompleted ? 'border-success/50 text-success hover:bg-success/10' : ''
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
                         goToLesson();

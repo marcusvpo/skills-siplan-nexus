@@ -150,10 +150,10 @@ export const CartorioManagementComplete: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-800/50 border-gray-600">
+      <Card className="bg-card/70 backdrop-blur-md border-border/50">
         <CardContent className="flex items-center justify-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-red-400 mr-3" />
-          <span className="text-white">Carregando cartórios...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+          <span className="text-foreground">Carregando cartórios...</span>
         </CardContent>
       </Card>
     );
@@ -231,16 +231,18 @@ export const CartorioManagementComplete: React.FC = () => {
   return (
     <>
       <div className="space-y-6">
-        <Card className="bg-gray-800/50 border-gray-600">
+        <Card className="bg-card/70 backdrop-blur-md border-border/50">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white flex items-center">
-                <Building className="h-5 w-5 mr-2" />
+              <CardTitle className="text-foreground flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Building className="h-5 w-5" />
+                </span>
                 Cartórios Cadastrados ({cartorios?.length || 0})
               </CardTitle>
               <Button
                 onClick={() => setCreateModalOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
+                variant="glow"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Cartório
@@ -248,22 +250,22 @@ export const CartorioManagementComplete: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-5 space-y-3 rounded-xl border border-gray-700/70 bg-gray-900/40 p-4">
+            <div className="mb-5 space-y-3 rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por nome, cidade, usuário ou token (ignora acentos)..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
+                    className="pl-9 bg-card/70 border-border/50 text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-auto">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[190px]">
-                      <Filter className="mr-2 h-4 w-4 text-gray-400" />
+                    <SelectTrigger className="w-full border-border/50 bg-card/70 text-foreground sm:w-[190px]">
+                      <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -276,8 +278,8 @@ export const CartorioManagementComplete: React.FC = () => {
                   </Select>
 
                   <Select value={tokenFilter} onValueChange={setTokenFilter}>
-                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[180px]">
-                      <Key className="mr-2 h-4 w-4 text-gray-400" />
+                    <SelectTrigger className="w-full border-border/50 bg-card/70 text-foreground sm:w-[180px]">
+                      <Key className="mr-2 h-4 w-4 text-muted-foreground" />
                       <SelectValue placeholder="Token" />
                     </SelectTrigger>
                     <SelectContent>
@@ -289,8 +291,8 @@ export const CartorioManagementComplete: React.FC = () => {
                   </Select>
 
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[210px]">
-                      <ArrowUpDown className="mr-2 h-4 w-4 text-gray-400" />
+                    <SelectTrigger className="w-full border-border/50 bg-card/70 text-foreground sm:w-[210px]">
+                      <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground" />
                       <SelectValue placeholder="Ordenar" />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,7 +307,7 @@ export const CartorioManagementComplete: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <Badge variant="outline" className="border-gray-700 text-gray-300">
+                <Badge variant="outline" className="border-border/50 text-muted-foreground">
                   {filteredCartorios.length} de {cartorios?.length || 0} cartório
                   {(cartorios?.length || 0) === 1 ? '' : 's'}
                 </Badge>
@@ -314,7 +316,7 @@ export const CartorioManagementComplete: React.FC = () => {
                     size="sm"
                     variant="ghost"
                     onClick={clearFilters}
-                    className="text-gray-400 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <X className="mr-1 h-4 w-4" />
                     Limpar filtros
@@ -330,8 +332,8 @@ export const CartorioManagementComplete: React.FC = () => {
                 return (
                   <Card
                     key={cartorio.id}
-                    className={`bg-gray-800/60 border border-gray-700/80 hover:border-red-500/60 transition-colors rounded-xl ${
-                      isExpanded ? 'col-span-full border-red-500/50 shadow-lg shadow-red-900/20' : ''
+                    className={`bg-card/70 backdrop-blur-md border border-border/50 hover:border-primary/60 transition-colors rounded-xl ${
+                      isExpanded ? 'col-span-full border-primary/50 shadow-lg shadow-primary/20' : ''
                     }`}
                   >
                     <CardContent className={isExpanded ? 'p-6' : 'p-4'}>
@@ -341,11 +343,11 @@ export const CartorioManagementComplete: React.FC = () => {
                         className="flex w-full items-center justify-between gap-4"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <span className="text-xs font-mono text-gray-500">#{index + 1}</span>
+                          <span className="text-xs font-mono text-muted-foreground">#{index + 1}</span>
                           <div className="min-w-0">
-                            <p className="truncate text-left text-sm font-semibold text-white">{cartorio.nome}</p>
+                            <p className="truncate text-left text-sm font-semibold text-foreground">{cartorio.nome}</p>
                             {cartorio.cidade && cartorio.estado && (
-                              <p className="truncate text-left text-xs text-gray-400">
+                              <p className="truncate text-left text-xs text-muted-foreground">
                                 {cartorio.cidade} - {cartorio.estado}
                               </p>
                             )}
@@ -357,44 +359,44 @@ export const CartorioManagementComplete: React.FC = () => {
                             lastActivity={sessions.get(cartorio.id)?.last_activity || null}
                           />
                           {cartorio.acessos_cartorio?.[0]?.data_expiracao && (
-                            <span className="hidden whitespace-nowrap text-xs text-gray-500 xl:inline-flex">
+                            <span className="hidden whitespace-nowrap text-xs text-muted-foreground xl:inline-flex">
                               Expira em {new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}
                             </span>
                           )}
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                           )}
                         </div>
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-6 space-y-6 border-t border-gray-700 pt-6">
+                        <div className="mt-6 space-y-6 border-t border-border/50 pt-6">
                           <div className="grid gap-4 lg:grid-cols-3">
                             {/* Bloco: credenciais de acesso */}
-                            <div className="rounded-lg border border-gray-700/70 bg-gray-900/40 p-4 lg:col-span-2">
-                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                            <div className="rounded-lg border border-border/50 bg-card/70 backdrop-blur-md p-4 lg:col-span-2">
+                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                 Credenciais de acesso
                               </p>
                               <div className="space-y-3">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="w-32 shrink-0 text-xs text-gray-400">Usuário</span>
-                                  <code className="flex-1 min-w-0 truncate rounded bg-gray-900/70 px-3 py-1.5 font-mono text-xs text-gray-100">
+                                  <span className="w-32 shrink-0 text-xs text-muted-foreground">Usuário</span>
+                                  <code className="flex-1 min-w-0 truncate rounded bg-muted/50 px-3 py-1.5 font-mono text-xs text-foreground">
                                     {getUsuario(cartorio)}
                                   </code>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => copyToClipboard(getUsuario(cartorio), 'Usuário copiado.')}
-                                    className="h-8 w-8 shrink-0 border-gray-600 p-0 text-gray-300"
+                                    className="h-8 w-8 shrink-0 border-border/50 p-0 text-muted-foreground"
                                   >
                                     <Copy className="h-3.5 w-3.5" />
                                   </Button>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="w-32 shrink-0 text-xs text-gray-400">Token do Cartório</span>
-                                  <code className="flex-1 min-w-0 truncate rounded bg-gray-900/70 px-3 py-1.5 font-mono text-xs text-gray-100">
+                                  <span className="w-32 shrink-0 text-xs text-muted-foreground">Token do Cartório</span>
+                                  <code className="flex-1 min-w-0 truncate rounded bg-muted/50 px-3 py-1.5 font-mono text-xs text-foreground">
                                     {getToken(cartorio) || 'Sem token'}
                                   </code>
                                   <Button
@@ -402,7 +404,7 @@ export const CartorioManagementComplete: React.FC = () => {
                                     variant="outline"
                                     disabled={!getToken(cartorio)}
                                     onClick={() => copyToClipboard(getToken(cartorio), 'Token copiado para a área de transferência.')}
-                                    className="h-8 w-8 shrink-0 border-gray-600 p-0 text-gray-300"
+                                    className="h-8 w-8 shrink-0 border-border/50 p-0 text-muted-foreground"
                                   >
                                     <Copy className="h-3.5 w-3.5" />
                                   </Button>
@@ -411,7 +413,8 @@ export const CartorioManagementComplete: React.FC = () => {
                                   size="sm"
                                   disabled={!getToken(cartorio)}
                                   onClick={() => handleCopyModeloAcesso(cartorio)}
-                                  className="w-full bg-red-600 hover:bg-red-700 sm:w-auto"
+                                  variant="glow"
+                                  className="w-full sm:w-auto"
                                 >
                                   <ClipboardCheck className="mr-2 h-4 w-4" />
                                   Copiar Modelo Acesso
@@ -420,40 +423,40 @@ export const CartorioManagementComplete: React.FC = () => {
                             </div>
 
                             {/* Bloco: detalhes */}
-                            <div className="rounded-lg border border-gray-700/70 bg-gray-900/40 p-4">
-                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                            <div className="rounded-lg border border-border/50 bg-card/70 backdrop-blur-md p-4">
+                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                 Detalhes
                               </p>
                               <dl className="space-y-2 text-xs">
-                                <div className="flex items-center gap-2 text-gray-300">
-                                  <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   <span className="truncate">
                                     {cartorio.cidade ? `${cartorio.cidade} - ${cartorio.estado || ''}` : 'Cidade não informada'}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-gray-300">
-                                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   <span>
                                     {cartorio.acessos_cartorio?.[0]?.data_expiracao
                                       ? `Expira em ${new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}`
                                       : 'Sem data de expiração'}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-gray-300">
-                                  <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   <span>
                                     {getLastActivity(cartorio)
                                       ? `Último acesso: ${getLastActivity(cartorio)!.toLocaleString('pt-BR')}`
                                       : 'Nunca acessou'}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-gray-300">
-                                  <Key className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Key className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   <span>{cartorio.acessos_cartorio?.length || 0} token(s) cadastrado(s)</span>
                                 </div>
                               </dl>
                               {cartorio.observacoes && (
-                                <p className="mt-3 border-t border-gray-700/70 pt-3 text-xs leading-relaxed text-gray-400">
+                                <p className="mt-3 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
                                   {cartorio.observacoes}
                                 </p>
                               )}
@@ -461,12 +464,12 @@ export const CartorioManagementComplete: React.FC = () => {
                           </div>
 
                           {/* Ações */}
-                          <div className="flex flex-col gap-3 border-t border-gray-700/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-col gap-3 border-t border-border/50 pt-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 onClick={() => handleOpenUserManager(cartorio)}
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-primary/15 text-primary hover:bg-primary/25"
                               >
                                 <Users className="mr-2 h-4 w-4" />
                                 Usuários
@@ -474,7 +477,7 @@ export const CartorioManagementComplete: React.FC = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handleOpenPermissions(cartorio)}
-                                className="bg-purple-600 hover:bg-purple-700"
+                                className="bg-accent text-accent-foreground hover:bg-accent/80"
                               >
                                 <Shield className="mr-2 h-4 w-4" />
                                 Permissões
@@ -482,7 +485,7 @@ export const CartorioManagementComplete: React.FC = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handleOpenTokenModal(cartorio)}
-                                className="bg-orange-600 hover:bg-orange-700"
+                                className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
                               >
                                 <Key className="mr-2 h-4 w-4" />
                                 Token
@@ -493,7 +496,7 @@ export const CartorioManagementComplete: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleOpenEditModal(cartorio)}
-                                className="border-gray-600 text-gray-300"
+                                className="border-border/50 text-muted-foreground"
                               >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Editar
@@ -502,7 +505,7 @@ export const CartorioManagementComplete: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleDeleteCartorio(cartorio)}
-                                className="border-red-600 text-red-400 hover:bg-red-700/20"
+                                className="border-destructive/50 text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Excluir
@@ -517,7 +520,7 @@ export const CartorioManagementComplete: React.FC = () => {
               })}
 
               {filteredCartorios.length === 0 && (
-                <div className="col-span-full py-8 text-center text-sm text-gray-400">
+                <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
                   {'Nenhum cartório encontrado' + (searchTerm ? ' para "' + searchTerm + '"' : '') + '.'}
                 </div>
               )}
@@ -534,51 +537,51 @@ export const CartorioManagementComplete: React.FC = () => {
 
       {/* Modal de Edição */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="bg-gray-800 border-gray-600 text-white">
+        <DialogContent className="bg-card/90 backdrop-blur-md border-border/50 text-foreground">
           <DialogHeader>
             <DialogTitle>Editar Cartório</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-300">Nome do Cartório *</Label>
+              <Label className="text-muted-foreground">Nome do Cartório *</Label>
               <Input
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-muted/50 border-border/50 text-foreground"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Cidade</Label>
+                <Label className="text-muted-foreground">Cidade</Label>
                 <Input
                   value={formData.cidade}
                   onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-muted/50 border-border/50 text-foreground"
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Estado</Label>
+                <Label className="text-muted-foreground">Estado</Label>
                 <Input
                   value={formData.estado}
                   onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-muted/50 border-border/50 text-foreground"
                   maxLength={2}
                 />
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">Observações</Label>
+              <Label className="text-muted-foreground">Observações</Label>
               <Input
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-muted/50 border-border/50 text-foreground"
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setEditModalOpen(false)} className="border-gray-600">
+              <Button variant="outline" onClick={() => setEditModalOpen(false)} className="border-border/50">
                 Cancelar
               </Button>
-              <Button onClick={handleUpdateCartorio} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleUpdateCartorio} variant="glow">
                 <Edit className="h-4 w-4 mr-2" />
                 Salvar Alterações
               </Button>

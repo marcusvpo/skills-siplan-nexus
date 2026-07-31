@@ -28,9 +28,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const getProgressColor = () => {
-    if (percentual <= 30) return 'text-red-500';
-    if (percentual <= 70) return 'text-yellow-500';
-    return 'text-green-500';
+    if (percentual <= 30) return 'text-destructive';
+    if (percentual <= 70) return 'text-primary';
+    return 'text-success';
   };
 
   const getProgressMessage = () => {
@@ -44,7 +44,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     <div className={cn('space-y-2', className)}>
       {showText && (
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-white">
+          <span className="text-sm font-medium text-foreground">
             {getProgressMessage()}
           </span>
           <span className={cn('text-sm font-bold', getProgressColor())}>
@@ -55,11 +55,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       
       <Progress 
         value={percentual} 
-        className={cn(sizeClasses[size], 'bg-gray-700 transition-all duration-500 ease-out')}
+        className={cn(sizeClasses[size], 'transition-all duration-500 ease-out')}
       />
       
       {showStats && (
-        <div className="flex justify-between items-center text-xs text-gray-400">
+        <div className="flex justify-between items-center text-xs text-muted-foreground">
           <span>{completas} de {total} aulas concluídas</span>
           {total - completas > 0 && (
             <span>{total - completas} restantes</span>

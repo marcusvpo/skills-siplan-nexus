@@ -153,12 +153,12 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-600">
+    <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
       <CardHeader>
-        <CardTitle className="text-white">
+        <CardTitle className="text-foreground">
           {videoAula ? 'Editar Videoaula' : 'Nova Videoaula'}
         </CardTitle>
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-muted-foreground">
           <p><strong>Sistema:</strong> {sistema.nome}</p>
           <p><strong>Produto:</strong> {produto.nome}</p>
         </div>
@@ -166,14 +166,14 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="titulo" className="text-gray-300">
+            <Label htmlFor="titulo" className="text-muted-foreground">
               Título da Videoaula *
             </Label>
             <Input
               id="titulo"
               value={formData.titulo}
               onChange={(e) => handleInputChange('titulo', e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-background/50 border-border text-foreground"
               placeholder="Digite o título da videoaula"
               disabled={isLoading}
               required
@@ -181,14 +181,14 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="descricao" className="text-gray-300">
+            <Label htmlFor="descricao" className="text-muted-foreground">
               Descrição
             </Label>
             <Textarea
               id="descricao"
               value={formData.descricao}
               onChange={(e) => handleInputChange('descricao', e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-background/50 border-border text-foreground"
               placeholder="Descrição da videoaula (opcional)"
               rows={3}
               disabled={isLoading}
@@ -196,14 +196,14 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="url_video" className="text-gray-300">
+            <Label htmlFor="url_video" className="text-muted-foreground">
               URL do Vídeo
             </Label>
             <Input
               id="url_video"
               value={formData.url_video}
               onChange={(e) => handleInputChange('url_video', e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-background/50 border-border text-foreground"
               placeholder="https://..."
               disabled={isLoading}
             />
@@ -211,21 +211,21 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="id_video_bunny" className="text-gray-300">
+              <Label htmlFor="id_video_bunny" className="text-muted-foreground">
                 ID Bunny.net
               </Label>
               <Input
                 id="id_video_bunny"
                 value={formData.id_video_bunny}
                 onChange={(e) => handleInputChange('id_video_bunny', e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-background/50 border-border text-foreground"
                 placeholder="ID do vídeo no Bunny.net"
                 disabled={isLoading}
               />
             </div>
 
             <div>
-              <Label htmlFor="ordem" className="text-gray-300">
+              <Label htmlFor="ordem" className="text-muted-foreground">
                 Ordem
               </Label>
               <Input
@@ -233,7 +233,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
                 type="number"
                 value={formData.ordem}
                 onChange={(e) => handleInputChange('ordem', parseInt(e.target.value) || 1)}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-background/50 border-border text-foreground"
                 min="1"
                 disabled={isLoading}
               />
@@ -241,14 +241,14 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="url_thumbnail" className="text-gray-300">
+            <Label htmlFor="url_thumbnail" className="text-muted-foreground">
               URL Thumbnail
             </Label>
             <Input
               id="url_thumbnail"
               value={formData.url_thumbnail}
               onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white"
+              className="bg-background/50 border-border text-foreground"
               placeholder="https://..."
               disabled={isLoading}
             />
@@ -258,7 +258,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
             <Button
               type="submit"
               disabled={isLoading || !formData.titulo.trim()}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              variant="glow"
             >
               {isLoading ? (
                 <>
@@ -278,7 +278,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               variant="outline"
               onClick={onCancel}
               disabled={isLoading}
-              className="border-gray-600 text-gray-300"
+              className="border-border text-muted-foreground"
             >
               <X className="h-4 w-4 mr-2" />
               Cancelar

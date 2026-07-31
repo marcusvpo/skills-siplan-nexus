@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Edit, Trash2, Loader2, Users } from 'lucide-react';
 import { useCartorioUsers } from '@/hooks/useCartorioUsers';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -67,63 +68,65 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold text-white">
+      <div className="flex items-center justify-between gap-4">
+        <h4 className="text-lg font-semibold truncate">
           Usuários Cadastrados para {cartorioName}
         </h4>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button
-              onClick={openNewUserModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button variant="glow" onClick={openNewUserModal}>
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Usuário
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-600">
+          <DialogContent className="bg-card/95 backdrop-blur-md border-border/50 rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Users className="h-5 w-5" />
+                </span>
                 {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="username" className="text-gray-300">Nome de Usuário</Label>
+                <Label htmlFor="username">Nome de Usuário</Label>
                 <Input
                   id="username"
                   value={userForm.username}
                   onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                   placeholder="Digite o nome de usuário"
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-gray-300">Email (opcional)</Label>
+                <Label htmlFor="email">Email (opcional)</Label>
                 <Input
                   id="email"
                   type="email"
                   value={userForm.email}
                   onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                   placeholder="email@exemplo.com"
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="is_active"
                   checked={userForm.is_active}
-                  onChange={(e) => setUserForm({...userForm, is_active: e.target.checked})}
-                  className="rounded border-gray-600"
+                  onCheckedChange={(checked) => setUserForm({...userForm, is_active: Boolean(checked)})}
                 />
-                <Label htmlFor="is_active" className="text-gray-300">Usuário ativo</Label>
+                <Label htmlFor="is_active">Usuário ativo</Label>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex justify-end space-x-2">
                 <Button
+                  variant="outline"
+                  onClick={handleCloseModal}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="glow"
                   onClick={handleSaveUser}
                   disabled={isLoading}
-                  className="bg-green-600 hover:bg-green-700 text-white flex-1"
                 >
                   {isLoading ? (
                     <>
@@ -134,13 +137,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                     editingUser ? 'Atualizar' : 'Criar'
                   )}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleCloseModal}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
-                >
-                  Cancelar
-                </Button>
               </div>
             </div>
           </DialogContent>
@@ -149,35 +145,35 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
 
       {isLoading && !isModalOpen ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-400">Carregando usuários...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Carregando usuários...</span>
         </div>
       ) : users.length > 0 ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-border/50">
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-600">
-                <TableHead className="text-gray-300">Usuário</TableHead>
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Criado em</TableHead>
-                <TableHead className="text-gray-300">Ações</TableHead>
+              <TableRow>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criado em</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id} className="border-gray-700 hover:bg-gray-700/30">
-                  <TableCell className="font-medium text-white">{user.username}</TableCell>
-                  <TableCell className="text-gray-300">{user.email || 'N/A'}</TableCell>
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium truncate max-w-[160px]">{user.username}</TableCell>
+                  <TableCell className="text-muted-foreground truncate max-w-[200px]">{user.email || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={user.is_active ? 'secondary' : 'destructive'}
-                      className={user.is_active ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}
+                      className={user.is_active ? 'bg-success text-success-foreground' : ''}
                     >
                       {user.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-gray-300">
+                  <TableCell className="text-muted-foreground whitespace-nowrap">
                     {new Date(user.created_at).toLocaleDateString('pt-BR')}
                   </TableCell>
                   <TableCell>
@@ -186,7 +182,6 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditUser(user)}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -194,7 +189,7 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
                         variant="outline"
                         size="sm"
                         onClick={() => deleteUser(user)}
-                        className="border-red-600 text-red-400 hover:bg-red-700/20"
+                        className="border-destructive/50 text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -207,8 +202,8 @@ export const CartorioUsersManagement: React.FC<CartorioUsersManagementProps> = (
         </div>
       ) : (
         <div className="text-center py-8">
-          <p className="text-gray-400">Nenhum usuário cadastrado para este cartório</p>
-          <p className="text-gray-500 text-sm mt-2">
+          <p className="text-muted-foreground">Nenhum usuário cadastrado para este cartório</p>
+          <p className="text-muted-foreground/70 text-sm mt-2">
             Clique em "Adicionar Usuário" para criar o primeiro usuário
           </p>
         </div>
