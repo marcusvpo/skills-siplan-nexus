@@ -86,11 +86,11 @@ const Dashboard = () => {
   // Loading state - mostrar apenas se realmente carregando
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition bg-black">
-        <Card className="gradient-card shadow-elevated border-gray-600/50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="bg-card/70 backdrop-blur-md border-border/50">
           <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-white text-enhanced">Carregando dados do usuário...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-foreground">Carregando dados do usuário...</p>
           </CardContent>
         </Card>
       </div>
@@ -98,37 +98,37 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen text-white page-transition">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Gerenciador de sessão invisível */}
       <CartorioSessionManager />
       
       {/* Header */}
-      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
+      <div className="border-b border-border/50 bg-card/70 backdrop-blur-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 min-w-0">
               <img 
                 src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
                 alt="Siplan Logo" 
-                className="h-8 w-auto object-contain"
+                className="h-8 w-auto object-contain shrink-0"
               />
-              <div>
-                <h1 className="text-2xl font-bold text-enhanced">Siplan Skills</h1>
-                <p className="text-sm text-gray-400">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold text-foreground truncate">Siplan Skills</h1>
+                <p className="text-sm text-muted-foreground truncate">
                   Plataforma de Treinamento
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <Card className="gradient-card shadow-modern border-gray-600/50">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50">
                 <CardContent className="p-3">
                   <div className="text-right">
-                    <p className="text-sm font-medium flex items-center text-white text-enhanced">
+                    <p className="text-sm font-medium flex items-center justify-end text-foreground">
                       <User className="h-4 w-4 mr-2" />
                       {user?.username || user?.name}
                     </p>
-                    <p className="text-xs text-gray-400">{user?.cartorio_name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.cartorio_name}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -136,7 +136,7 @@ const Dashboard = () => {
                 onClick={handleLogout}
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift shadow-modern"
+                className="rounded-xl"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair

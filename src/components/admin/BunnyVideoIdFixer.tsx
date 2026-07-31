@@ -23,9 +23,9 @@ export const BunnyVideoIdFixer: React.FC = () => {
   };
 
   return (
-    <Card className="bg-warning/10 border-warning/40 rounded-2xl">
+    <Card className="bg-accent/10 border-accent/40 rounded-2xl">
       <CardHeader>
-        <CardTitle className="text-warning flex items-center gap-2">
+        <CardTitle className="text-accent-foreground flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
           Corretor de IDs da Bunny.net
         </CardTitle>
@@ -47,7 +47,7 @@ export const BunnyVideoIdFixer: React.FC = () => {
           </Button>
           
           {isFixing && (
-            <div className="text-warning text-sm">
+            <div className="text-accent-foreground text-sm">
               Processando videoaulas...
             </div>
           )}

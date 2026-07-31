@@ -98,7 +98,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
     }
     if (status === 3) {
       return (
-        <Badge variant="outline" className="border-warning/50 text-warning">
+        <Badge variant="outline" className="border-accent/50 text-accent-foreground">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           Processando ({encodeProgress}%)
         </Badge>
@@ -130,7 +130,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder="Ex: 12345678-abcd-efgh-ijkl-123456789012"
             className={`bg-background/50 border-border text-foreground ${
-              videoId && !isValidId ? 'border-red-500' : ''
+              videoId && !isValidId ? 'border-destructive' : ''
             }`}
             disabled={disabled || isLoading}
           />
@@ -182,7 +182,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
               
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Video className="h-4 w-4 text-orange-400" />
+                  <Video className="h-4 w-4 text-primary" />
                   <h4 className="text-foreground font-medium truncate">{videoDetails.title}</h4>
                   {getStatusBadge(videoDetails.status, videoDetails.encodeProgress)}
                 </div>
