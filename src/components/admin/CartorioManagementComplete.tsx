@@ -407,9 +407,11 @@ export const CartorioManagementComplete: React.FC = () => {
                 return (
                   <Card
                     key={cartorio.id}
-                    className="bg-gray-800/60 border border-gray-700/80 hover:border-red-500/60 transition-colors rounded-xl"
+                    className={`bg-gray-800/60 border border-gray-700/80 hover:border-red-500/60 transition-colors rounded-xl ${
+                      isExpanded ? 'col-span-full border-red-500/50 shadow-lg shadow-red-900/20' : ''
+                    }`}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className={isExpanded ? 'p-6' : 'p-4'}>
                       <button
                         type="button"
                         onClick={() => setExpandedCartorioId(isExpanded ? null : cartorio.id)}
@@ -445,86 +447,144 @@ export const CartorioManagementComplete: React.FC = () => {
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-4 border-t border-gray-700 pt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                          <div className="space-y-1 text-sm text-gray-300">
-                            {cartorio.observacoes && (
-                              <p className="text-gray-400">{cartorio.observacoes}</p>
-                            )}
-                            <div className="space-y-1">
-                              <p className="text-xs text-gray-400">
-                                Usuário: <span className="font-mono text-gray-200">{getUsuario(cartorio)}</span>
+                        <div className="mt-6 space-y-6 border-t border-gray-700 pt-6">
+                          <div className="grid gap-4 lg:grid-cols-3">
+                            {/* Bloco: credenciais de acesso */}
+                            <div className="rounded-lg border border-gray-700/70 bg-gray-900/40 p-4 lg:col-span-2">
+                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                                Credenciais de acesso
                               </p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-400">Token do Cartório:</span>
-                                <code className="rounded bg-gray-900/70 px-2 py-1 font-mono text-xs text-gray-100">
-                                  {getToken(cartorio) || 'Sem token'}
-                                </code>
+                              <div className="space-y-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="w-32 shrink-0 text-xs text-gray-400">Usuário</span>
+                                  <code className="flex-1 min-w-0 truncate rounded bg-gray-900/70 px-3 py-1.5 font-mono text-xs text-gray-100">
+                                    {getUsuario(cartorio)}
+                                  </code>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => copyToClipboard(getUsuario(cartorio), 'Usuário copiado.')}
+                                    className="h-8 w-8 shrink-0 border-gray-600 p-0 text-gray-300"
+                                  >
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="w-32 shrink-0 text-xs text-gray-400">Token do Cartório</span>
+                                  <code className="flex-1 min-w-0 truncate rounded bg-gray-900/70 px-3 py-1.5 font-mono text-xs text-gray-100">
+                                    {getToken(cartorio) || 'Sem token'}
+                                  </code>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!getToken(cartorio)}
+                                    onClick={() => copyToClipboard(getToken(cartorio), 'Token copiado para a área de transferência.')}
+                                    className="h-8 w-8 shrink-0 border-gray-600 p-0 text-gray-300"
+                                  >
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                                 <Button
                                   size="sm"
-                                  variant="outline"
                                   disabled={!getToken(cartorio)}
-                                  onClick={() => copyToClipboard(getToken(cartorio), 'Token copiado para a área de transferência.')}
-                                  className="h-7 border-gray-600 px-2 text-gray-300"
+                                  onClick={() => handleCopyModeloAcesso(cartorio)}
+                                  className="w-full bg-red-600 hover:bg-red-700 sm:w-auto"
                                 >
-                                  <Copy className="h-3.5 w-3.5" />
+                                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                                  Copiar Modelo Acesso
                                 </Button>
                               </div>
                             </div>
-                            <p className="text-xs text-gray-500">
-                              Tokens: {cartorio.acessos_cartorio?.length || 0}
-                            </p>
+
+                            {/* Bloco: detalhes */}
+                            <div className="rounded-lg border border-gray-700/70 bg-gray-900/40 p-4">
+                              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                                Detalhes
+                              </p>
+                              <dl className="space-y-2 text-xs">
+                                <div className="flex items-center gap-2 text-gray-300">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                  <span className="truncate">
+                                    {cartorio.cidade ? `${cartorio.cidade} - ${cartorio.estado || ''}` : 'Cidade não informada'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-300">
+                                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                  <span>
+                                    {cartorio.acessos_cartorio?.[0]?.data_expiracao
+                                      ? `Expira em ${new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}`
+                                      : 'Sem data de expiração'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-300">
+                                  <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                  <span>
+                                    {getLastActivity(cartorio)
+                                      ? `Último acesso: ${getLastActivity(cartorio)!.toLocaleString('pt-BR')}`
+                                      : 'Nunca acessou'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-300">
+                                  <Key className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                  <span>{cartorio.acessos_cartorio?.length || 0} token(s) cadastrado(s)</span>
+                                </div>
+                              </dl>
+                              {cartorio.observacoes && (
+                                <p className="mt-3 border-t border-gray-700/70 pt-3 text-xs leading-relaxed text-gray-400">
+                                  {cartorio.observacoes}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2 md:justify-end">
-                            <Button
-                              size="sm"
-                              disabled={!getToken(cartorio)}
-                              onClick={() => handleCopyModeloAcesso(cartorio)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              <ClipboardCheck className="mr-1 h-4 w-4" />
-                              Copiar Modelo Acesso
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenUserManager(cartorio)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <Users className="mr-1 h-4 w-4" />
-                              Usuários
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenPermissions(cartorio)}
-                              className="bg-purple-600 hover:bg-purple-700"
-                            >
-                              <Shield className="mr-1 h-4 w-4" />
-                              Permissões
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenTokenModal(cartorio)}
-                              className="bg-orange-600 hover:bg-orange-700"
-                            >
-                              <Key className="mr-1 h-4 w-4" />
-                              Token
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenEditModal(cartorio)}
-                              className="border-gray-600 text-gray-300"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteCartorio(cartorio)}
-                              className="border-red-600 text-red-400 hover:bg-red-700/20"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          {/* Ações */}
+                          <div className="flex flex-col gap-3 border-t border-gray-700/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenUserManager(cartorio)}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <Users className="mr-2 h-4 w-4" />
+                                Usuários
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenPermissions(cartorio)}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <Shield className="mr-2 h-4 w-4" />
+                                Permissões
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenTokenModal(cartorio)}
+                                className="bg-orange-600 hover:bg-orange-700"
+                              >
+                                <Key className="mr-2 h-4 w-4" />
+                                Token
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2 sm:justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenEditModal(cartorio)}
+                                className="border-gray-600 text-gray-300"
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteCartorio(cartorio)}
+                                className="border-red-600 text-red-400 hover:bg-red-700/20"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}
