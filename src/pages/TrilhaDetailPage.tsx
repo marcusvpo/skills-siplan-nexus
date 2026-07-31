@@ -7,7 +7,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, Play, ListVideo } from 'lucide-react';
 import LoadingState from '@/components/system/LoadingState';
 import ErrorState from '@/components/system/ErrorState';
 import { logger } from '@/utils/logger';
@@ -100,29 +100,28 @@ export const TrilhaDetailPage = () => {
 
           <div className="mt-6 space-y-6">
             {/* Header */}
-            <Card className="gradient-card border-gray-600/50">
+            <Card className="bg-card/70 backdrop-blur-md border-border/50">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Badge variant="secondary" className="bg-primary/20 text-primary">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <Badge variant="secondary" className="bg-primary/15 text-primary">
                         Trilha de Aprendizagem
                       </Badge>
-                      <Badge variant="outline" className="border-gray-600">
+                      <Badge variant="outline">
                         {aulas.length} aulas
                       </Badge>
                     </div>
-                    <CardTitle className="text-3xl font-bold text-white text-enhanced mb-2">
+                    <CardTitle className="text-3xl font-bold mb-2 truncate">
                       {trilhaData.nome}
                     </CardTitle>
-                    <p className="text-gray-400">
+                    <p className="text-muted-foreground">
                       {produto?.nome} • {sistema?.nome}
                     </p>
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => navigate(`/system/${systemId}/product/${productId}`)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Voltar ao Produto
@@ -133,14 +132,17 @@ export const TrilhaDetailPage = () => {
 
             {/* Lista de Aulas */}
             <div className="space-y-3">
-              <h3 className="text-xl font-bold text-white text-enhanced">
+              <h3 className="text-xl font-bold">
                 Aulas da Trilha
               </h3>
               
               {aulas.length === 0 ? (
-                <Card className="gradient-card border-gray-600/50">
+                <Card className="bg-card/70 backdrop-blur-md border-border/50">
                   <CardContent className="p-8 text-center">
-                    <p className="text-gray-400">
+                    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <ListVideo className="h-5 w-5" />
+                    </div>
+                    <p className="text-muted-foreground">
                       Esta trilha ainda não possui aulas cadastradas.
                     </p>
                   </CardContent>
@@ -154,21 +156,19 @@ export const TrilhaDetailPage = () => {
                     return (
                       <Card
                         key={aula.id}
-                        className="gradient-card border-gray-600/50 hover:border-primary/50 transition-all cursor-pointer btn-hover-lift"
+                        className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/50 transition-all cursor-pointer"
                         onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
                       >
                         <CardContent className="p-6">
                           <div className="flex items-start gap-4">
                             {/* Número da aula */}
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                              <span className="text-primary font-bold">
-                                {index + 1}
-                              </span>
+                            <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary font-bold">
+                              {index + 1}
                             </div>
 
                             {/* Thumbnail */}
                             {aula.url_thumbnail && (
-                              <div className="flex-shrink-0 w-32 h-20 rounded-lg overflow-hidden bg-gray-800">
+                              <div className="flex-shrink-0 w-32 h-20 rounded-xl overflow-hidden bg-muted">
                                 <img 
                                   src={aula.url_thumbnail} 
                                   alt={aula.titulo}
@@ -179,11 +179,11 @@ export const TrilhaDetailPage = () => {
 
                             {/* Conteúdo */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-lg font-semibold text-white text-enhanced mb-1">
+                              <h4 className="text-lg font-semibold mb-1 truncate">
                                 {aula.titulo}
                               </h4>
                               {aula.descricao && (
-                                <p className="text-gray-400 text-sm line-clamp-2">
+                                <p className="text-muted-foreground text-sm line-clamp-2">
                                   {aula.descricao}
                                 </p>
                               )}
@@ -191,6 +191,7 @@ export const TrilhaDetailPage = () => {
 
                             {/* Botão de ação */}
                             <Button
+                              variant="glow"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);

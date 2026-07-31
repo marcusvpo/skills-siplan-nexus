@@ -23,15 +23,15 @@ export const BunnyVideoIdFixer: React.FC = () => {
   };
 
   return (
-    <Card className="bg-yellow-900/20 border-yellow-600">
+    <Card className="bg-warning/10 border-warning/40 rounded-2xl">
       <CardHeader>
-        <CardTitle className="text-yellow-400 flex items-center gap-2">
+        <CardTitle className="text-warning flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
           Corretor de IDs da Bunny.net
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-gray-300 text-sm">
+        <p className="text-muted-foreground text-sm">
           Esta ferramenta analisa as videoaulas que estão com o campo <code>bunny_video_id</code> vazio 
           e tenta extrair automaticamente o ID do vídeo a partir da URL armazenada.
         </p>
@@ -47,13 +47,13 @@ export const BunnyVideoIdFixer: React.FC = () => {
           </Button>
           
           {isFixing && (
-            <div className="text-yellow-400 text-sm">
+            <div className="text-warning text-sm">
               Processando videoaulas...
             </div>
           )}
         </div>
         
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-muted-foreground">
           <strong>Nota:</strong> Esta operação é segura e apenas preenche campos vazios. 
           Não modifica dados existentes.
         </div>

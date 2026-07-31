@@ -90,7 +90,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
   const getStatusBadge = (status: number, encodeProgress: number) => {
     if (status === 4) {
       return (
-        <Badge variant="default" className="bg-green-600">
+        <Badge variant="default" className="bg-success text-success-foreground">
           <CheckCircle className="h-3 w-3 mr-1" />
           Pronto
         </Badge>
@@ -98,7 +98,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
     }
     if (status === 3) {
       return (
-        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+        <Badge variant="outline" className="border-warning/50 text-warning">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           Processando ({encodeProgress}%)
         </Badge>
@@ -121,7 +121,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
     <div className="space-y-4">
       <div className="flex space-x-2">
         <div className="flex-1">
-          <Label htmlFor="bunny-video-id" className="text-gray-300">
+          <Label htmlFor="bunny-video-id" className="text-muted-foreground">
             ID do Vídeo Bunny.net *
           </Label>
           <Input
@@ -129,13 +129,13 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
             value={videoId}
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder="Ex: 12345678-abcd-efgh-ijkl-123456789012"
-            className={`bg-gray-700 border-gray-600 text-white ${
+            className={`bg-background/50 border-border text-foreground ${
               videoId && !isValidId ? 'border-red-500' : ''
             }`}
             disabled={disabled || isLoading}
           />
           {videoId && !isValidId && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-destructive text-sm mt-1">
               ID deve estar no formato UUID (ex: 12345678-abcd-efgh-ijkl-123456789012)
             </p>
           )}
@@ -162,21 +162,21 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
       </div>
 
       {error && (
-        <div className="p-3 bg-red-900/30 border border-red-700 rounded text-red-400 text-sm">
+        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
           <AlertCircle className="h-4 w-4 inline mr-2" />
           {error}
         </div>
       )}
 
       {videoDetails && (
-        <Card className="bg-gray-800/50 border-gray-600">
+        <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-start space-x-4">
               {videoDetails.thumbnailUrl && (
                 <img
                   src={videoDetails.thumbnailUrl}
                   alt="Thumbnail do vídeo"
-                  className="w-24 h-16 object-cover rounded border border-gray-600"
+                  className="w-24 h-16 object-cover rounded border border-border"
                 />
               )}
               
@@ -187,7 +187,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
                   {getStatusBadge(videoDetails.status, videoDetails.encodeProgress)}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
                     <Clock className="h-3 w-3" />
                     <span>Duração: {formatDuration(videoDetails.duration)}</span>
@@ -208,7 +208,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
                   </div>
                 </div>
 
-                <div className="text-xs text-gray-500 space-y-1">
+                <div className="text-xs text-muted-foreground space-y-1">
                   <p><strong>Play URL:</strong> {videoDetails.playUrl}</p>
                   {videoDetails.thumbnailUrl && (
                     <p><strong>Thumbnail URL:</strong> {videoDetails.thumbnailUrl}</p>
