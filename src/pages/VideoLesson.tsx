@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, AlertCircle, Loader2, Sparkles, NotebookPen, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import VideoPlayer from '@/components/VideoPlayer';
 import AIChat from '@/components/AIChat';
 import { VideoProgressButton } from '@/components/VideoProgressButton';
@@ -10,26 +13,24 @@ import { useVideoAulaData } from '@/hooks/useSupabaseDataRefactored';
 import { logger } from '@/utils/logger';
 
 const VideoLesson: React.FC = () => {
-  const { systemId, productId, videoId } = useParams<{ 
-    systemId: string; 
-    productId: string; 
-    videoId: string; 
+  const { systemId, productId, videoId } = useParams<{
+    systemId: string;
+    productId: string;
+    videoId: string;
   }>();
   const navigate = useNavigate();
-  
+
   const { data: videoAulaData, isLoading, error } = useVideoAulaData(videoId || '');
+  const notesKey = `siplan-notes-${videoId}`;
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (videoId) {
-      logger.info('🎥 [VideoLesson] Page loaded for video', { 
-        videoId: videoId,
-        systemId,
-        productId 
-      });
+      setNotes(localStorage.getItem(`siplan-notes-${videoId}`) || '');
+      logger.info('🎥 [VideoLesson] Page loaded for video', { videoId, systemId, productId });
     }
   }, [videoId, systemId, productId]);
 
-  // Verificação de token antes de carregar
   useEffect(() => {
     const token = localStorage.getItem('siplan-auth-token');
     if (!token) {
@@ -38,18 +39,19 @@ const VideoLesson: React.FC = () => {
     }
   }, [navigate]);
 
+  const backHref = productId ? `/system/${systemId}/product/${productId}` : '/dashboard';
+
   if (!videoId) {
     logger.error('❌ [VideoLesson] Missing video ID');
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
-        <Card className="gradient-card shadow-elevated max-w-md">
+      <div className="page-transition flex min-h-screen items-center justify-center px-4">
+        <Card className="max-w-md">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-red-400 mb-2 text-enhanced">ID da videoaula não encontrado</h3>
-            <Button 
-              onClick={() => navigate('/dashboard')} 
-              className="bg-red-600 hover:bg-red-700 btn-hover-lift mt-4"
-            >
+            <AlertCircle className="mx-auto mb-4 h-14 w-14 text-destructive" />
+            <h3 className="mb-2 text-xl font-semibold text-foreground">
+              ID da videoaula não encontrado
+            </h3>
+            <Button onClick={() => navigate('/dashboard')} variant="glow" className="mt-4">
               Voltar ao Dashboard
             </Button>
           </CardContent>
@@ -60,40 +62,34 @@ const VideoLesson: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
+      <div className="page-transition flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-red-400 mx-auto mb-4" />
-          <p className="text-white text-enhanced">Carregando videoaula...</p>
-          <div className="loading-shimmer w-32 h-2 rounded-full mx-auto mt-4"></div>
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+          <p className="text-foreground">Carregando videoaula...</p>
         </div>
       </div>
     );
   }
 
   if (error || !videoAulaData) {
-    logger.error('❌ [VideoLesson] Error or no data:', { error: error?.message });
+    logger.error('❌ [VideoLesson] Error or no data:', { error: (error as Error)?.message });
     return (
-      <div className="min-h-screen flex items-center justify-center page-transition">
-        <Card className="gradient-card shadow-elevated max-w-md">
+      <div className="page-transition flex min-h-screen items-center justify-center px-4">
+        <Card className="max-w-md">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-red-400 mb-2 text-enhanced">Erro ao carregar videoaula</h3>
-            <p className="text-gray-400 mb-4">
-              {error instanceof Error ? error.message : 'Videoaula não encontrada ou sem permissão de acesso'}
+            <AlertCircle className="mx-auto mb-4 h-14 w-14 text-destructive" />
+            <h3 className="mb-2 text-xl font-semibold text-foreground">Erro ao carregar videoaula</h3>
+            <p className="mb-5 text-sm text-muted-foreground">
+              {error instanceof Error
+                ? error.message
+                : 'Videoaula não encontrada ou sem permissão de acesso'}
             </p>
-            <div className="flex space-x-2 justify-center">
-              <Button 
-                onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')} 
-                className="bg-red-600 hover:bg-red-700 btn-hover-lift"
-              >
+            <div className="flex justify-center gap-2">
+              <Button onClick={() => navigate(backHref)} variant="glow">
                 Voltar
               </Button>
-              <Button 
-                onClick={() => window.location.reload()} 
-                variant="outline" 
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50 btn-hover-lift"
-              >
-                Tentar Novamente
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Tentar novamente
               </Button>
             </div>
           </CardContent>
@@ -104,124 +100,138 @@ const VideoLesson: React.FC = () => {
 
   const { produtos: produto } = videoAulaData;
   const sistema = produto?.sistemas;
-
-  logger.info('🎥 [VideoLesson] Data loaded successfully', {
-    videoTitle: videoAulaData.titulo,
-    productName: produto?.nome,
-    systemName: sistema?.nome
-  });
+  const iaDisponivel =
+    videoAulaData.titulo?.includes('Orion PRO') || videoAulaData.titulo?.includes('Orion TN');
 
   return (
-    <div className="min-h-screen text-white page-transition">
-      {/* Enhanced Header */}
-      <div className="border-b border-gray-700/50 glass-effect backdrop-blur-md">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(productId ? `/system/${systemId}/product/${productId}` : '/dashboard')}
-                className="text-gray-300 hover:text-white hover:bg-gray-700/50 btn-hover-lift"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div>
-                <p className="text-sm text-gray-400 mb-1">
-                  {sistema?.nome} • {produto?.nome}
-                </p>
-              </div>
-            </div>
+    <div className="page-transition min-h-screen text-foreground">
+      {/* Header */}
+      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+        <div className="container mx-auto flex items-center gap-4 px-4 py-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(backHref)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+          <div className="min-w-0">
+            <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
+              {sistema?.nome} • {produto?.nome}
+            </p>
+            <p className="truncate text-sm font-medium text-foreground">{videoAulaData.titulo}</p>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content with enhanced layout */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Video Player Section */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Video Player */}
-            <div className="gradient-card rounded-xl overflow-hidden shadow-elevated card-enter">
-              <VideoPlayer 
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Player + conteúdo */}
+          <div className="space-y-8 lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <VideoPlayer
                 videoUrl={videoAulaData.url_video}
                 title={videoAulaData.titulo}
                 thumbnailUrl={videoAulaData.url_thumbnail}
               />
-            </div>
-            
-            {/* Video Title */}
-            <div className="space-y-4">
-              <h1 className="text-3xl font-bold text-white text-enhanced leading-tight">
+            </motion.div>
+
+            <div className="space-y-5">
+              <h1 className="text-3xl font-bold leading-tight text-foreground">
                 {videoAulaData.titulo}
               </h1>
 
-              {/* Progress Button */}
               <div className="max-w-md">
-                <VideoProgressButton 
+                <VideoProgressButton
                   videoAulaId={videoAulaData.id}
                   videoTitle={videoAulaData.titulo}
                   produtoId={productId}
-                  onProgressChange={(videoId, completo) => {
-                    console.log('🎥 [VideoLesson] Progresso atualizado:', { videoId, completo });
-                    // O progresso será atualizado automaticamente pelo useProgressoReativo
-                    // quando o usuário navegar de volta para a lista de produtos
-                  }}
+                  onProgressChange={(id, completo) =>
+                    logger.info('🎥 [VideoLesson] Progresso atualizado', { id, completo })
+                  }
                 />
               </div>
-              
-              {/* Video Description */}
-              {videoAulaData.descricao && (
-                <Card className="gradient-card shadow-modern border-gray-700/50 card-enter">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-white text-xl text-enhanced">Sobre esta aula</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-invert max-w-none">
-                      <p className="text-gray-300 leading-relaxed text-lg">
-                        {videoAulaData.descricao}
+
+              <Tabs defaultValue="overview" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="overview">
+                    <Info className="mr-2 h-4 w-4" />
+                    Visão geral
+                  </TabsTrigger>
+                  <TabsTrigger value="notes">
+                    <NotebookPen className="mr-2 h-4 w-4" />
+                    Minhas anotações
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-xl">Sobre esta aula</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="leading-relaxed text-muted-foreground">
+                        {videoAulaData.descricao ||
+                          'Esta videoaula ainda não possui descrição cadastrada.'}
                       </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="notes">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-xl">Minhas anotações</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => {
+                          setNotes(e.target.value);
+                          localStorage.setItem(notesKey, e.target.value);
+                        }}
+                        placeholder="Registre aqui os pontos importantes desta aula..."
+                        className="min-h-[180px] resize-y bg-background/40"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Salvas automaticamente neste navegador.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
 
-          {/* Enhanced AI Chat Section */}
+          {/* Assistente IA */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              <Card className="gradient-card shadow-elevated border-gray-700/50 card-enter">
-                <CardHeader className="border-b border-gray-700/50 pb-4">
-                  <CardTitle className="text-white text-xl flex items-center text-enhanced">
-                    <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg mr-3 shadow-modern">
-                      <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span>Assistente IA</span>
-                      <p className="text-sm font-normal text-gray-400 mt-1">
+            <div className="sticky top-24">
+              <Card className="overflow-hidden border-primary/20">
+                <CardHeader className="border-b border-border/50 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <Sparkles className="h-5 w-5" />
+                    </span>
+                    <span>
+                      Assistente IA
+                      <span className="mt-1 block text-sm font-normal text-muted-foreground">
                         Tire suas dúvidas sobre esta aula
-                      </p>
-                    </div>
+                      </span>
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="h-[600px] overflow-hidden">
-                    {videoAulaData.titulo?.includes("Orion PRO") || videoAulaData.titulo?.includes("Orion TN") ? (
-                      <AIChat 
-                        lessonTitle={videoAulaData.titulo} 
-                        systemName={sistema?.nome}
-                      />
+                    {iaDisponivel ? (
+                      <AIChat lessonTitle={videoAulaData.titulo} systemName={sistema?.nome} />
                     ) : (
-                      <div className="h-full flex items-center justify-center p-6">
-                        <div className="text-center space-y-4">
-                          <div className="p-4 bg-gray-800/50 rounded-lg mx-auto w-16 h-16 flex items-center justify-center">
-                            <AlertCircle className="h-8 w-8 text-gray-400" />
+                      <div className="flex h-full items-center justify-center p-6">
+                        <div className="space-y-4 text-center">
+                          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/30">
+                            <AlertCircle className="h-8 w-8 text-muted-foreground" />
                           </div>
-                          <p className="text-gray-400 text-sm max-w-xs mx-auto">
+                          <p className="mx-auto max-w-xs text-sm text-muted-foreground">
                             Atualmente disponível apenas para os sistemas Orion TN e Orion PRO
                           </p>
                         </div>
