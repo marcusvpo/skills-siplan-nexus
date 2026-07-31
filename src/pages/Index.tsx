@@ -1,14 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bot, GraduationCap, ShieldCheck, Sparkle, Video } from 'lucide-react';
+import { ArrowRight, Bot, KeyRound, MonitorPlay, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate, Link } from 'react-router-dom';
 import { AmbientBackdrop } from '@/components/layout/AmbientBackdrop';
 
 const features = [
   {
-    icon: Video,
+    icon: MonitorPlay,
     title: 'Videoaulas interativas',
     description: 'Conteúdo em vídeo de alta qualidade sobre todos os sistemas e produtos Siplan.',
   },
@@ -18,16 +17,16 @@ const features = [
     description: 'Tire dúvidas em tempo real com a assistente contextualizada em cada videoaula.',
   },
   {
-    icon: ShieldCheck,
+    icon: KeyRound,
     title: 'Acesso seguro por token',
     description: 'Ambiente controlado e exclusivo para os cartórios clientes da Siplan.',
   },
 ];
 
 const stats = [
-  { value: '8', label: 'Sistemas' },
-  { value: '34', label: 'Produtos' },
-  { value: '149', label: 'Videoaulas' },
+  { value: '+8', label: 'Sistemas' },
+  { value: '+30', label: 'Produtos' },
+  { value: '+150', label: 'Videoaulas' },
 ];
 
 const Index = () => {
@@ -86,67 +85,93 @@ const Index = () => {
             sistema e produto, videoaulas objetivas e uma assistente de IA sempre disponível.
           </p>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-10 flex justify-center">
             <Button variant="glow" size="lg" className="group px-8" onClick={() => navigate('/login')}>
               Acessar plataforma
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
-            <Button variant="outline" size="lg" className="px-8" onClick={() => navigate('/admin-login')}>
-              Sou administrador
-            </Button>
           </div>
 
-          <div className="mx-auto mt-16 grid max-w-2xl grid-cols-3 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-border/60 bg-card/50 px-4 py-5 backdrop-blur-md"
-              >
-                <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
+          {/* faixa de números — régua institucional */}
+          <div className="mx-auto mt-16 max-w-3xl">
+            <div className="flex items-stretch divide-x divide-border/60 overflow-hidden rounded-none border-y-2 border-primary/40 bg-card/30 backdrop-blur-md">
+              {stats.map((stat) => (
+                <div key={stat.label} className="flex-1 px-4 py-6 text-left sm:px-8">
+                  <p className="font-mono text-4xl font-bold leading-none text-primary md:text-5xl">
+                    {stat.value}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.section>
 
-        <section className="mt-28 grid gap-6 md:grid-cols-3">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Card interactive className="h-full border-border/60 bg-card/60">
-                <CardContent className="p-7">
-                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+        {/* Como funciona — lista editorial numerada, sem cards genéricos */}
+        <section className="mt-32">
+          <div className="flex items-end justify-between border-b border-border/60 pb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+              O que você encontra aqui
+            </h2>
+            <span className="font-mono text-xs text-primary">03</span>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {features.map((feature, index) => (
+              <motion.article
+                key={feature.title}
+                initial={{ opacity: 0, x: -16 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="group grid grid-cols-[auto_1fr] items-start gap-6 py-8 md:grid-cols-[6rem_3rem_1fr] md:gap-8"
+              >
+                <span className="font-mono text-3xl font-bold text-border transition-colors group-hover:text-primary md:text-4xl">
+                  0{index + 1}
+                </span>
+                <span className="hidden h-11 w-11 items-center justify-center rounded-full border border-primary/30 bg-primary/10 transition-transform group-hover:scale-110 md:flex">
+                  <feature.icon className="h-5 w-5 text-primary" />
+                </span>
+                <div>
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+                    {feature.description}
+                  </p>
+                </div>
+              </motion.article>
+            ))}
+          </div>
         </section>
 
+        {/* CTA em faixa diagonal assimétrica */}
         <section className="mt-28">
-          <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/60 px-8 py-14 text-center backdrop-blur-xl">
+          <div className="relative overflow-hidden border-l-4 border-primary bg-card/40 px-8 py-12 backdrop-blur-xl md:px-12">
             <div
               aria-hidden
-              className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/25 blur-[110px]"
+              className="absolute -right-20 -top-20 h-72 w-72 rotate-45 bg-primary/10 blur-[90px]"
             />
-            <div className="relative">
-              <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
-                <GraduationCap className="h-6 w-6 text-primary" />
+            <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-primary">Acesso exclusivo</p>
+                <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-foreground md:text-4xl">
+                  Seu cartório já tem <span className="text-primary">token</span>?
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                  Fale com seu representante Siplan para receber o usuário e o token de acesso.
+                </p>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">Pronto para começar?</h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Fale com seu representante Siplan para receber o usuário e o token de acesso do seu cartório.
-              </p>
-              <Button variant="glow" size="lg" className="mt-8 px-8" onClick={() => navigate('/login')}>
+              <Button
+                variant="glow"
+                size="lg"
+                className="group shrink-0 px-8"
+                onClick={() => navigate('/login')}
+              >
                 Entrar com meu token
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </div>
           </div>
