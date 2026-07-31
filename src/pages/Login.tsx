@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContextFixed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, KeyRound, Loader2, Settings, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AmbientBackdrop } from '@/components/layout/AmbientBackdrop';
 
 interface LoginFormData {
   username: string;
