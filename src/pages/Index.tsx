@@ -79,7 +79,7 @@ const Index = () => {
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center md:justify-end">
               <button
                 onClick={() => navigate('/login')}
-                className="group inline-flex items-center gap-3 bg-primary px-7 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90"
+                className="group inline-flex items-center gap-3 whitespace-nowrap bg-primary px-7 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Entrar com meu token
                 <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
