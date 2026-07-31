@@ -1,7 +1,8 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Play } from 'lucide-react';
+import { BookOpen, Play, Package } from 'lucide-react';
 
 interface ProductHeaderProps {
   product: {
@@ -20,29 +21,41 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({ product, system }) => {
   const videoAulas = product.video_aulas || [];
 
   return (
-    <div className="bg-gray-800/50 rounded-lg p-8 border border-gray-600">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{product.nome}</h1>
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="bg-blue-600/20 text-blue-300 border-0">
-              <BookOpen className="h-3 w-3 mr-1" />
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/70 p-8 backdrop-blur-md"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-primary/15 blur-[110px]"
+      />
+      <div className="relative flex flex-wrap items-start gap-5">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+          <Package className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="mb-3 text-3xl font-bold tracking-tight text-foreground">{product.nome}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">
+              <BookOpen className="mr-1 h-3 w-3" />
               {system.nome}
             </Badge>
-            <Badge variant="secondary" className="bg-green-600/20 text-green-300 border-0">
-              <Play className="h-3 w-3 mr-1" />
+            <Badge variant="outline">
+              <Play className="mr-1 h-3 w-3" />
               {videoAulas.length} videoaula{videoAulas.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         </div>
       </div>
-      
+
       {product.descricao && (
-        <p className="text-gray-300 text-lg leading-relaxed">
+        <p className="relative mt-6 max-w-3xl border-l-2 border-primary/50 pl-4 text-base leading-relaxed text-muted-foreground">
           {product.descricao}
         </p>
       )}
-    </div>
+    </motion.section>
   );
 };
 
