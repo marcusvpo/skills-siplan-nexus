@@ -63,7 +63,18 @@ const Index = () => {
             Capacitação para cartórios
           </span>
 
-          <h1 className="mt-8 text-5xl font-bold leading-[0.95] tracking-tight text-foreground md:text-7xl">
+          <div className="mt-10 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-7">
+            <img
+              src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png"
+              alt="Logo Siplan"
+              className="h-20 w-auto object-contain drop-shadow-[0_10px_30px_hsl(var(--primary)/0.45)] md:h-28"
+            />
+            <span className="text-5xl font-bold tracking-tight text-foreground md:text-7xl">
+              Siplan <span className="text-primary">Skills</span>
+            </span>
+          </div>
+
+          <h1 className="mt-8 text-3xl font-semibold leading-[1.1] tracking-tight text-foreground md:text-5xl">
             Domine os sistemas
             <span className="block bg-gradient-to-r from-primary via-primary to-foreground bg-clip-text text-transparent">
               Siplan de ponta a ponta
