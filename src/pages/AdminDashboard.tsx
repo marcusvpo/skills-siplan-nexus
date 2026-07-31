@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 // Importa useAuth da versão FIXA
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { Button } from '@/components/ui/button';
