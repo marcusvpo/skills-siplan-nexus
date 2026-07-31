@@ -17,22 +17,24 @@ const ErrorState: React.FC<ErrorStateProps> = ({ title, message, onRetry }) => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-red-600 max-w-md">
+      <div className="page-transition flex min-h-[70vh] items-center justify-center px-4">
+        <Card className="max-w-md border-destructive/30">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-red-400 mb-4">{title}</h1>
-            <p className="text-gray-400 mb-6">{message}</p>
+            <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
+              <AlertCircle className="h-8 w-8" />
+            </span>
+            <h1 className="mb-3 text-2xl font-bold text-foreground">{title}</h1>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{message}</p>
             <div className="space-y-2">
               {onRetry && (
-                <Button onClick={onRetry} className="bg-red-600 hover:bg-red-700 w-full">
+                <Button onClick={onRetry} variant="glow" className="w-full">
                   Tentar Novamente
                 </Button>
               )}
-              <Button 
-                onClick={() => navigate('/dashboard')} 
-                variant="outline" 
-                className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full"
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="outline"
+                className="w-full"
               >
                 Voltar ao Dashboard
               </Button>
