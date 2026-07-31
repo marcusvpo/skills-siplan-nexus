@@ -1,14 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bot, GraduationCap, ShieldCheck, Sparkle, Video } from 'lucide-react';
+import { ArrowRight, Bot, KeyRound, MonitorPlay, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate, Link } from 'react-router-dom';
 import { AmbientBackdrop } from '@/components/layout/AmbientBackdrop';
 
 const features = [
   {
-    icon: Video,
+    icon: MonitorPlay,
     title: 'Videoaulas interativas',
     description: 'Conteúdo em vídeo de alta qualidade sobre todos os sistemas e produtos Siplan.',
   },
@@ -18,16 +17,16 @@ const features = [
     description: 'Tire dúvidas em tempo real com a assistente contextualizada em cada videoaula.',
   },
   {
-    icon: ShieldCheck,
+    icon: KeyRound,
     title: 'Acesso seguro por token',
     description: 'Ambiente controlado e exclusivo para os cartórios clientes da Siplan.',
   },
 ];
 
 const stats = [
-  { value: '8', label: 'Sistemas' },
-  { value: '34', label: 'Produtos' },
-  { value: '149', label: 'Videoaulas' },
+  { value: '+8', label: 'Sistemas' },
+  { value: '+30', label: 'Produtos' },
+  { value: '+150', label: 'Videoaulas' },
 ];
 
 const Index = () => {
