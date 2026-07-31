@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContextFixed'; 
 import { toast } from '@/hooks/use-toast';
 import { useProgressContext } from '@/contexts/ProgressContext';
+import { cn } from '@/lib/utils';
 
 interface VideoProgressButtonProps {
   videoAulaId: string;
@@ -208,14 +209,14 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   if (!isAuthenticated || authLoading || !cartorioId) {
     if (authLoading) {
       return (
-        <Button disabled className="w-full">
+        <Button disabled className="w-full rounded-xl">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Autenticando...
         </Button>
       );
     }
     return (
-      <Button disabled className="w-full">
+      <Button disabled className="w-full rounded-xl">
         <Circle className="mr-2 h-4 w-4" />
         Faça login para marcar progresso
       </Button>
@@ -225,7 +226,7 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
   // Estado de carregamento enquanto verifica o progresso inicial
   if (isChecking) {
     return (
-      <Button disabled className="w-full">
+      <Button disabled className="w-full rounded-xl">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Verificando progresso...
       </Button>
@@ -237,11 +238,11 @@ export const VideoProgressButton: React.FC<VideoProgressButtonProps> = ({
     <Button
       onClick={toggleCompletion}
       disabled={isLoading}
-      className={`w-full ${
-        isCompleted 
-          ? 'bg-green-600 hover:bg-green-700 text-white' 
-          : 'bg-red-600 hover:bg-red-700 text-white'
-      }`}
+      variant={isCompleted ? 'outline' : 'glow'}
+      className={cn(
+        'w-full rounded-xl',
+        isCompleted && 'border-success text-success hover:bg-success/10 hover:text-success'
+      )}
     >
       {isLoading ? (
         <>

@@ -207,8 +207,8 @@ export const ContentManagerFixed: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-red-500 mr-3" />
-        <span className="text-white">Carregando conteúdo...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+        <span className="text-foreground">Carregando conteúdo...</span>
       </div>
     );
   }
@@ -219,7 +219,7 @@ export const ContentManagerFixed: React.FC = () => {
       <>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-white">Categorias</h2>
+            <h2 className="text-3xl font-bold text-foreground">Categorias</h2>
             <Button onClick={() => setCreateSistemaOpen(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Nova Categoria
@@ -228,10 +228,10 @@ export const ContentManagerFixed: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sistemasData?.map((sistema: any) => (
-              <Card key={sistema.id} className="bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-colors">
+              <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3">{sistema.nome}</h3>
-                  <p className="text-gray-400 text-sm mb-6 min-h-[40px]">{sistema.descricao || 'Sem descrição'}</p>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{sistema.nome}</h3>
+                  <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{sistema.descricao || 'Sem descrição'}</p>
                   
                   <div className="flex items-center justify-between">
                     <Button
@@ -240,7 +240,7 @@ export const ContentManagerFixed: React.FC = () => {
                         setViewMode('produtos');
                       }}
                       variant="outline"
-                      className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600"
+                      className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
                     >
                       <FolderOpen className="h-4 w-4 mr-2" />
                       Ver Produtos
@@ -255,7 +255,7 @@ export const ContentManagerFixed: React.FC = () => {
                           setFormData({ nome: sistema.nome, descricao: sistema.descricao || '' });
                           setEditSistemaOpen(true);
                         }}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        className="border-border text-muted-foreground hover:bg-secondary"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -263,7 +263,7 @@ export const ContentManagerFixed: React.FC = () => {
                         size="icon"
                         variant="outline"
                         onClick={() => handleDeleteSistema(sistema)}
-                        className="border-red-600 text-red-400 hover:bg-red-700/20"
+                        className="border-destructive/50 text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -277,7 +277,7 @@ export const ContentManagerFixed: React.FC = () => {
 
         {/* Modal Criar Sistema */}
         <Dialog open={createSistemaOpen} onOpenChange={setCreateSistemaOpen}>
-          <DialogContent className="bg-gray-800 border-gray-600 text-white">
+          <DialogContent className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle>Cadastrar Nova Categoria</DialogTitle>
             </DialogHeader>
@@ -287,7 +287,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Input
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   placeholder="Ex: Demonstrações, Orion, etc."
                 />
               </div>
@@ -296,13 +296,13 @@ export const ContentManagerFixed: React.FC = () => {
                 <Textarea
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   placeholder="Descrição breve da categoria"
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setCreateSistemaOpen(false)} className="border-gray-600">
+                <Button variant="outline" onClick={() => setCreateSistemaOpen(false)} className="border-border">
                   Cancelar
                 </Button>
                 <Button onClick={handleCreateSistema} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
@@ -316,7 +316,7 @@ export const ContentManagerFixed: React.FC = () => {
 
         {/* Modal Editar Sistema */}
         <Dialog open={editSistemaOpen} onOpenChange={setEditSistemaOpen}>
-          <DialogContent className="bg-gray-800 border-gray-600 text-white">
+          <DialogContent className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle>Editar Categoria</DialogTitle>
             </DialogHeader>
@@ -326,7 +326,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Input
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                 />
               </div>
               <div>
@@ -334,12 +334,12 @@ export const ContentManagerFixed: React.FC = () => {
                 <Textarea
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditSistemaOpen(false)} className="border-gray-600">
+                <Button variant="outline" onClick={() => setEditSistemaOpen(false)} className="border-border">
                   Cancelar
                 </Button>
                 <Button onClick={handleUpdateSistema} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
@@ -366,13 +366,13 @@ export const ContentManagerFixed: React.FC = () => {
                   setViewMode('sistemas');
                             }}
                 variant="outline"
-                className="mb-4 border-gray-600 text-gray-300"
+                className="mb-4 border-border text-muted-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar às Categorias
               </Button>
-              <h2 className="text-3xl font-bold text-white">Produtos</h2>
-              <p className="text-gray-400 mt-1">Categoria: {selectedSistema.nome}</p>
+              <h2 className="text-3xl font-bold text-foreground">Produtos</h2>
+              <p className="text-muted-foreground mt-1">Categoria: {selectedSistema.nome}</p>
             </div>
             <Button onClick={() => setCreateProdutoOpen(true)} className="bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 mr-2" />
@@ -382,10 +382,10 @@ export const ContentManagerFixed: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selectedSistema.produtos?.map((produto: any) => (
-              <Card key={produto.id} className="bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-colors">
+              <Card key={produto.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-3">{produto.nome}</h3>
-                  <p className="text-gray-400 text-sm mb-6 min-h-[40px]">{produto.descricao || 'Sem descrição'}</p>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{produto.nome}</h3>
+                  <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{produto.descricao || 'Sem descrição'}</p>
                   
                   <div className="flex items-center justify-between">
                     <Button
@@ -394,7 +394,7 @@ export const ContentManagerFixed: React.FC = () => {
                         setViewMode('videoaulas');
                       }}
                       variant="outline"
-                      className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600"
+                      className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
                     >
                       <Video className="h-4 w-4 mr-2" />
                       Ver Video Aulas
@@ -409,7 +409,7 @@ export const ContentManagerFixed: React.FC = () => {
                           setFormData({ nome: produto.nome, descricao: produto.descricao || '' });
                           setEditProdutoOpen(true);
                         }}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        className="border-border text-muted-foreground hover:bg-secondary"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -417,7 +417,7 @@ export const ContentManagerFixed: React.FC = () => {
                         size="icon"
                         variant="outline"
                         onClick={() => handleDeleteProduto(produto)}
-                        className="border-red-600 text-red-400 hover:bg-red-700/20"
+                        className="border-destructive/50 text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -431,7 +431,7 @@ export const ContentManagerFixed: React.FC = () => {
 
         {/* Modal Criar Produto */}
         <Dialog open={createProdutoOpen} onOpenChange={setCreateProdutoOpen}>
-          <DialogContent className="bg-gray-800 border-gray-600 text-white">
+          <DialogContent className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle>Cadastrar Novo Produto</DialogTitle>
             </DialogHeader>
@@ -441,7 +441,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Input
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   placeholder="Ex: Orion TN, Orion Reg, etc."
                 />
               </div>
@@ -450,13 +450,13 @@ export const ContentManagerFixed: React.FC = () => {
                 <Textarea
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   placeholder="Descrição breve do produto"
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setCreateProdutoOpen(false)} className="border-gray-600">
+                <Button variant="outline" onClick={() => setCreateProdutoOpen(false)} className="border-border">
                   Cancelar
                 </Button>
                 <Button onClick={handleCreateProduto} disabled={isCreating} className="bg-green-600 hover:bg-green-700">
@@ -470,7 +470,7 @@ export const ContentManagerFixed: React.FC = () => {
 
         {/* Modal Editar Produto */}
         <Dialog open={editProdutoOpen} onOpenChange={setEditProdutoOpen}>
-          <DialogContent className="bg-gray-800 border-gray-600 text-white">
+          <DialogContent className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle>Editar Produto</DialogTitle>
             </DialogHeader>
@@ -480,7 +480,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Input
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                 />
               </div>
               <div>
@@ -488,12 +488,12 @@ export const ContentManagerFixed: React.FC = () => {
                 <Textarea
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-background/50 border-border text-foreground"
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditProdutoOpen(false)} className="border-gray-600">
+                <Button variant="outline" onClick={() => setEditProdutoOpen(false)} className="border-border">
                   Cancelar
                 </Button>
                 <Button onClick={handleUpdateProduto} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
@@ -519,13 +519,13 @@ export const ContentManagerFixed: React.FC = () => {
                 setViewMode('produtos');
                         }}
               variant="outline"
-              className="mb-4 border-gray-600 text-gray-300"
+              className="mb-4 border-border text-muted-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar aos Produtos
             </Button>
-            <h2 className="text-3xl font-bold text-white">Videoaulas</h2>
-            <p className="text-gray-400 mt-1">
+            <h2 className="text-3xl font-bold text-foreground">Videoaulas</h2>
+            <p className="text-muted-foreground mt-1">
               Sistema: {selectedSistema?.nome} • Produto: {selectedProduto.nome}
             </p>
           </div>
@@ -540,12 +540,12 @@ export const ContentManagerFixed: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {selectedProduto.video_aulas?.map((videoAula: any) => (
-            <Card key={videoAula.id} className="bg-gray-800/50 border-gray-700 hover:border-gray-600 transition-colors">
+            <Card key={videoAula.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-white mb-2">{videoAula.titulo}</h3>
-                <p className="text-gray-400 text-sm mb-4 line-clamp-4">{videoAula.descricao || 'Sem descrição'}</p>
+                <h3 className="text-lg font-bold text-foreground mb-2">{videoAula.titulo}</h3>
+                <p className="text-muted-foreground text-sm mb-4 line-clamp-4">{videoAula.descricao || 'Sem descrição'}</p>
                 
-                <div className="space-y-2 mb-4 text-xs text-gray-500">
+                <div className="space-y-2 mb-4 text-xs text-muted-foreground">
                   <p>Ordem: {videoAula.ordem}</p>
                   {videoAula.id_video_bunny && (
                     <p className="font-mono">ID Bunny: {videoAula.id_video_bunny}</p>
@@ -557,7 +557,7 @@ export const ContentManagerFixed: React.FC = () => {
                     onClick={() => window.location.href = `/video/${videoAula.id}`}
                     variant="outline"
                     size="sm"
-                    className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600"
+                    className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
                   >
                     <Video className="h-4 w-4 mr-2" />
                     Visualizar
@@ -568,7 +568,7 @@ export const ContentManagerFixed: React.FC = () => {
                       size="icon"
                       variant="outline"
                       onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-border text-muted-foreground hover:bg-secondary"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -576,7 +576,7 @@ export const ContentManagerFixed: React.FC = () => {
                       size="icon"
                       variant="outline"
                       onClick={() => handleDeleteVideoAula(videoAula)}
-                      className="border-red-600 text-red-400 hover:bg-red-700/20"
+                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

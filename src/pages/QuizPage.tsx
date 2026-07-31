@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, HelpCircle } from "lucide-react";
+import LoadingState from "@/components/system/LoadingState";
 
 export const QuizPage = () => {
   const { video_aula_id, quiz_id } = useParams();
@@ -89,24 +90,28 @@ export const QuizPage = () => {
   });
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Carregando quiz...</div>;
+    return <LoadingState message="Carregando quiz..." />;
   }
 
   if (resultado) {
     return (
       <div className="min-h-screen bg-background p-8">
         <div className="max-w-2xl mx-auto">
-          <Card>
+          <Card className="bg-card/70 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="text-center">
                 {resultado.aprovado ? (
                   <div className="flex flex-col items-center gap-4">
-                    <CheckCircle2 className="h-16 w-16 text-green-500" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-success/15 text-success">
+                      <CheckCircle2 className="h-8 w-8" />
+                    </div>
                     <span>Quiz Aprovado!</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
-                    <XCircle className="h-16 w-16 text-red-500" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/15 text-destructive">
+                      <XCircle className="h-8 w-8" />
+                    </div>
                     <span>Tente Novamente</span>
                   </div>
                 )}
@@ -121,7 +126,7 @@ export const QuizPage = () => {
               </p>
               <div className="flex gap-4 justify-center">
                 {resultado.aprovado ? (
-                  <Button onClick={() => navigate(tipo ? '/certificacoes' : '/trilha/inicio')}>
+                  <Button variant="glow" onClick={() => navigate(tipo ? '/certificacoes' : '/trilha/inicio')}>
                     Continuar
                   </Button>
                 ) : (
@@ -143,15 +148,20 @@ export const QuizPage = () => {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{quizData?.quiz?.titulo}</h1>
-          <p className="text-muted-foreground">
-            Responda pelo menos {quizData?.quiz?.min_acertos} questões corretamente
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <HelpCircle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold mb-1 truncate">{quizData?.quiz?.titulo}</h1>
+            <p className="text-muted-foreground">
+              Responda pelo menos {quizData?.quiz?.min_acertos} questões corretamente
+            </p>
+          </div>
         </div>
 
         {quizData?.perguntas?.map((pergunta: any, index: number) => (
-          <Card key={pergunta.id}>
+          <Card key={pergunta.id} className="bg-card/70 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">
                 Questão {index + 1}: {pergunta.pergunta}
@@ -162,7 +172,7 @@ export const QuizPage = () => {
                 <img
                   src={pergunta.imagem_url}
                   alt="Imagem da questão"
-                  className="w-full max-h-64 object-contain mb-4 rounded"
+                  className="w-full max-h-64 object-contain mb-4 rounded-xl"
                 />
               )}
               <RadioGroup
@@ -170,7 +180,7 @@ export const QuizPage = () => {
                 onValueChange={(v) => setRespostas({ ...respostas, [pergunta.id]: parseInt(v) })}
               >
                 {JSON.parse(pergunta.opcoes || "[]").map((opcao: any) => (
-                  <div key={opcao.id} className="flex items-center space-x-2 p-2 rounded hover:bg-accent">
+                  <div key={opcao.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-accent">
                     <RadioGroupItem value={opcao.id.toString()} id={`${pergunta.id}-${opcao.id}`} />
                     <Label htmlFor={`${pergunta.id}-${opcao.id}`} className="cursor-pointer flex-1">
                       {opcao.texto}
@@ -183,6 +193,7 @@ export const QuizPage = () => {
         ))}
 
         <Button
+          variant="glow"
           className="w-full"
           size="lg"
           onClick={() => submitMutation.mutate()}

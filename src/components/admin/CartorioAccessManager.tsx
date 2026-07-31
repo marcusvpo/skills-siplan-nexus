@@ -84,19 +84,21 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl bg-card/95 backdrop-blur-md border-border/50 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Shield className="h-5 w-5 text-red-400" />
-            Controle de Acesso - {cartorioName}
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+              <Shield className="h-5 w-5" />
+            </span>
+            <span className="truncate">Controle de Acesso - {cartorioName}</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Adicionar novo acesso */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
             <CardHeader>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Conceder Novo Acesso
               </CardTitle>
@@ -104,14 +106,14 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Sistema *</label>
+                  <label className="text-sm text-muted-foreground mb-2 block">Sistema *</label>
                   <Select value={selectedSistema} onValueChange={setSelectedSistema}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione um sistema" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectContent>
                       {allSistemas.map((sistema) => (
-                        <SelectItem key={sistema.id} value={sistema.id} className="text-white">
+                        <SelectItem key={sistema.id} value={sistema.id}>
                           {sistema.nome}
                         </SelectItem>
                       ))}
@@ -120,21 +122,21 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Produto (Opcional)</label>
+                  <label className="text-sm text-muted-foreground mb-2 block">Produto (Opcional)</label>
                   <Select 
                     value={selectedProduto} 
                     onValueChange={setSelectedProduto}
                     disabled={!selectedSistema}
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Todos os produtos" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
-                      <SelectItem value="" className="text-white">
+                    <SelectContent>
+                      <SelectItem value="">
                         Todos os produtos do sistema
                       </SelectItem>
                       {availableProducts.map((produto) => (
-                        <SelectItem key={produto.id} value={produto.id} className="text-white">
+                        <SelectItem key={produto.id} value={produto.id}>
                           {produto.nome}
                         </SelectItem>
                       ))}
@@ -144,9 +146,9 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
               </div>
 
               <Button
+                variant="glow"
                 onClick={handleGrantAccess}
                 disabled={!selectedSistema || isGranting}
-                className="bg-green-600 hover:bg-green-700"
               >
                 {isGranting ? 'Concedendo...' : 'Conceder Acesso'}
               </Button>
@@ -154,9 +156,9 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
           </Card>
 
           {/* Lista de acessos atuais */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
             <CardHeader>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Acessos Atuais ({currentAccess.length})
               </CardTitle>
@@ -164,8 +166,8 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
             <CardContent>
               {currentAccess.length === 0 ? (
                 <div className="text-center py-8">
-                  <Shield className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">
+                  <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
                     Nenhuma restrição definida. Este cartório tem acesso total a todos os sistemas e produtos.
                   </p>
                 </div>
@@ -174,18 +176,18 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
                   {currentAccess.map((access) => (
                     <div
                       key={access.id}
-                      className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600"
+                      className="flex items-center justify-between gap-4 p-4 bg-muted/40 rounded-xl border border-border/50"
                     >
-                      <div>
-                        <h4 className="text-white font-medium">
+                      <div className="min-w-0">
+                        <h4 className="font-medium truncate">
                           {getSistemaName(access.sistema_id)}
                         </h4>
                         {access.produto_id ? (
-                          <p className="text-sm text-gray-300">
+                          <p className="text-sm text-muted-foreground truncate">
                             Produto: {getProdutoName(access.produto_id)}
                           </p>
                         ) : (
-                          <p className="text-sm text-green-400">
+                          <p className="text-sm text-success">
                             Todos os produtos deste sistema
                           </p>
                         )}
@@ -193,7 +195,7 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
                           <Badge variant="secondary" className="text-xs">
                             {access.nivel_acesso}
                           </Badge>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
                             Liberado em: {new Date(access.data_liberacao).toLocaleDateString('pt-BR')}
                           </span>
                         </div>
@@ -203,7 +205,7 @@ export const CartorioAccessManager: React.FC<CartorioAccessManagerProps> = ({
                         onClick={() => handleRevokeAccess(access.id)}
                         variant="destructive"
                         size="sm"
-                        className="ml-4"
+                        className="shrink-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

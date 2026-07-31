@@ -276,20 +276,20 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen bg-background text-foreground">
         {/* Header */}
-        <div className="bg-gray-900 border-b border-gray-700 p-4">
+        <div className="bg-card/70 backdrop-blur-md border-b border-border/50 p-4">
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/admin')}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                className="border-border text-muted-foreground hover:bg-secondary"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar ao Admin
               </Button>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold text-foreground">
                 {isEditing ? 'Editar Videoaula' : 'Nova Videoaula'}
               </h1>
             </div>
@@ -297,7 +297,7 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => navigate('/admin')}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
+                className="border-border text-muted-foreground hover:bg-secondary"
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
@@ -305,7 +305,7 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
               <Button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isLoading ? 'Salvando...' : 'Salvar Videoaula'}
@@ -320,9 +320,9 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
             {/* Main Content Area - WYSIWYG */}
             <div className="lg:col-span-2 space-y-6">
               {/* Video Player Area - Exactly as users will see it */}
-              <Card className="bg-gray-900 border-gray-700">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
                 <CardContent className="p-0">
-                  <div className="aspect-video bg-black rounded-t-lg overflow-hidden relative flex items-center justify-center border-b border-gray-600">
+                  <div className="aspect-video bg-background rounded-t-2xl overflow-hidden relative flex items-center justify-center border-b border-border">
                     {videoAula.url_video ? (
                       <div className="w-full h-full relative">
                         <video
@@ -332,28 +332,28 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                         >
                           <source src={videoAula.url_video} type="video/mp4" />
                         </video>
-                        <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center">
+                        <div className="absolute top-2 right-2 bg-success text-success-foreground px-2 py-1 rounded text-xs flex items-center">
                           <Check className="h-3 w-3 mr-1" />
                           Vídeo Configurado
                         </div>
                       </div>
                     ) : (
                       <div className="text-center p-8">
-                        <Play className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-400 mb-2">Preview do Player de Vídeo</p>
-                        <p className="text-gray-500 text-sm">Configure o vídeo na lateral para visualizar</p>
+                        <Play className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground mb-2">Preview do Player de Vídeo</p>
+                        <p className="text-muted-foreground text-sm">Configure o vídeo na lateral para visualizar</p>
                       </div>
                     )}
                   </div>
                   
                   {/* Video Info Area - As users will see */}
-                  <div className="p-6 bg-gray-900">
+                  <div className="p-6 bg-card">
                     <div className="mb-4">
                       <input
                         type="text"
                         value={videoAula.titulo}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, titulo: e.target.value }))}
-                        className="w-full bg-transparent text-2xl font-bold text-white border-none outline-none placeholder-gray-400 focus:ring-2 focus:ring-red-600 rounded px-2 py-1"
+                        className="w-full bg-transparent text-2xl font-bold text-foreground text-foreground border-none outline-none placeholder-muted-foreground focus:ring-2 focus:ring-red-600 rounded px-2 py-1"
                         placeholder="Título da Videoaula"
                       />
                     </div>
@@ -361,14 +361,14 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                       <textarea
                         value={videoAula.descricao || ''}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, descricao: e.target.value }))}
-                        className="w-full bg-transparent text-gray-300 border-none outline-none placeholder-gray-400 focus:ring-2 focus:ring-red-600 rounded px-2 py-1 resize-none"
+                        className="w-full bg-transparent text-muted-foreground border-none outline-none placeholder-muted-foreground focus:ring-2 focus:ring-red-600 rounded px-2 py-1 resize-none"
                         placeholder="Descrição da videoaula..."
                         rows={3}
                       />
                     </div>
                     
                     {/* Course Info Display */}
-                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <span>Sistema: {sistemas.find(s => s.id === selectedSistema)?.nome || 'Não selecionado'}</span>
                       <span>•</span>
                       <span>Produto: {produtos.find(p => p.id === selectedProduto)?.nome || 'Não selecionado'}</span>
@@ -380,34 +380,34 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
               </Card>
 
               {/* AI Chat Interface - Exactly as users will see it */}
-              <Card className="bg-gray-900 border-gray-700">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
                     🤖 Assistente de IA
                     <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">PREVIEW</span>
                   </h3>
                   
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-600 h-80 flex flex-col">
+                  <div className="bg-secondary/50 rounded-xl p-4 border border-border h-80 flex flex-col">
                     {/* Chat Messages Area */}
                     <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                      <div className="bg-gray-700 rounded-lg p-3 text-sm">
+                      <div className="bg-secondary/50 rounded-xl p-3 text-sm">
                         <div className="font-semibold text-blue-400 mb-1">🤖 IA Assistant</div>
-                        <div className="text-gray-300">
+                        <div className="text-muted-foreground">
                           Olá! Sou seu assistente de IA para esta videoaula "{videoAula.titulo || 'Nova Videoaula'}". 
                           Posso responder dúvidas sobre o conteúdo apresentado.
                         </div>
                       </div>
                       
-                      <div className="bg-red-600/20 rounded-lg p-3 text-sm ml-8">
-                        <div className="font-semibold text-gray-300 mb-1">👤 Usuário</div>
-                        <div className="text-gray-300">
+                      <div className="bg-destructive/15 rounded-lg p-3 text-sm ml-8">
+                        <div className="font-semibold text-muted-foreground mb-1">👤 Usuário</div>
+                        <div className="text-muted-foreground">
                           Como funciona esta funcionalidade?
                         </div>
                       </div>
 
-                      <div className="bg-gray-700 rounded-lg p-3 text-sm">
+                      <div className="bg-secondary/50 rounded-xl p-3 text-sm">
                         <div className="font-semibold text-blue-400 mb-1">🤖 IA Assistant</div>
-                        <div className="text-gray-300">
+                        <div className="text-muted-foreground">
                           Esta IA será alimentada pela transcrição automática do vídeo e poderá responder 
                           perguntas específicas sobre o conteúdo da aula.
                         </div>
@@ -415,12 +415,12 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                     </div>
                     
                     {/* Chat Input */}
-                    <div className="border-t border-gray-600 pt-4">
+                    <div className="border-t border-border pt-4">
                       <div className="flex space-x-2">
                         <input 
                           type="text" 
                           placeholder="Digite sua pergunta sobre a videoaula..." 
-                          className="flex-1 bg-gray-700 text-white px-3 py-2 rounded text-sm border border-gray-600 focus:border-blue-500 outline-none"
+                          className="flex-1 bg-secondary text-foreground px-3 py-2 rounded text-sm border border-border focus:border-blue-500 outline-none"
                           disabled
                         />
                         <button className="bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors" disabled>
@@ -443,43 +443,43 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
             {/* Sidebar - Configuration Panel */}
             <div className="space-y-6">
               {/* Video Configuration */}
-              <Card className="bg-gray-900 border-gray-700">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">🎬 Configuração do Vídeo</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">🎬 Configuração do Vídeo</h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         ID Bunny.net
                       </label>
                       <Input
                         value={videoAula.id_video_bunny}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, id_video_bunny: e.target.value }))}
-                        className="bg-gray-800 border-gray-600 text-white"
+                        className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl"
                         placeholder="ID do vídeo no Bunny.net"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         URL do Vídeo
                       </label>
                       <Input
                         value={videoAula.url_video}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, url_video: e.target.value }))}
-                        className="bg-gray-800 border-gray-600 text-white"
+                        className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl"
                         placeholder="URL de reprodução do vídeo"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         URL da Thumbnail
                       </label>
                       <Input
                         value={videoAula.url_thumbnail || ''}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, url_thumbnail: e.target.value }))}
-                        className="bg-gray-800 border-gray-600 text-white"
+                        className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl"
                         placeholder="URL da imagem de capa"
                       />
                     </div>
@@ -488,25 +488,25 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
               </Card>
 
               {/* Course Configuration */}
-              <Card className="bg-gray-900 border-gray-700">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">📚 Configuração do Curso</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">📚 Configuração do Curso</h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Sistema *
                       </label>
                       {isLoadingSistemas ? (
-                        <div className="text-gray-400 text-sm">Carregando sistemas...</div>
+                        <div className="text-muted-foreground text-sm">Carregando sistemas...</div>
                       ) : (
                         <Select value={selectedSistema} onValueChange={setSelectedSistema}>
-                          <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                          <SelectTrigger className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
                             <SelectValue placeholder="Selecione o sistema" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectContent className="bg-background/50 border-border">
                             {sistemas.map((sistema) => (
-                              <SelectItem key={sistema.id} value={sistema.id} className="text-white">
+                              <SelectItem key={sistema.id} value={sistema.id} className="text-foreground">
                                 {sistema.nome}
                               </SelectItem>
                             ))}
@@ -516,11 +516,11 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Produto *
                       </label>
                       {isLoadingProdutos ? (
-                        <div className="text-gray-400 text-sm">Carregando produtos...</div>
+                        <div className="text-muted-foreground text-sm">Carregando produtos...</div>
                       ) : (
                         <Select 
                           value={selectedProduto} 
@@ -530,12 +530,12 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                           }}
                           disabled={!selectedSistema}
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                          <SelectTrigger className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl">
                             <SelectValue placeholder={selectedSistema ? "Selecione o produto" : "Primeiro selecione um sistema"} />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectContent className="bg-background/50 border-border">
                             {produtos.map((produto) => (
-                              <SelectItem key={produto.id} value={produto.id} className="text-white">
+                              <SelectItem key={produto.id} value={produto.id} className="text-foreground">
                                 {produto.nome}
                               </SelectItem>
                             ))}
@@ -545,14 +545,14 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Ordem na Sequência
                       </label>
                       <Input
                         type="number"
                         value={videoAula.ordem}
                         onChange={(e) => setVideoAula(prev => ({ ...prev, ordem: parseInt(e.target.value) || 1 }))}
-                        className="bg-gray-800 border-gray-600 text-white"
+                        className="bg-card/95 backdrop-blur-md border-border/50 text-foreground rounded-2xl"
                         min="1"
                       />
                     </div>
@@ -561,25 +561,25 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
               </Card>
 
               {/* AI Configuration Preview */}
-              <Card className="bg-gray-900 border-gray-700">
+              <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">🤖 Configuração da IA</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">🤖 Configuração da IA</h3>
                   
                   <div className="space-y-4">
-                    <div className="p-3 bg-gray-800 rounded border border-gray-600">
-                      <p className="text-gray-300 text-sm mb-2">
+                    <div className="p-3 bg-card rounded border border-border">
+                      <p className="text-muted-foreground text-sm mb-2">
                         <strong>Transcrição Automática:</strong> Ativada
                       </p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         O vídeo será automaticamente transcrito para alimentar a IA
                       </p>
                     </div>
                     
-                    <div className="p-3 bg-gray-800 rounded border border-gray-600">
-                      <p className="text-gray-300 text-sm mb-2">
+                    <div className="p-3 bg-card rounded border border-border">
+                      <p className="text-muted-foreground text-sm mb-2">
                         <strong>Contexto da IA:</strong> Videoaula específica
                       </p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         A IA responderá apenas sobre o conteúdo desta aula
                       </p>
                     </div>

@@ -184,7 +184,7 @@ export const QuizManager = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Gestão de Quizzes</h2>
+      <h2 className="text-2xl font-bold text-foreground">Gestão de Quizzes</h2>
       
       <div className="grid grid-cols-3 gap-4">
         <div>
@@ -369,7 +369,7 @@ export const QuizManager = () => {
                     <p className="font-medium">{i + 1}. {p.pergunta}</p>
                     <div className="text-sm text-muted-foreground mt-1">
                       {JSON.parse(p.opcoes || "[]").map((op: any, idx: number) => (
-                        <div key={idx} className={op.id === JSON.parse(p.resposta_correta || "[]")[0] ? "font-semibold text-green-600" : ""}>
+                        <div key={idx} className={op.id === JSON.parse(p.resposta_correta || "[]")[0] ? "font-semibold text-success" : ""}>
                           {String.fromCharCode(65 + idx)}) {op.texto}
                         </div>
                       ))}

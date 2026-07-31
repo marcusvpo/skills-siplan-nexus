@@ -77,21 +77,23 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-600 max-w-md">
+      <DialogContent className="max-w-md bg-card/95 backdrop-blur-md border-border/50 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center">
-            <Clock className="h-5 w-5 mr-2" />
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Clock className="h-5 w-5" />
+            </span>
             Editar Validade do Token
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-white">{cartorio.nome}</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="text-lg font-semibold text-foreground truncate">{cartorio.nome}</h3>
+            <p className="text-sm text-muted-foreground">
               Token: {cartorio.acessos_cartorio?.[0]?.login_token}
             </p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Expira atualmente em: {cartorio.acessos_cartorio?.[0]?.data_expiracao 
                 ? new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')
                 : 'N/A'
@@ -101,13 +103,12 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="expiration" className="text-gray-300">Nova Data de Expiração</Label>
+              <Label htmlFor="expiration" className="text-muted-foreground">Nova Data de Expiração</Label>
               <Input
                 id="expiration"
                 type="date"
                 value={newExpirationDate}
                 onChange={(e) => setNewExpirationDate(e.target.value)}
-                className="bg-gray-700/50 border-gray-600 text-white"
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
@@ -117,7 +118,6 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => addDays(30)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 +30 dias
               </Button>
@@ -125,7 +125,6 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => addDays(90)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 +90 dias
               </Button>
@@ -133,7 +132,6 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => addMonths(6)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 +6 meses
               </Button>
@@ -141,7 +139,6 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => addMonths(12)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 +1 ano
               </Button>
@@ -150,9 +147,10 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
 
           <div className="flex space-x-3">
             <Button
+              variant="glow"
               onClick={handleUpdateExpiration}
               disabled={isLoading || !newExpirationDate}
-              className="bg-green-600 hover:bg-green-700 text-white flex-1"
+              className="flex-1"
             >
               {isLoading ? (
                 <>
@@ -169,7 +167,6 @@ export const EditTokenModal: React.FC<EditTokenModalProps> = ({
             <Button
               variant="outline"
               onClick={onClose}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
             >
               <X className="h-4 w-4 mr-2" />
               Cancelar
