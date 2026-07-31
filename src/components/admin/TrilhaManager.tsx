@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Copy, ArrowUp, ArrowDown, X, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export const TrilhaManager = () => {
@@ -109,10 +109,14 @@ export const TrilhaManager = () => {
   });
 
   const handleSubmit = () => {
+    const payload = {
+      ...formData,
+      aulas: formData.aulas.map((a, index) => ({ video_aula_id: a.video_aula_id, ordem: index })),
+    };
     if (editingTrilha) {
-      updateMutation.mutate({ id: editingTrilha.id, ...formData });
+      updateMutation.mutate({ id: editingTrilha.id, ...payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
@@ -131,10 +135,9 @@ export const TrilhaManager = () => {
     setFormData({
       nome: trilha.nome,
       produto_id: trilha.produto_id,
-      aulas: trilha.trilha_aulas.map((ta: any) => ({
-        video_aula_id: ta.video_aula_id,
-        ordem: ta.ordem
-      }))
+      aulas: [...(trilha.trilha_aulas || [])]
+        .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map((ta: any, i: number) => ({ video_aula_id: ta.video_aula_id, ordem: i }))
     });
     setIsDialogOpen(true);
   };
@@ -145,10 +148,9 @@ export const TrilhaManager = () => {
     setFormData({
       nome: `${trilha.nome} (Cópia)`,
       produto_id: trilha.produto_id,
-      aulas: trilha.trilha_aulas.map((ta: any) => ({
-        video_aula_id: ta.video_aula_id,
-        ordem: ta.ordem
-      }))
+      aulas: [...(trilha.trilha_aulas || [])]
+        .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map((ta: any, i: number) => ({ video_aula_id: ta.video_aula_id, ordem: i }))
     });
     setIsDialogOpen(true);
   };
@@ -158,7 +160,9 @@ export const TrilhaManager = () => {
     if (exists) {
       setFormData({
         ...formData,
-        aulas: formData.aulas.filter(a => a.video_aula_id !== videoAulaId)
+        aulas: formData.aulas
+          .filter(a => a.video_aula_id !== videoAulaId)
+          .map((a, i) => ({ ...a, ordem: i }))
       });
     } else {
       setFormData({
@@ -166,6 +170,21 @@ export const TrilhaManager = () => {
         aulas: [...formData.aulas, { video_aula_id: videoAulaId, ordem: formData.aulas.length }]
       });
     }
+  };
+
+  const moveAula = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= formData.aulas.length) return;
+    const next = [...formData.aulas];
+    [next[index], next[target]] = [next[target], next[index]];
+    setFormData({ ...formData, aulas: next.map((a, i) => ({ ...a, ordem: i })) });
+  };
+
+  const aulaTitulo = (id: string) => {
+    const found = videoAulas.find((va: any) => va.id === id);
+    if (found) return found.titulo;
+    const fromTrilha = editingTrilha?.trilha_aulas?.find((ta: any) => ta.video_aula_id === id);
+    return fromTrilha?.video_aulas?.titulo || "Aula";
   };
 
   // Filter and sort video aulas
@@ -255,6 +274,62 @@ export const TrilhaManager = () => {
                           onCheckedChange={() => toggleAula(va.id)}
                         />
                         <span className="text-sm">{va.titulo}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {formData.produto_id && formData.aulas.length > 0 && (
+                <div>
+                  <Label>Sequência da Trilha</Label>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Defina a ordem em que as aulas aparecerão para o usuário final.
+                  </p>
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-card/60 p-3 backdrop-blur-md">
+                    {formData.aulas.map((aula, index) => (
+                      <div
+                        key={aula.video_aula_id}
+                        className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/60 px-3 py-2"
+                      >
+                        <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm">{aulaTitulo(aula.video_aula_id)}</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={index === 0}
+                            onClick={() => moveAula(index, -1)}
+                            aria-label="Mover para cima"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={index === formData.aulas.length - 1}
+                            onClick={() => moveAula(index, 1)}
+                            aria-label="Mover para baixo"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => toggleAula(aula.video_aula_id)}
+                            aria-label="Remover da trilha"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
