@@ -73,6 +73,7 @@
   }
 
   html {
+    scrollbar-gutter: stable;
     background: linear-gradient(135deg, #2a2a2a 0%, #1c1c1c 50%, #000000 100%);
     background-attachment: fixed;
     font-smoothing: antialiased;
