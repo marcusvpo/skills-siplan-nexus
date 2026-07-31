@@ -20,6 +20,9 @@ export const CartorioManagementComplete: React.FC = () => {
   const { data: cartorios, isLoading, refetch } = useCartoriosWithAcessos();
   const sessions = useCartorioSessions();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [tokenFilter, setTokenFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('recent');
   const [expandedCartorioId, setExpandedCartorioId] = useState<string | null>(null);
   const [selectedCartorio, setSelectedCartorio] = useState<any>(null);
   const [userManagerOpen, setUserManagerOpen] = useState(false);
