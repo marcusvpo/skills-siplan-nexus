@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Play, Clock, ArrowRight, Search, X, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Play, ArrowRight, Search, X, CheckCircle2, Video } from 'lucide-react';
 import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import { useProgressContext } from '@/contexts/ProgressContext';
 import { useAuth } from '@/contexts/AuthContextFixed';
@@ -118,19 +120,17 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
 
   if (videoAulas.length === 0) {
     return (
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card>
         <CardContent className="p-12 text-center">
-          <div className="text-6xl mb-6">🎥</div>
-          <h3 className="text-2xl font-semibold text-gray-300 mb-3">Nenhuma videoaula disponível</h3>
-          <p className="text-gray-400 mb-6">
+          <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Video className="h-8 w-8" />
+          </span>
+          <h3 className="mb-2 text-xl font-semibold text-foreground">Nenhuma videoaula disponível</h3>
+          <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
             As videoaulas para este produto serão disponibilizadas em breve.
           </p>
-          <Button
-            onClick={() => navigate(`/system/${systemId}`)}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700"
-          >
-            Voltar aos Produtos
+          <Button onClick={() => navigate(`/system/${systemId}`)} variant="outline">
+            Voltar aos produtos
           </Button>
         </CardContent>
       </Card>
@@ -140,125 +140,114 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
   return (
     <div className="space-y-6">
       {/* Filtro de Pesquisa */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Pesquisar videoaulas..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-red-500"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar videoaulas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border-border/60 bg-card/60 pl-10 pr-10 backdrop-blur-md"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSearch}
+              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
         {searchTerm && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearSearch}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-700"
-          >
-            <X className="h-3 w-3" />
-          </Button>
+          <Badge variant="outline">
+            {filteredVideoAulas.length} resultado{filteredVideoAulas.length !== 1 ? 's' : ''}
+          </Badge>
         )}
       </div>
 
-      {/* Resultados da pesquisa */}
-      {searchTerm && (
-        <div className="text-sm text-gray-400">
-          {filteredVideoAulas.length} videoaula(s) encontrada(s) para "{searchTerm}"
-        </div>
-      )}
-
       {/* Grade de Cards Compactos */}
       {sortedVideoAulas.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="text-4xl mb-4">🔍</div>
-          <h3 className="text-lg font-semibold text-gray-300 mb-2">Nenhuma videoaula encontrada</h3>
-          <p className="text-gray-400">
-            Tente pesquisar com outros termos ou limpe o filtro para ver todas as videoaulas.
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-10 text-center">
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground">
+              <Search className="h-6 w-6" />
+            </span>
+            <h3 className="mb-1 text-lg font-semibold text-foreground">Nenhuma videoaula encontrada</h3>
+            <p className="text-sm text-muted-foreground">
+              Tente outros termos ou limpe o filtro para ver todas as videoaulas.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {sortedVideoAulas.map((aula) => {
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {sortedVideoAulas.map((aula, index) => {
             const isCompleted = videosCompletos.has(aula.id);
+            const goToLesson = () =>
+              navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
 
             return (
-              <Card
+              <motion.div
                 key={aula.id}
-                className={`bg-gray-800/50 transition-all duration-300 cursor-pointer group ${
-                  isCompleted
-                    ? 'border-green-500/60 shadow-green-500/20 shadow-lg hover:border-green-400/80'
-                    : 'border-gray-600 hover:border-red-500/50'
-                }`}
-                onClick={() => navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`)}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.35) }}
               >
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {/* Ícone e Ordem */}
+                <Card
+                  interactive
+                  className={`group flex h-full cursor-pointer flex-col ${
+                    isCompleted ? 'border-primary/40' : ''
+                  }`}
+                  onClick={goToLesson}
+                >
+                  <CardContent className="flex h-full flex-col gap-3 p-4">
                     <div className="flex items-center justify-between">
-                      <div className={`p-2 rounded-lg transition-colors ${
-                        isCompleted
-                          ? 'bg-green-600/20 group-hover:bg-green-600/30'
-                          : 'bg-red-600/20 group-hover:bg-red-600/30'
-                      }`}>
+                      <span
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                          isCompleted
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-primary/15 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+                        }`}
+                      >
                         {isCompleted ? (
-                          <CheckCircle className="h-4 w-4 text-green-400" />
+                          <CheckCircle2 className="h-5 w-5" />
                         ) : (
-                          <Play className="h-4 w-4 text-red-400" />
+                          <Play className="h-4 w-4" />
                         )}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {aula.ordem}
-                      </div>
+                      </span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {String(aula.ordem).padStart(2, '0')}
+                      </span>
                     </div>
 
-                    {/* Título */}
-                    <div>
-                      <h3 className={`font-semibold transition-colors text-sm line-clamp-2 leading-tight ${
-                        isCompleted
-                          ? 'text-green-100 group-hover:text-green-300'
-                          : 'text-white group-hover:text-red-400'
-                      }`}>
-                        {aula.titulo}
-                      </h3>
-                    </div>
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+                      {aula.titulo}
+                    </h3>
 
-                     {/* Badge de Status e Botão */}
-                     <div className="space-y-2">
-                       {isCompleted && (
-                         <div className="flex justify-center">
-                           <div className="bg-green-600/90 text-green-50 px-2 py-1 rounded-full text-xs font-medium flex items-center shadow-lg">
-                             <CheckCircle className="h-3 w-3 mr-1" />
-                             Concluída
-                           </div>
-                         </div>
-                       )}
-                       
-                       <Button
-                         size="sm"
-                         variant="outline"
-                         className={`w-full text-xs transition-colors ${
-                           isCompleted
-                             ? 'border-green-600 text-green-300 hover:bg-green-600/20'
-                             : 'border-gray-600 text-gray-300 hover:bg-gray-700'
-                         }`}
-                         onClick={e => {
-                           e.stopPropagation();
-                           navigate(`/system/${systemId}/product/${productId}/lesson/${aula.id}`);
-                         }}
-                       >
-                         {isCompleted ? 'Assistir Novamente' : 'Assistir'}
-                         {isCompleted ? (
-                           <CheckCircle className="h-3 w-3 ml-1" />
-                         ) : (
-                           <ArrowRight className="h-3 w-3 ml-1" />
-                         )}
-                       </Button>
-                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    {isCompleted && (
+                      <Badge variant="secondary" className="w-fit">
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                        Concluída
+                      </Badge>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant={isCompleted ? 'outline' : 'glow'}
+                      className="mt-auto w-full text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToLesson();
+                      }}
+                    >
+                      {isCompleted ? 'Assistir novamente' : 'Assistir'}
+                      <ArrowRight className="ml-1 h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
             );
           })}
         </div>
