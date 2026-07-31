@@ -258,7 +258,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
             <Button
               type="submit"
               disabled={isLoading || !formData.titulo.trim()}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              variant="glow"
             >
               {isLoading ? (
                 <>

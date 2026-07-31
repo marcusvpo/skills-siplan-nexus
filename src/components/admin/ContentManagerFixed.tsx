@@ -220,7 +220,7 @@ export const ContentManagerFixed: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-foreground">Categorias</h2>
-            <Button onClick={() => setCreateSistemaOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => setCreateSistemaOpen(true)} variant="glow">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Nova Categoria
             </Button>
@@ -305,7 +305,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Button variant="outline" onClick={() => setCreateSistemaOpen(false)} className="border-border">
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateSistema} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleCreateSistema} disabled={isCreating} variant="glow">
                   {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                   Criar Categoria
                 </Button>
@@ -342,7 +342,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Button variant="outline" onClick={() => setEditSistemaOpen(false)} className="border-border">
                   Cancelar
                 </Button>
-                <Button onClick={handleUpdateSistema} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleUpdateSistema} disabled={isCreating} variant="glow">
                   {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Edit className="h-4 w-4 mr-2" />}
                   Salvar Alterações
                 </Button>
@@ -374,7 +374,7 @@ export const ContentManagerFixed: React.FC = () => {
               <h2 className="text-3xl font-bold text-foreground">Produtos</h2>
               <p className="text-muted-foreground mt-1">Categoria: {selectedSistema.nome}</p>
             </div>
-            <Button onClick={() => setCreateProdutoOpen(true)} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => setCreateProdutoOpen(true)} variant="glow">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Novo Produto
             </Button>
@@ -459,7 +459,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Button variant="outline" onClick={() => setCreateProdutoOpen(false)} className="border-border">
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateProduto} disabled={isCreating} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleCreateProduto} disabled={isCreating} variant="glow">
                   {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                   Criar Produto
                 </Button>
@@ -496,7 +496,7 @@ export const ContentManagerFixed: React.FC = () => {
                 <Button variant="outline" onClick={() => setEditProdutoOpen(false)} className="border-border">
                   Cancelar
                 </Button>
-                <Button onClick={handleUpdateProduto} disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleUpdateProduto} disabled={isCreating} variant="glow">
                   {isCreating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Edit className="h-4 w-4 mr-2" />}
                   Salvar Alterações
                 </Button>
@@ -531,7 +531,7 @@ export const ContentManagerFixed: React.FC = () => {
           </div>
           <Button
             onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
-            className="bg-orange-600 hover:bg-orange-700"
+            variant="glow"
           >
             <Plus className="h-4 w-4 mr-2" />
             Cadastrar Nova Videoaula

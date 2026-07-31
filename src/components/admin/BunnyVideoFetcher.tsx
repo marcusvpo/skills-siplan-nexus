@@ -144,7 +144,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
           <Button
             onClick={handleFetchVideo}
             disabled={!isValidId || disabled || isLoading}
-            className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+            variant="glow"
           >
             {isLoading ? (
               <>
@@ -183,7 +183,7 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                   <Video className="h-4 w-4 text-orange-400" />
-                  <h4 className="text-white font-medium">{videoDetails.title}</h4>
+                  <h4 className="text-foreground font-medium truncate">{videoDetails.title}</h4>
                   {getStatusBadge(videoDetails.status, videoDetails.encodeProgress)}
                 </div>
                 

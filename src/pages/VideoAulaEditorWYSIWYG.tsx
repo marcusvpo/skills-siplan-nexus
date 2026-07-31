@@ -384,7 +384,7 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
                     🤖 Assistente de IA
-                    <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">PREVIEW</span>
+                    <span className="ml-2 text-xs bg-primary/15 text-primary px-2 py-1 rounded-lg">PREVIEW</span>
                   </h3>
                   
                   <div className="bg-secondary/50 rounded-xl p-4 border border-border h-80 flex flex-col">
@@ -423,14 +423,14 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                           className="flex-1 bg-secondary text-foreground px-3 py-2 rounded text-sm border border-border focus:border-blue-500 outline-none"
                           disabled
                         />
-                        <button className="bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors" disabled>
+                        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors" disabled>
                           Enviar
                         </button>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-700">
+                  <div className="mt-3 p-3 bg-primary/10 rounded-xl border border-primary/30">
                     <p className="text-blue-300 text-xs">
                       💡 <strong>Chat com IA:</strong> Esta interface será funcional para os usuários finais, 
                       alimentada pela transcrição automática do vídeo.
@@ -584,7 +584,7 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
                       </p>
                     </div>
                     
-                    <div className="p-3 bg-blue-900/20 rounded border border-blue-700">
+                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/30">
                       <p className="text-blue-300 text-xs">
                         ⚙️ A configuração da IA será automática após o salvamento
                       </p>
