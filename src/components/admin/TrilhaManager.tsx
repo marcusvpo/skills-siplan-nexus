@@ -109,10 +109,14 @@ export const TrilhaManager = () => {
   });
 
   const handleSubmit = () => {
+    const payload = {
+      ...formData,
+      aulas: formData.aulas.map((a, index) => ({ video_aula_id: a.video_aula_id, ordem: index })),
+    };
     if (editingTrilha) {
-      updateMutation.mutate({ id: editingTrilha.id, ...formData });
+      updateMutation.mutate({ id: editingTrilha.id, ...payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
@@ -131,10 +135,9 @@ export const TrilhaManager = () => {
     setFormData({
       nome: trilha.nome,
       produto_id: trilha.produto_id,
-      aulas: trilha.trilha_aulas.map((ta: any) => ({
-        video_aula_id: ta.video_aula_id,
-        ordem: ta.ordem
-      }))
+      aulas: [...(trilha.trilha_aulas || [])]
+        .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map((ta: any, i: number) => ({ video_aula_id: ta.video_aula_id, ordem: i }))
     });
     setIsDialogOpen(true);
   };
@@ -145,10 +148,9 @@ export const TrilhaManager = () => {
     setFormData({
       nome: `${trilha.nome} (Cópia)`,
       produto_id: trilha.produto_id,
-      aulas: trilha.trilha_aulas.map((ta: any) => ({
-        video_aula_id: ta.video_aula_id,
-        ordem: ta.ordem
-      }))
+      aulas: [...(trilha.trilha_aulas || [])]
+        .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map((ta: any, i: number) => ({ video_aula_id: ta.video_aula_id, ordem: i }))
     });
     setIsDialogOpen(true);
   };
@@ -158,7 +160,9 @@ export const TrilhaManager = () => {
     if (exists) {
       setFormData({
         ...formData,
-        aulas: formData.aulas.filter(a => a.video_aula_id !== videoAulaId)
+        aulas: formData.aulas
+          .filter(a => a.video_aula_id !== videoAulaId)
+          .map((a, i) => ({ ...a, ordem: i }))
       });
     } else {
       setFormData({
@@ -166,6 +170,21 @@ export const TrilhaManager = () => {
         aulas: [...formData.aulas, { video_aula_id: videoAulaId, ordem: formData.aulas.length }]
       });
     }
+  };
+
+  const moveAula = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= formData.aulas.length) return;
+    const next = [...formData.aulas];
+    [next[index], next[target]] = [next[target], next[index]];
+    setFormData({ ...formData, aulas: next.map((a, i) => ({ ...a, ordem: i })) });
+  };
+
+  const aulaTitulo = (id: string) => {
+    const found = videoAulas.find((va: any) => va.id === id);
+    if (found) return found.titulo;
+    const fromTrilha = editingTrilha?.trilha_aulas?.find((ta: any) => ta.video_aula_id === id);
+    return fromTrilha?.video_aulas?.titulo || "Aula";
   };
 
   // Filter and sort video aulas
