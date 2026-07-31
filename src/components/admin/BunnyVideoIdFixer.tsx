@@ -40,7 +40,7 @@ export const BunnyVideoIdFixer: React.FC = () => {
           <Button
             onClick={handleFix}
             disabled={isFixing}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            variant="glow"
           >
             <Wrench className="h-4 w-4 mr-2" />
             {isFixing ? 'Corrigindo IDs...' : 'Corrigir IDs da Bunny.net'}
