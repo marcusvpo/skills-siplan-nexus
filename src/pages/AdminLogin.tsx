@@ -101,92 +101,82 @@ const AdminLogin = () => {
   console.log('🔍 DEBUG: AdminLogin render - isLoading:', isLoading);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 page-transition">
-      <Card className="w-full max-w-md gradient-card shadow-elevated border-gray-600/50 card-enter">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-6">
-            <img 
-              src="/lovable-uploads/05a1d51a-f20d-4875-b8bc-f30942943e7d.png" 
-              alt="Siplan Logo" 
-              className="h-16 w-auto object-contain"
+    <AuthShell
+      eyebrow="Acesso restrito"
+      title="Painel Administrativo"
+      subtitle="Gestão de cartórios, conteúdo e acessos da plataforma Siplan Skills."
+      topRight={
+        <span className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 text-xs font-medium text-muted-foreground backdrop-blur-md">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          Área administrativa
+        </span>
+      }
+      footer={
+        <Link
+          to="#"
+          className="block text-center text-sm text-primary transition-colors hover:text-primary/80"
+        >
+          Esqueceu sua senha?
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="admin-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            E-mail
+          </Label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="admin-email"
+              type="email"
+              placeholder="admin@siplan.com.br"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 border-border/60 bg-background/50 pl-10 backdrop-blur-sm transition-all placeholder:text-muted-foreground focus-visible:border-primary/60"
+              required
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-white text-enhanced">Painel Administrativo</CardTitle>
-          <p className="text-gray-300 mt-3 text-lg">
-            Acesso restrito a administradores
-          </p>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="glass-effect border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="glass-effect border-gray-600 text-white placeholder-gray-400 pr-10 focus:border-red-500 focus:ring-red-500/20 transition-all shadow-modern"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 text-lg btn-hover-lift shadow-modern"
-              disabled={isLoading}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="admin-password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Senha
+          </Label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="admin-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 border-border/60 bg-background/50 pl-10 pr-11 backdrop-blur-sm transition-all placeholder:text-muted-foreground focus-visible:border-primary/60"
+              required
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground transition-colors hover:text-foreground"
             >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Entrando...
-                </div>
-              ) : (
-                'Entrar no Painel'
-              )}
-            </Button>
-          </form>
-          
-          <div className="space-y-4 pt-4 border-t border-gray-700/50">
-            <Link 
-              to="#"
-              className="block text-center text-sm text-red-400 hover:text-red-300 transition-colors btn-hover-lift"
-            >
-              Esqueceu sua senha?
-            </Link>
-            
-            <Link 
-              to="/"
-              className="flex items-center justify-center text-sm text-gray-400 hover:text-gray-300 transition-colors btn-hover-lift"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar ao início
-            </Link>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        <Button type="submit" variant="glow" size="lg" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Entrando...
+            </>
+          ) : (
+            'Entrar no Painel'
+          )}
+        </Button>
+      </form>
+    </AuthShell>
   );
 };
 
