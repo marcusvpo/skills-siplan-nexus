@@ -226,29 +226,31 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-md border-border/50 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center">
-            <Shield className="h-5 w-5 mr-2 text-red-400" />
-            Gerenciar Permissões - {cartorio?.nome}
+          <DialogTitle className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+              <Shield className="h-5 w-5" />
+            </span>
+            <span className="truncate">Gerenciar Permissões - {cartorio?.nome}</span>
           </DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-              <p className="text-gray-400">Carregando permissões...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-destructive mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando permissões...</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
               <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-red-300">Como funciona:</h4>
-                  <ul className="text-sm text-red-200 mt-1 space-y-1">
+                  <h4 className="text-sm font-medium text-destructive">Como funciona:</h4>
+                  <ul className="text-sm text-destructive/90 mt-1 space-y-1">
                     <li>• Marque um <strong>Sistema</strong> para dar acesso completo a todos os produtos</li>
                     <li>• Marque <strong>Produtos</strong> específicos para acesso granular</li>
                     <li>• Se nenhuma permissão for marcada, o cartório terá acesso a tudo</li>
@@ -263,19 +265,18 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                 const sistemaSelected = permissoesSelecionadas.has(sistemaKey);
                 
                 return (
-                  <Card key={sistema.id} className="bg-gray-800/50 border-gray-700">
+                  <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
                     <CardHeader className="pb-3">
                       <div className="flex items-center space-x-3">
                         <Checkbox
                           checked={sistemaSelected}
                           onCheckedChange={() => toggleSistema(sistema.id)}
-                          className="border-gray-600"
                         />
-                        <CardTitle className="text-lg text-white">
+                        <CardTitle className="text-lg">
                           {sistema.nome}
                         </CardTitle>
                         {sistemaSelected && (
-                          <span className="text-sm text-green-400 font-medium">
+                          <span className="text-sm text-success font-medium">
                             (Acesso Completo)
                           </span>
                         )}
@@ -296,10 +297,9 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                                     checked={produtoSelected || sistemaSelected}
                                     disabled={sistemaSelected}
                                     onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
-                                    className="border-gray-600"
                                   />
                                   <label className={`text-sm cursor-pointer ${
-                                    sistemaSelected ? 'text-green-300' : 'text-gray-300'
+                                    sistemaSelected ? 'text-success' : 'text-muted-foreground'
                                   }`}>
                                     {produto.nome}
                                   </label>
@@ -315,19 +315,18 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
               })}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+            <div className="flex justify-end space-x-3 pt-4 border-t border-border/50">
               <Button
                 variant="outline"
                 onClick={onClose}
                 disabled={isSaving}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
               >
                 Cancelar
               </Button>
               <Button
+                variant="glow"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {isSaving ? (
                   <>
