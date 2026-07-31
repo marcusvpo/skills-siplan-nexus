@@ -236,15 +236,74 @@ export const CartorioManagementComplete: React.FC = () => {
     );
   }
 
-  const filteredCartorios = (cartorios || []).filter((cartorio: any) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
+  // Normaliza texto removendo acentos para busca tolerante ("Olimpia" == "Olímpia")
+  const normalize = (value: string) =>
+    (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
 
-    return (
-      (cartorio.nome && cartorio.nome.toLowerCase().includes(term)) ||
-      (cartorio.cidade && cartorio.cidade.toLowerCase().includes(term))
-    );
-  });
+  const getLastActivity = (cartorio: any): Date | null => {
+    const raw = sessions.get(cartorio.id)?.last_activity;
+    return raw ? new Date(raw) : null;
+  };
+
+  const minutesSince = (date: Date | null) =>
+    date ? (Date.now() - date.getTime()) / 60000 : Number.POSITIVE_INFINITY;
+
+  const isTokenExpired = (cartorio: any) => {
+    const exp = cartorio.acessos_cartorio?.[0]?.data_expiracao;
+    if (!exp) return false;
+    return new Date(exp).getTime() < Date.now();
+  };
+
+  const filteredCartorios = (cartorios || [])
+    .filter((cartorio: any) => {
+      const term = normalize(searchTerm);
+      if (term) {
+        const haystack = [cartorio.nome, cartorio.cidade, cartorio.estado, getToken(cartorio), getUsuario(cartorio)]
+          .map((v) => normalize(String(v ?? '')))
+          .join(' ');
+        if (!haystack.includes(term)) return false;
+      }
+
+      if (statusFilter !== 'all') {
+        const mins = minutesSince(getLastActivity(cartorio));
+        if (statusFilter === 'online' && mins > 2) return false;
+        if (statusFilter === 'recent' && (mins <= 2 || mins > 60 * 24 * 5)) return false;
+        if (statusFilter === 'inactive' && mins <= 60 * 24 * 5) return false;
+        if (statusFilter === 'never' && Number.isFinite(mins)) return false;
+      }
+
+      if (tokenFilter === 'valid' && (!getToken(cartorio) || isTokenExpired(cartorio))) return false;
+      if (tokenFilter === 'expired' && !isTokenExpired(cartorio)) return false;
+      if (tokenFilter === 'none' && getToken(cartorio)) return false;
+
+      return true;
+    })
+    .sort((a: any, b: any) => {
+      if (sortBy === 'name') return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+      if (sortBy === 'city') return String(a.cidade || '').localeCompare(String(b.cidade || ''), 'pt-BR');
+      if (sortBy === 'lastLogin') return minutesSince(getLastActivity(a)) - minutesSince(getLastActivity(b));
+      if (sortBy === 'expiration') {
+        const av = a.acessos_cartorio?.[0]?.data_expiracao;
+        const bv = b.acessos_cartorio?.[0]?.data_expiracao;
+        return new Date(av || '2999-01-01').getTime() - new Date(bv || '2999-01-01').getTime();
+      }
+      // recent (padrão): criados mais recentemente primeiro
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
+  const hasActiveFilters =
+    !!searchTerm.trim() || statusFilter !== 'all' || tokenFilter !== 'all' || sortBy !== 'recent';
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTokenFilter('all');
+    setSortBy('recent');
+  };
 
   return (
     <>
