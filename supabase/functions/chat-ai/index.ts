@@ -1,289 +1,210 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('openai_api_key');
-const assistantIdOrionTN = Deno.env.get('ASSISTANT_ID'); // Assistente padrão para Orion TN
-const assistantIdOrionPRO = Deno.env.get('ASSISTANT_ID_ORION_PRO'); // Novo assistente para Orion PRO
-const vectorStoreIdOrionTN = Deno.env.get('VECTOR_STORE_ID_ORION_TN'); // Vector Store para Orion TN
-const vectorStoreIdOrionPRO = Deno.env.get('VECTOR_STORE_ID_ORION_PRO'); // Vector Store para Orion PRO
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-console.log('🤖 [chat-ai] Function started');
+const openAIApiKey = Deno.env.get('openai_api_key') ?? Deno.env.get('OPENAI_API_KEY');
+
+/**
+ * Migração Assistants API -> Responses API.
+ * Assistants -> Prompts (versionados no dashboard)
+ * Threads    -> encadeamento via previous_response_id
+ * Runs       -> Responses
+ */
+type AssistantConfig = {
+  name: string;
+  promptId: string;
+  promptVersion: string;
+  vectorStoreId: string;
+  allowedDomains: string[];
+  country: string | null;
+};
+
+const ORION_PRO: AssistantConfig = {
+  name: 'Orion PRO',
+  promptId: Deno.env.get('PROMPT_ID_ORION_PRO') ?? 'pmpt_6a2c55e4969c8194ae9f66de2eefeca00e0cef6be4891706',
+  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_PRO') ?? '1',
+  vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_PRO') ?? 'vs_6a2c550854f88191af5edf3b43984b37',
+  allowedDomains: [
+    'cenprot.com.br',
+    'cenprotsp.com.br',
+    'ieptb.com.br',
+    'protestobr.com.br',
+    'cnj.jus.br',
+    'planalto.gov.br',
+    'siplan.com.br',
+  ],
+  country: null,
+};
+
+const ORION_TN: AssistantConfig = {
+  name: 'Orion TN',
+  promptId: Deno.env.get('PROMPT_ID_ORION_TN') ?? 'pmpt_6a2abdbe2da08197bfb29aaa958492800bdd6be9f0df3ecf',
+  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_TN') ?? '7',
+  vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_TN') ?? 'vs_6a2ab8c56ae881918fc9c2a8fb24748d',
+  allowedDomains: [
+    'e-notariado.org.br',
+    'notariado.org.br',
+    'cnj.jus.br',
+    'anoreg.org.br',
+    'cnbsp.org.br',
+    'siplan.com.br',
+  ],
+  country: 'BR',
+};
+
+function extractOutputText(data: any): string {
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) {
+    return data.output_text;
+  }
+  const parts: string[] = [];
+  for (const item of data?.output ?? []) {
+    if (item?.type !== 'message') continue;
+    for (const content of item?.content ?? []) {
+      if (content?.type === 'output_text' && typeof content.text === 'string') {
+        parts.push(content.text);
+      }
+    }
+  }
+  return parts.join('\n\n').trim();
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     if (!openAIApiKey) {
-      console.error('❌ [chat-ai] Missing OpenAI API key');
       throw new Error('OpenAI API key not configured');
     }
-    
-    if (!assistantIdOrionTN) {
-      console.error('❌ [chat-ai] Missing Orion TN Assistant ID');
-      throw new Error('Orion TN Assistant ID not configured');
-    }
 
-    if (!assistantIdOrionPRO) {
-      console.error('❌ [chat-ai] Missing Orion PRO Assistant ID');
-      throw new Error('Orion PRO Assistant ID not configured');
-    }
+    const body = await req.json();
+    const message: string = body?.message;
+    const lessonTitle: string = body?.lessonTitle ?? '';
+    // `threadId` mantido por compatibilidade com o cliente: agora é o id da última response.
+    const previousResponseId: string | null =
+      body?.previousResponseId ?? body?.responseId ?? body?.threadId ?? null;
 
-    const { message, threadId, lessonTitle } = await req.json();
-    
-    console.log('📨 [chat-ai] Received request:', { 
-      messageLength: message?.length, 
-      threadId, 
-      lessonTitle,
-      lessonTitleType: typeof lessonTitle
-    });
-    
-    // Selecionar o assistente correto baseado no TÍTULO DA AULA
-    let assistantId: string;
-    let assistantName: string;
-    let vectorStoreId: string;
-    
-    // Verificar se o título da aula contém "orion pro" (case-insensitive)
-    if (lessonTitle && lessonTitle.toLowerCase().includes('orion pro')) {
-      assistantId = assistantIdOrionPRO;
-      vectorStoreId = vectorStoreIdOrionPRO;
-      assistantName = 'Orion PRO';
-      console.log('🤖 [chat-ai] Using Orion PRO Assistant (detected from lesson title)');
-      console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionPRO);
-      console.log('📚 [chat-ai] Vector Store ID:', vectorStoreIdOrionPRO);
-    } else {
-      assistantId = assistantIdOrionTN;
-      vectorStoreId = vectorStoreIdOrionTN;
-      assistantName = 'Orion TN (default)';
-      console.log('🤖 [chat-ai] Using Orion TN Assistant (default)');
-      console.log('✅ [chat-ai] Assistant ID:', assistantIdOrionTN);
-      console.log('📚 [chat-ai] Vector Store ID:', vectorStoreIdOrionTN);
-    }
-    
-    console.log('🔍 [chat-ai] Lesson Title:', lessonTitle);
-    console.log('🎯 [chat-ai] Selected Assistant:', assistantName);
-
-    if (!message || message.trim() === '') {
+    if (!message || !message.trim()) {
       throw new Error('Message is required');
     }
 
-    let currentThreadId = threadId;
+    const assistant = lessonTitle.toLowerCase().includes('orion pro') ? ORION_PRO : ORION_TN;
 
-    // Create a new thread if one doesn't exist, with vector store attached
-    if (!currentThreadId) {
-      console.log('🧵 [chat-ai] Creating new thread with vector store');
-      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'assistants=v2',
-        },
-        body: JSON.stringify({
-          tool_resources: {
-            file_search: {
-              vector_store_ids: [vectorStoreId]
-            }
-          },
-          metadata: {
-            lesson_title: lessonTitle || 'Unknown Lesson',
-            platform: 'siplan-skills',
-            vector_store_id: vectorStoreId
-          }
-        }),
-      });
-
-      if (!threadResponse.ok) {
-        const errorText = await threadResponse.text();
-        console.error('❌ [chat-ai] Failed to create thread:', errorText);
-        throw new Error(`Failed to create thread: ${threadResponse.status}`);
-      }
-
-      const threadData = await threadResponse.json();
-      currentThreadId = threadData.id;
-      console.log('✅ [chat-ai] Thread created with vector store:', currentThreadId);
-    }
-
-    // Add the user message to the thread (without attachments - vector store is on thread)
-    console.log('💬 [chat-ai] Adding message to thread');
-    let messageResponse;
-    try {
-      messageResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'assistants=v2',
-        },
-        body: JSON.stringify({
-          role: 'user',
-          content: message,
-          metadata: {
-            lesson_title: lessonTitle || 'Unknown Lesson',
-            timestamp: new Date().toISOString()
-          }
-        }),
-      });
-
-      if (!messageResponse.ok) {
-        const errorText = await messageResponse.text();
-        console.error('❌ [chat-ai] Failed to add message:', errorText);
-        throw new Error(`Failed to add message: ${messageResponse.status}`);
-      }
-    } catch (error) {
-      console.error('❌ [chat-ai] Error adding message to thread:', error);
-      return new Response(JSON.stringify({
-        error: 'Erro ao adiciar mensagem à conversa',
-        fallback_response: 'Desculpe, houve um problema ao processar sua mensagem. Tente novamente.',
-        timestamp: new Date().toISOString()
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Run the assistant with forced file_search tool
-    console.log('🚀 [chat-ai] Running assistant with forced file_search');
-    const runResponse = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
-      },
-      body: JSON.stringify({
-        assistant_id: assistantId,
-        tools: [{ type: "file_search" }],
-        tool_choice: { type: "file_search" }
-      }),
+    console.log('🤖 [chat-ai] Responses API', {
+      assistant: assistant.name,
+      promptId: assistant.promptId,
+      promptVersion: assistant.promptVersion,
+      hasPrevious: !!previousResponseId,
+      lessonTitle,
     });
 
-    if (!runResponse.ok) {
-      const errorText = await runResponse.text();
-      console.error('❌ [chat-ai] Failed to run assistant:', errorText);
-      throw new Error(`Failed to run assistant: ${runResponse.status}`);
+    const payload: Record<string, unknown> = {
+      prompt: { id: assistant.promptId, version: assistant.promptVersion },
+      input: [
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: message }],
+        },
+      ],
+      tools: [
+        {
+          type: 'file_search',
+          vector_store_ids: [assistant.vectorStoreId],
+        },
+        {
+          type: 'web_search',
+          filters: { allowed_domains: assistant.allowedDomains },
+          search_context_size: 'medium',
+          user_location: {
+            type: 'approximate',
+            country: assistant.country,
+          },
+        },
+      ],
+      store: true,
+      metadata: {
+        platform: 'siplan-skills',
+        lesson_title: (lessonTitle || 'Unknown Lesson').slice(0, 500),
+      },
+    };
+
+    if (previousResponseId && String(previousResponseId).startsWith('resp_')) {
+      payload.previous_response_id = previousResponseId;
     }
 
-    const runData = await runResponse.json();
-    const runId = runData.id;
-    console.log('✅ [chat-ai] Assistant run started:', runId);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 110_000);
 
-    // Poll for completion with extended timeout (60s)
-    const maxAttempts = 30;
-    let attempts = 0;
-    let runStatus = 'in_progress';
-
-    while (attempts < maxAttempts && runStatus === 'in_progress') {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      attempts++;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-      try {
-        const statusResponse = await fetch(
-          `https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${openAIApiKey}`,
-              'OpenAI-Beta': 'assistants=v2',
-            },
-            signal: controller.signal
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        if (!statusResponse.ok) {
-          console.error(`❌ [chat-ai] Error checking run status (attempt ${attempts}/${maxAttempts}):`, statusResponse.status);
-          continue;
-        }
-
-        const statusData = await statusResponse.json();
-        runStatus = statusData.status;
-        console.log(`🔄 [chat-ai] Run status (attempt ${attempts}/${maxAttempts}):`, runStatus);
-
-        if (runStatus === 'completed') {
-          break;
-        }
-      } catch (error) {
-        clearTimeout(timeoutId);
-        console.error(`❌ [chat-ai] Error fetching run status (attempt ${attempts}/${maxAttempts}):`, error.message);
-      }
-    }
-
-    // If timeout, return friendly message
-    if (runStatus !== 'completed') {
-      console.log('⏱️ [chat-ai] Response timeout - returning fallback');
-      return new Response(JSON.stringify({
-        timeout: true,
-        fallback_response: 'O assistente está demorando mais que o esperado. Por favor, reformule sua pergunta de forma mais simples ou tente novamente.',
-        threadId: currentThreadId,
-        timestamp: new Date().toISOString()
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Get the assistant's response
-    const messagesResponse = await fetch(
-      `https://api.openai.com/v1/threads/${currentThreadId}/messages`,
-      {
+    let response: Response;
+    try {
+      response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
-          'OpenAI-Beta': 'assistants=v2',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if ((err as Error).name === 'AbortError') {
+        return new Response(JSON.stringify({
+          timeout: true,
+          fallback_response: 'O assistente está demorando mais que o esperado. Reformule sua pergunta de forma mais simples ou tente novamente.',
+          threadId: previousResponseId,
+          timestamp: new Date().toISOString(),
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-    );
+      throw err;
+    }
+    clearTimeout(timeoutId);
 
-    if (!messagesResponse.ok) {
-      throw new Error('Failed to fetch messages');
+    const raw = await response.text();
+
+    if (!response.ok) {
+      console.error('❌ [chat-ai] OpenAI error', response.status, raw.slice(0, 1000));
+      return new Response(JSON.stringify({
+        error: `OpenAI Responses API retornou ${response.status}`,
+        fallback_response: 'Desculpe, o assistente está indisponível neste momento. Tente novamente em alguns instantes.',
+        timestamp: new Date().toISOString(),
+      }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const messagesData = await messagesResponse.json();
-    const assistantMessage = messagesData.data.find(
-      (msg: any) => msg.role === 'assistant'
-    );
+    const data = JSON.parse(raw);
 
-    if (!assistantMessage || !assistantMessage.content?.[0]?.text?.value) {
+    if (data.status === 'incomplete') {
+      console.warn('⚠️ [chat-ai] Response incomplete', data.incomplete_details);
+    }
+
+    const responseText = extractOutputText(data);
+
+    if (!responseText) {
+      console.error('❌ [chat-ai] Empty output', JSON.stringify(data).slice(0, 1000));
       throw new Error('No response from assistant');
     }
 
-    const responseText = assistantMessage.content[0].text.value;
-    console.log('✅ [chat-ai] Response generated successfully');
-    console.log('📤 [chat-ai] Sending response payload:', {
-      responseLength: responseText.length,
-      threadId: currentThreadId,
-      hasResponse: !!responseText
-    });
+    console.log('✅ [chat-ai] Response ok', { id: data.id, length: responseText.length });
 
     return new Response(JSON.stringify({
       response: responseText,
-      threadId: currentThreadId,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      responseId: data.id,
+      // compat: o cliente antigo guarda isso como "threadId"
+      threadId: data.id,
+      assistant: assistant.name,
+      timestamp: new Date().toISOString(),
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('❌ [chat-ai] Error:', error);
-    
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Erro interno do servidor',
+    return new Response(JSON.stringify({
+      error: (error as Error).message || 'Erro interno do servidor',
       fallback_response: 'Desculpe, ocorreu um erro. Tente novamente em alguns instantes.',
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      timestamp: new Date().toISOString(),
+    }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
