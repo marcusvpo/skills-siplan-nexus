@@ -194,6 +194,16 @@ export const ContentManagerFixed: React.FC = () => {
     }
   };
 
+  // Fallback: se o item salvo não existe mais, volta ao nível anterior
+  useEffect(() => {
+    if (isLoading || !sistemasData) return;
+    if (viewMode === 'videoaulas' && !selectedProduto) {
+      setNav(prev => ({ ...prev, viewMode: selectedSistema ? 'produtos' : 'sistemas', produtoId: null }));
+    } else if (viewMode === 'produtos' && !selectedSistema) {
+      setNav({ viewMode: 'sistemas', sistemaId: null, produtoId: null });
+    }
+  }, [isLoading, sistemasData, viewMode, selectedSistema, selectedProduto]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -201,16 +211,6 @@ export const ContentManagerFixed: React.FC = () => {
         <span className="text-white">Carregando conteúdo...</span>
       </div>
     );
-  }
-
-  // Fallback: se o item salvo não existe mais, volta ao nível anterior
-  if (viewMode === 'videoaulas' && !selectedProduto) {
-    setNav(prev => ({ ...prev, viewMode: selectedSistema ? 'produtos' : 'sistemas', produtoId: null }));
-    return null;
-  }
-  if (viewMode === 'produtos' && !selectedSistema) {
-    setNav({ viewMode: 'sistemas', sistemaId: null, produtoId: null });
-    return null;
   }
 
   // VIEW: SISTEMAS
