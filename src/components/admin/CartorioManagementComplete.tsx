@@ -325,19 +325,79 @@ export const CartorioManagementComplete: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="relative flex-1 max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Buscar cartório por nome..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
-                />
+            <div className="mb-5 space-y-3 rounded-xl border border-gray-700/70 bg-gray-900/40 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    placeholder="Buscar por nome, cidade, usuário ou token (ignora acentos)..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-gray-900/60 border-gray-700 text-white placeholder:text-gray-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-auto">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[190px]">
+                      <Filter className="mr-2 h-4 w-4 text-gray-400" />
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="online">Online agora</SelectItem>
+                      <SelectItem value="recent">Ativo (últimos 5 dias)</SelectItem>
+                      <SelectItem value="inactive">Inativo (+5 dias)</SelectItem>
+                      <SelectItem value="never">Nunca acessou</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={tokenFilter} onValueChange={setTokenFilter}>
+                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[180px]">
+                      <Key className="mr-2 h-4 w-4 text-gray-400" />
+                      <SelectValue placeholder="Token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tokens</SelectItem>
+                      <SelectItem value="valid">Token válido</SelectItem>
+                      <SelectItem value="expired">Token expirado</SelectItem>
+                      <SelectItem value="none">Sem token</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-full border-gray-700 bg-gray-900/60 text-white sm:w-[210px]">
+                      <ArrowUpDown className="mr-2 h-4 w-4 text-gray-400" />
+                      <SelectValue placeholder="Ordenar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Criados recentemente</SelectItem>
+                      <SelectItem value="lastLogin">Último acesso</SelectItem>
+                      <SelectItem value="expiration">Expiração mais próxima</SelectItem>
+                      <SelectItem value="name">Nome (A-Z)</SelectItem>
+                      <SelectItem value="city">Cidade (A-Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Badge variant="outline" className="border-gray-700 text-gray-300">
-                {filteredCartorios.length} cartório{filteredCartorios.length === 1 ? '' : 's'}
-              </Badge>
+
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="border-gray-700 text-gray-300">
+                  {filteredCartorios.length} de {cartorios?.length || 0} cartório
+                  {(cartorios?.length || 0) === 1 ? '' : 's'}
+                </Badge>
+                {hasActiveFilters && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearFilters}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <X className="mr-1 h-4 w-4" />
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
