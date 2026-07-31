@@ -32,7 +32,7 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [threadId, setThreadId] = useState<string | null>(null);
+  const [previousResponseId, setPreviousResponseId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,9 +60,9 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
     setIsLoading(true);
 
     try {
-      logger.info('🤖 [AIChat] Sending message to OpenAI assistant', {
+      logger.info('🤖 [AIChat] Sending message to OpenAI (Responses API)', {
         messageLength: currentMessage.length,
-        threadId,
+        previousResponseId,
         lessonTitle
       });
 
@@ -74,8 +74,8 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
       const { data: functionData, error: functionError } = await supabase.functions.invoke('chat-ai', {
         body: {
           message: currentMessage,
-          threadId: threadId,
-          lessonTitle: lessonTitle
+          previousResponseId,
+          lessonTitle
         }
       });
 
@@ -128,9 +128,10 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
 
       setMessages(prev => [...prev, aiMessage]);
       
-      if (functionData.threadId) {
-        setThreadId(functionData.threadId);
-        logger.info('🧵 [AIChat] Thread ID stored:', functionData.threadId);
+      const nextResponseId = functionData.responseId || functionData.threadId;
+      if (nextResponseId) {
+        setPreviousResponseId(nextResponseId);
+        logger.info('🧵 [AIChat] Response ID stored:', nextResponseId);
       }
     } catch (error) {
       logger.error('❌ [AIChat] Error sending message:', error);
