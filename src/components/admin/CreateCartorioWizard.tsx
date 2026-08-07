@@ -112,7 +112,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
         description: 'Digite um nome de usuário para adicionar.',
         variant: 'destructive',
       });
-      return;
+      return false;
     }
     if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
       toast({
@@ -120,10 +120,25 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
         description: 'Já existe um usuário com esse nome nesta lista.',
         variant: 'destructive',
       });
-      return;
+      return false;
     }
     setUsers((prev) => [...prev, { ...userDraft, username }]);
     setUserDraft({ username: '', email: '', is_active: true, active_trilha_id: '' });
+    return true;
+  };
+
+  // Garante que um usuário digitado mas não "adicionado" não seja perdido
+  const getEffectiveUsers = (): NewUser[] => {
+    const username = userDraft.username.trim();
+    if (!username) return users;
+    if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) return users;
+    return [...users, { ...userDraft, username }];
+  };
+
+  const commitDraft = () => {
+    const username = userDraft.username.trim();
+    if (!username) return;
+    addUser();
   };
 
   const toggleSistema = (sistemaId: string) => {
@@ -172,6 +187,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
 
     setIsSubmitting(true);
     let cartorioId: string | null = null;
+    const usersToCreate = getEffectiveUsers();
 
     try {
       const { data: cartorio, error: cartorioError } = await supabase
@@ -201,17 +217,25 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       });
       if (acessoError) throw acessoError;
 
-      if (users.length > 0) {
-        const { error: usersError } = await supabase.from('cartorio_usuarios').insert(
-          users.map((u) => ({
+      let createdUsernames: string[] = [];
+      if (usersToCreate.length > 0) {
+        const { data: createdUsers, error: usersError } = await supabase
+          .from('cartorio_usuarios')
+          .insert(
+            usersToCreate.map((u) => ({
             cartorio_id: cartorio.id,
             username: u.username.trim(),
             email: u.email?.trim() || null,
             is_active: u.is_active,
             active_trilha_id: u.active_trilha_id || null,
-          }))
-        );
+            }))
+          )
+          .select('username');
         if (usersError) throw usersError;
+        createdUsernames = (createdUsers || []).map((u: any) => u.username);
+        if (createdUsernames.length !== usersToCreate.length) {
+          throw new Error('Os usuários não foram gravados corretamente. Tente novamente.');
+        }
       }
 
       const permissoes = Array.from(selecoes)
@@ -240,7 +264,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       setResult({
         nome: form.nome.trim(),
         token: login_token,
-        usuario: users[0]?.username || form.nome.trim(),
+        usuario: createdUsernames[0] || usersToCreate[0]?.username || form.nome.trim(),
       });
       onCreated();
     } catch (error: any) {
