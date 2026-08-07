@@ -179,6 +179,11 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
     setStep((s) => Math.min(3, s + 1));
   };
 
+  const handleNext = () => {
+    if (step === 2) commitDraft();
+    goNext();
+  };
+
   const handleFinish = async () => {
     if (!canAdvanceStep1) {
       setStep(1);
@@ -628,7 +633,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
               </Button>
 
               {step < 3 ? (
-                <Button onClick={goNext} variant="glow">
+                <Button onClick={handleNext} variant="glow">
                   Continuar
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
