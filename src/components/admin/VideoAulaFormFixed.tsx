@@ -9,6 +9,7 @@ import { useCreateVideoAula, useUpdateVideoAula } from '@/hooks/useSupabaseDataR
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 import { Save, X, Loader2 } from 'lucide-react';
+import { BunnyVideoFetcher } from '@/components/admin/BunnyVideoFetcher';
 
 interface Sistema {
   id: string;
@@ -152,6 +153,26 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
     }));
   };
 
+  const handleBunnyVideoSelect = (details: {
+    videoId: string;
+    title: string;
+    playUrl: string;
+    thumbnailUrl: string | null;
+  }) => {
+    logger.info('📹 [VideoAulaFormFixed] Bunny video selected', { videoId: details.videoId });
+    setFormData(prev => ({
+      ...prev,
+      id_video_bunny: details.videoId,
+      url_video: details.playUrl || prev.url_video,
+      url_thumbnail: details.thumbnailUrl || prev.url_thumbnail,
+      titulo: prev.titulo.trim() ? prev.titulo : details.title
+    }));
+    toast({
+      title: "Vídeo encontrado",
+      description: details.title,
+    });
+  };
+
   return (
     <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
       <CardHeader>
@@ -195,6 +216,17 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">
+              Buscar vídeo no Bunny.net
+            </Label>
+            <BunnyVideoFetcher
+              onVideoSelect={handleBunnyVideoSelect}
+              initialVideoId={formData.id_video_bunny}
+              disabled={isLoading}
+            />
+          </div>
+
           <div>
             <Label htmlFor="url_video" className="text-muted-foreground">
               URL do Vídeo
@@ -210,20 +242,6 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="id_video_bunny" className="text-muted-foreground">
-                ID Bunny.net
-              </Label>
-              <Input
-                id="id_video_bunny"
-                value={formData.id_video_bunny}
-                onChange={(e) => handleInputChange('id_video_bunny', e.target.value)}
-                className="bg-background/50 border-border text-foreground"
-                placeholder="ID do vídeo no Bunny.net"
-                disabled={isLoading}
-              />
-            </div>
-
             <div>
               <Label htmlFor="ordem" className="text-muted-foreground">
                 Ordem
