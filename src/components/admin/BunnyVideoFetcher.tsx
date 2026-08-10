@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,12 +31,14 @@ interface BunnyVideoFetcherProps {
   onVideoSelect: (details: BunnyVideoDetails) => void;
   initialVideoId?: string;
   disabled?: boolean;
+  autoFetch?: boolean;
 }
 
 export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
   onVideoSelect,
   initialVideoId = '',
-  disabled = false
+  disabled = false,
+  autoFetch = true
 }) => {
   const [videoId, setVideoId] = useState(initialVideoId);
   const [videoDetails, setVideoDetails] = useState<BunnyVideoDetails | null>(null);
@@ -44,8 +46,8 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
   const { fetchVideoDetails, isLoading, error } = useBunnyVideoDetails();
 
   const validateVideoId = (id: string): boolean => {
-    // UUID format validation (Bunny.net video IDs are UUIDs)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    // Bunny.net GUIDs: aceitar qualquer UUID no formato 8-4-4-4-12
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(id.trim());
   };
 
@@ -72,6 +74,25 @@ export const BunnyVideoFetcher: React.FC<BunnyVideoFetcherProps> = ({
       setVideoDetails(null);
     }
   };
+
+  // Busca automática ao colar/digitar um ID válido (debounce)
+  const lastFetchedRef = useRef<string>('');
+  useEffect(() => {
+    if (!autoFetch || disabled) return;
+    const trimmed = videoId.trim();
+    if (!validateVideoId(trimmed) || lastFetchedRef.current === trimmed) return;
+
+    const timer = setTimeout(async () => {
+      lastFetchedRef.current = trimmed;
+      const details = await fetchVideoDetails(trimmed);
+      if (details) {
+        setVideoDetails(details);
+        onVideoSelect(details);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [videoId, autoFetch, disabled]);
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
