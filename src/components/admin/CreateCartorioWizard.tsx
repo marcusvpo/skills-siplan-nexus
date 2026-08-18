@@ -34,10 +34,18 @@ interface CreateCartorioWizardProps {
 
 interface NewUser {
   username: string;
-  email: string;
   is_active: boolean;
   active_trilha_id: string;
 }
+
+// Normaliza o username: sem acentos, sem espaços, minúsculo, apenas [a-z0-9._-]
+const sanitizeUsername = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9._-]/g, '');
 
 const STEPS = [
   { id: 1, label: 'Cartório', icon: Building },
@@ -67,7 +75,6 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
   const [users, setUsers] = useState<NewUser[]>([]);
   const [userDraft, setUserDraft] = useState<NewUser>({
     username: '',
-    email: '',
     is_active: true,
     active_trilha_id: '',
   });
@@ -83,7 +90,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
     setResult(null);
     setForm({ nome: '', cidade: '', estado: 'SP', observacoes: '', data_expiracao: '' });
     setUsers([]);
-    setUserDraft({ username: '', email: '', is_active: true, active_trilha_id: '' });
+    setUserDraft({ username: '', is_active: true, active_trilha_id: '' });
     setSelecoes(new Set());
   };
 
@@ -105,11 +112,11 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
   }, [isOpen]);
 
   const addUser = () => {
-    const username = userDraft.username.trim();
+    const username = sanitizeUsername(userDraft.username);
     if (!username) {
       toast({
         title: 'Nome de usuário obrigatório',
-        description: 'Digite um nome de usuário para adicionar.',
+        description: 'Digite um nome de usuário válido (sem espaços ou acentos).',
         variant: 'destructive',
       });
       return false;
@@ -123,20 +130,20 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       return false;
     }
     setUsers((prev) => [...prev, { ...userDraft, username }]);
-    setUserDraft({ username: '', email: '', is_active: true, active_trilha_id: '' });
+    setUserDraft({ username: '', is_active: true, active_trilha_id: '' });
     return true;
   };
 
   // Garante que um usuário digitado mas não "adicionado" não seja perdido
   const getEffectiveUsers = (): NewUser[] => {
-    const username = userDraft.username.trim();
+    const username = sanitizeUsername(userDraft.username);
     if (!username) return users;
     if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) return users;
     return [...users, { ...userDraft, username }];
   };
 
   const commitDraft = () => {
-    const username = userDraft.username.trim();
+    const username = sanitizeUsername(userDraft.username);
     if (!username) return;
     addUser();
   };
@@ -229,8 +236,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
           .insert(
             usersToCreate.map((u) => ({
             cartorio_id: cartorio.id,
-            username: u.username.trim(),
-            email: u.email?.trim() || null,
+            username: sanitizeUsername(u.username),
             is_active: u.is_active,
             active_trilha_id: u.active_trilha_id || null,
             }))
@@ -463,18 +469,15 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
                       <Label>Nome de usuário</Label>
                       <Input
                         value={userDraft.username}
-                        onChange={(e) => setUserDraft({ ...userDraft, username: e.target.value })}
+                        onChange={(e) =>
+                          setUserDraft({ ...userDraft, username: sanitizeUsername(e.target.value) })
+                        }
                         onKeyDown={(e) => e.key === 'Enter' && addUser()}
                         placeholder="ex.: escrevente.maria"
                       />
-                    </div>
-                    <div>
-                      <Label>E-mail (opcional)</Label>
-                      <Input
-                        type="email"
-                        value={userDraft.email}
-                        onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
-                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Sem espaços e sem acentos. Permitido: letras, números, ponto, hífen e underline.
+                      </p>
                     </div>
                     <div>
                       <Label>Trilha inicial (opcional)</Label>
@@ -525,10 +528,9 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
                           <div className="min-w-0">
                             <p className="truncate font-medium">{u.username}</p>
                             <p className="truncate text-xs text-muted-foreground">
-                              {u.email || 'sem e-mail'}
                               {u.active_trilha_id
-                                ? ` · ${trilhas.find((t) => t.id === u.active_trilha_id)?.nome || 'trilha'}`
-                                : ''}
+                                ? trilhas.find((t) => t.id === u.active_trilha_id)?.nome || 'trilha'
+                                : 'Usuário comum'}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
