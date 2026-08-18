@@ -554,6 +554,11 @@ export const ContentManagerFixed: React.FC = () => {
     return (
       <>
         <div className="space-y-6">
+          {toolbar}
+          {isSearching ? (
+            <ContentSearchResults term={search} hits={hits} onOpen={handleOpenHit} onEdit={handleEditHit} />
+          ) : (
+          <>
           <div className="flex items-center justify-between">
             <div>
               <Button
@@ -622,6 +627,8 @@ export const ContentManagerFixed: React.FC = () => {
               </Card>
             ))}
           </div>
+          </>
+          )}
         </div>
 
         {/* Modal Criar Produto */}
