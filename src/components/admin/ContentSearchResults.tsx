@@ -46,11 +46,11 @@ const typeMeta = {
 } as const;
 
 export const ContentSearchResults: React.FC<Props> = ({ term, hits, onOpen, onEdit }) => {
-  const groups: Array<{ key: ContentHit['tipo']; items: ContentHit[] }> = [
-    { key: 'videoaula', items: hits.filter(h => h.tipo === 'videoaula') },
-    { key: 'produto', items: hits.filter(h => h.tipo === 'produto') },
-    { key: 'sistema', items: hits.filter(h => h.tipo === 'sistema') },
-  ].filter(g => g.items.length > 0);
+  const groups = ([
+    { key: 'videoaula' as const, items: hits.filter(h => h.tipo === 'videoaula') },
+    { key: 'produto' as const, items: hits.filter(h => h.tipo === 'produto') },
+    { key: 'sistema' as const, items: hits.filter(h => h.tipo === 'sistema') },
+  ]).filter(g => g.items.length > 0);
 
   if (hits.length === 0) {
     return (
