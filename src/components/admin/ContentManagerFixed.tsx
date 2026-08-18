@@ -4,14 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSistemasWithVideoAulas } from '@/hooks/useSupabaseDataRefactored';
 import { useNavigate } from 'react-router-dom';
+import { ContentSearchResults, ContentHit } from './ContentSearchResults';
 
 type ViewMode = 'sistemas' | 'produtos' | 'videoaulas';
+
+const normalize = (value: string) =>
+  (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+type TipoFiltro = 'todos' | 'sistema' | 'produto' | 'videoaula';
 
 interface NavState {
   viewMode: ViewMode;
@@ -68,6 +75,187 @@ export const ContentManagerFixed: React.FC = () => {
   const [editProdutoOpen, setEditProdutoOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
+  const [search, setSearch] = useState('');
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
+
+  const termo = normalize(search);
+  const isSearching = termo.length >= 2;
+
+  const totals = useMemo(() => {
+    const sistemas = sistemasData || [];
+    let produtos = 0;
+    let videoaulas = 0;
+    sistemas.forEach((s: any) => {
+      produtos += s.produtos?.length || 0;
+      s.produtos?.forEach((p: any) => {
+        videoaulas += p.video_aulas?.length || 0;
+      });
+    });
+    return { sistemas: sistemas.length, produtos, videoaulas };
+  }, [sistemasData]);
+
+  const hits = useMemo<ContentHit[]>(() => {
+    if (!isSearching || !sistemasData) return [];
+    const matches = (...values: (string | null | undefined)[]) =>
+      values.some(v => v && normalize(v).includes(termo));
+
+    const results: ContentHit[] = [];
+    sistemasData.forEach((sistema: any) => {
+      if (matches(sistema.nome, sistema.descricao)) {
+        results.push({
+          tipo: 'sistema',
+          id: sistema.id,
+          titulo: sistema.nome,
+          descricao: sistema.descricao,
+        });
+      }
+      sistema.produtos?.forEach((produto: any) => {
+        if (matches(produto.nome, produto.descricao)) {
+          results.push({
+            tipo: 'produto',
+            id: produto.id,
+            titulo: produto.nome,
+            descricao: produto.descricao,
+            sistema: { id: sistema.id, nome: sistema.nome },
+          });
+        }
+        produto.video_aulas?.forEach((aula: any) => {
+          if (matches(aula.titulo, aula.descricao, aula.id_video_bunny)) {
+            results.push({
+              tipo: 'videoaula',
+              id: aula.id,
+              titulo: aula.titulo,
+              descricao: aula.descricao,
+              sistema: { id: sistema.id, nome: sistema.nome },
+              produto: { id: produto.id, nome: produto.nome },
+              ordem: aula.ordem,
+              idBunny: aula.id_video_bunny,
+            });
+          }
+        });
+      });
+    });
+
+    return tipoFiltro === 'todos' ? results : results.filter(r => r.tipo === tipoFiltro);
+  }, [isSearching, sistemasData, termo, tipoFiltro]);
+
+  const handleOpenHit = (hit: ContentHit) => {
+    if (hit.tipo === 'sistema') {
+      setNav({ viewMode: 'produtos', sistemaId: hit.id, produtoId: null });
+      setSearch('');
+    } else if (hit.tipo === 'produto') {
+      setNav({ viewMode: 'videoaulas', sistemaId: hit.sistema?.id ?? null, produtoId: hit.id });
+      setSearch('');
+    } else {
+      navigate(`/video/${hit.id}`);
+    }
+  };
+
+  const handleEditHit = (hit: ContentHit) => {
+    if (hit.tipo === 'sistema') {
+      setNav({ viewMode: 'sistemas', sistemaId: hit.id, produtoId: null });
+      setFormData({ nome: hit.titulo, descricao: hit.descricao || '' });
+      setSearch('');
+      setEditSistemaOpen(true);
+    } else if (hit.tipo === 'produto') {
+      setNav({ viewMode: 'produtos', sistemaId: hit.sistema?.id ?? null, produtoId: hit.id });
+      setFormData({ nome: hit.titulo, descricao: hit.descricao || '' });
+      setSearch('');
+      setEditProdutoOpen(true);
+    } else {
+      navigate(`/admin/videoaula-editor/${hit.id}`);
+    }
+  };
+
+  const filtros: { key: TipoFiltro; label: string }[] = [
+    { key: 'todos', label: 'Tudo' },
+    { key: 'sistema', label: 'Categorias' },
+    { key: 'produto', label: 'Produtos' },
+    { key: 'videoaula', label: 'Videoaulas' },
+  ];
+
+  const toolbar = (
+    <Card className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-md">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por categoria, produto, título da videoaula ou ID Bunny..."
+              className="h-11 rounded-xl bg-background/50 pl-10 pr-10"
+            />
+            {search && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearch('')}
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {filtros.map(f => (
+              <Button
+                key={f.key}
+                size="sm"
+                variant={tipoFiltro === f.key ? 'glow' : 'outline'}
+                onClick={() => setTipoFiltro(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="secondary" className="gap-1">
+            <Layers className="h-3 w-3" /> {totals.sistemas} categorias
+          </Badge>
+          <Badge variant="secondary" className="gap-1">
+            <Package className="h-3 w-3" /> {totals.produtos} produtos
+          </Badge>
+          <Badge variant="secondary" className="gap-1">
+            <Video className="h-3 w-3" /> {totals.videoaulas} videoaulas
+          </Badge>
+          {!isSearching && search.length === 1 && <span>Digite ao menos 2 caracteres para buscar</span>}
+        </div>
+
+        {/* Trilha de navegação */}
+        {!isSearching && (
+          <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
+            <button
+              onClick={() => setNav({ viewMode: 'sistemas', sistemaId: null, produtoId: null })}
+              className="text-muted-foreground transition-colors hover:text-primary"
+            >
+              Categorias
+            </button>
+            {selectedSistema && (
+              <>
+                <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <button
+                  onClick={() => setNav({ viewMode: 'produtos', sistemaId: selectedSistema.id, produtoId: null })}
+                  className="max-w-[220px] truncate text-muted-foreground transition-colors hover:text-primary"
+                >
+                  {selectedSistema.nome}
+                </button>
+              </>
+            )}
+            {selectedProduto && viewMode === 'videoaulas' && (
+              <>
+                <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <span className="max-w-[220px] truncate font-medium text-foreground">{selectedProduto.nome}</span>
+              </>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   // SISTEMAS HANDLERS
   const handleCreateSistema = async () => {
@@ -218,6 +406,11 @@ export const ContentManagerFixed: React.FC = () => {
     return (
       <>
         <div className="space-y-6">
+          {toolbar}
+          {isSearching ? (
+            <ContentSearchResults term={search} hits={hits} onOpen={handleOpenHit} onEdit={handleEditHit} />
+          ) : (
+          <>
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-foreground">Categorias</h2>
             <Button onClick={() => setCreateSistemaOpen(true)} variant="glow">
@@ -273,6 +466,8 @@ export const ContentManagerFixed: React.FC = () => {
               </Card>
             ))}
           </div>
+          </>
+          )}
         </div>
 
         {/* Modal Criar Sistema */}
@@ -359,6 +554,11 @@ export const ContentManagerFixed: React.FC = () => {
     return (
       <>
         <div className="space-y-6">
+          {toolbar}
+          {isSearching ? (
+            <ContentSearchResults term={search} hits={hits} onOpen={handleOpenHit} onEdit={handleEditHit} />
+          ) : (
+          <>
           <div className="flex items-center justify-between">
             <div>
               <Button
@@ -427,6 +627,8 @@ export const ContentManagerFixed: React.FC = () => {
               </Card>
             ))}
           </div>
+          </>
+          )}
         </div>
 
         {/* Modal Criar Produto */}
@@ -512,6 +714,11 @@ export const ContentManagerFixed: React.FC = () => {
   if (viewMode === 'videoaulas' && selectedProduto) {
     return (
       <div className="space-y-6">
+        {toolbar}
+        {isSearching ? (
+          <ContentSearchResults term={search} hits={hits} onOpen={handleOpenHit} onEdit={handleEditHit} />
+        ) : (
+        <>
         <div className="flex items-center justify-between">
           <div>
             <Button
@@ -586,6 +793,8 @@ export const ContentManagerFixed: React.FC = () => {
             </Card>
           ))}
         </div>
+        </>
+        )}
       </div>
     );
   }
