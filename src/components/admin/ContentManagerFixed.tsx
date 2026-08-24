@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight, Play, Eye } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
@@ -712,6 +713,9 @@ export const ContentManagerFixed: React.FC = () => {
 
   // VIEW: VIDEOAULAS
   if (viewMode === 'videoaulas' && selectedProduto) {
+    const aulas = selectedProduto.video_aulas || [];
+    const sortedAulas = [...aulas].sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0));
+
     return (
       <div className="space-y-6">
         {toolbar}
@@ -719,80 +723,128 @@ export const ContentManagerFixed: React.FC = () => {
           <ContentSearchResults term={search} hits={hits} onOpen={handleOpenHit} onEdit={handleEditHit} />
         ) : (
         <>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Button
-              onClick={() => {
-                setViewMode('produtos');
-                        }}
+              onClick={() => setViewMode('produtos')}
               variant="outline"
-              className="mb-4 border-border text-muted-foreground"
+              size="sm"
+              className="mb-3 border-border text-muted-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar aos Produtos
             </Button>
-            <h2 className="text-3xl font-bold text-foreground">Videoaulas</h2>
-            <p className="text-muted-foreground mt-1">
-              Sistema: {selectedSistema?.nome} • Produto: {selectedProduto.nome}
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
             </p>
           </div>
           <Button
             onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
             variant="glow"
+            size="sm"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Cadastrar Nova Videoaula
+            Nova Videoaula
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {selectedProduto.video_aulas?.map((videoAula: any) => (
-            <Card key={videoAula.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-foreground mb-2">{videoAula.titulo}</h3>
-                <p className="text-muted-foreground text-sm mb-4 line-clamp-4">{videoAula.descricao || 'Sem descrição'}</p>
-                
-                <div className="space-y-2 mb-4 text-xs text-muted-foreground">
-                  <p>Ordem: {videoAula.ordem}</p>
-                  {videoAula.id_video_bunny && (
-                    <p className="font-mono">ID Bunny: {videoAula.id_video_bunny}</p>
-                  )}
-                </div>
+        {sortedAulas.length === 0 ? (
+          <Card className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-md">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+              <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Video className="h-7 w-7" />
+              </span>
+              <h3 className="text-lg font-semibold text-foreground">Nenhuma videoaula cadastrada</h3>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                Cadastre a primeira videoaula deste produto para começar.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {sortedAulas.map((videoAula: any, index: number) => {
+              const hasVideo = !!videoAula.id_video_bunny;
+              return (
+                <motion.div
+                  key={videoAula.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.35) }}
+                >
+                  <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border-border/50 bg-card/70 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80">
+                    {/* thumbnail / header */}
+                    <div className="relative h-28 overflow-hidden bg-gradient-to-br from-secondary/60 to-muted/40 sm:h-32">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/30 text-primary backdrop-blur-sm transition-transform group-hover:scale-110">
+                          {hasVideo ? <Play className="h-5 w-5 fill-current" /> : <Video className="h-5 w-5" />}
+                        </div>
+                      </div>
+                      <div className="absolute left-3 top-3 flex items-center gap-1.5">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black/50 text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
+                          {String(videoAula.ordem || 0).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div className="absolute right-3 top-3">
+                        <Badge variant={hasVideo ? 'default' : 'secondary'} className="h-6 px-2 text-[10px] font-medium backdrop-blur-sm">
+                          {hasVideo ? 'Vídeo' : 'Rascunho'}
+                        </Badge>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <Button
-                    onClick={() => window.location.href = `/video/${videoAula.id}`}
-                    variant="outline"
-                    size="sm"
-                    className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Visualizar
-                  </Button>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
-                      className="border-border text-muted-foreground hover:bg-secondary"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => handleDeleteVideoAula(videoAula)}
-                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <CardContent className="flex flex-1 flex-col p-4">
+                      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground" title={videoAula.titulo}>
+                        {videoAula.titulo}
+                      </h3>
+
+                      {videoAula.descricao && (
+                        <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground" title={videoAula.descricao}>
+                          {videoAula.descricao}
+                        </p>
+                      )}
+
+                      <div className="mt-auto pt-3">
+                        {hasVideo && (
+                          <p className="mb-3 truncate font-mono text-[10px] text-muted-foreground/70" title={videoAula.id_video_bunny}>
+                            {videoAula.id_video_bunny}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 flex-1 border-border/60 bg-secondary/40 text-xs hover:bg-secondary"
+                            onClick={() => window.location.href = `/video/${videoAula.id}`}
+                          >
+                            <Eye className="mr-1.5 h-3.5 w-3.5" />
+                            Ver
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-8 w-8 border-border/60 hover:bg-secondary"
+                            onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-8 w-8 border-destructive/50 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteVideoAula(videoAula)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
         </>
         )}
       </div>
