@@ -5,7 +5,10 @@ interface CartorioStatusIndicatorProps {
   lastActivity: string | null;
 }
 
-const ONLINE_WINDOW_MS = 2 * 60 * 1000; // 2 minutos (heartbeat = 60s)
+// Janela "online em tempo real": 2 minutos (heartbeat a cada 60s)
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 const formatTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -32,34 +35,47 @@ export const CartorioStatusIndicator: React.FC<CartorioStatusIndicatorProps> = (
 
   const lastActivityDate = new Date(lastActivity);
   const elapsedMs = Date.now() - lastActivityDate.getTime();
-  const daysSinceLastActivity = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
   const isOnline = elapsedMs >= 0 && elapsedMs < ONLINE_WINDOW_MS;
 
-  // Online (success)
+  const title = `Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`;
+  const baseClasses = "flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs";
+
+  // Verde: online em tempo real (< 2 min)
   if (isOnline) {
     return (
-      <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
+      <div className={baseClasses} title={title}>
         <Circle className="h-3 w-3 shrink-0 fill-success text-success animate-pulse" />
         <span className="text-success font-medium">Online</span>
       </div>
     );
   }
 
-  // Offline recente (atenção) - menos de 5 dias
-  if (daysSinceLastActivity < 5) {
+  // Vermelho: último acesso há mais de 2 semanas
+  if (elapsedMs >= TWO_WEEKS_MS) {
     return (
-      <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
-        <Circle className="h-3 w-3 shrink-0 fill-primary text-primary" />
-        <span className="text-primary">{formatTimeAgo(lastActivityDate)}</span>
+      <div className={baseClasses} title={title}>
+        <Circle className="h-3 w-3 shrink-0 fill-destructive text-destructive" />
+        <span className="text-destructive">{formatTimeAgo(lastActivityDate)}</span>
       </div>
     );
   }
 
-  // Offline há muito tempo (destructive) - 5+ dias
+  // Laranja: entre 5 dias e 2 semanas
+  if (elapsedMs >= FIVE_DAYS_MS) {
+    return (
+      <div className={baseClasses} title={title}>
+        <Circle className="h-3 w-3 shrink-0 fill-warning text-warning" />
+        <span className="text-warning">{formatTimeAgo(lastActivityDate)}</span>
+      </div>
+    );
+  }
+
+  // Azul: entre 1 minuto e 5 dias
   return (
-    <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs" title={`Última atividade: ${lastActivityDate.toLocaleString('pt-BR')}`}>
-      <Circle className="h-3 w-3 shrink-0 fill-destructive text-destructive" />
-      <span className="text-destructive">{formatTimeAgo(lastActivityDate)}</span>
+    <div className={baseClasses} title={title}>
+      <Circle className="h-3 w-3 shrink-0 fill-info text-info" />
+      <span className="text-info">{formatTimeAgo(lastActivityDate)}</span>
     </div>
   );
 };
+
