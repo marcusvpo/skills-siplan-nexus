@@ -426,7 +426,12 @@ export const ContentManagerFixed: React.FC = () => {
             {sistemasData?.map((sistema: any) => (
               <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-foreground mb-3">{sistema.nome}</h3>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-xl font-bold text-foreground">{sistema.nome}</h3>
+                    <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
+                      {sistema.produtos?.length || 0} produto{(sistema.produtos?.length || 0) !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
                   <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{sistema.descricao || 'Sem descrição'}</p>
                   
                   <div className="flex items-center justify-between">
