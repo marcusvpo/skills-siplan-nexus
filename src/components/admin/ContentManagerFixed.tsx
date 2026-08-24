@@ -8,6 +8,8 @@ import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, L
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
+
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSistemasWithVideoAulas } from '@/hooks/useSupabaseDataRefactored';
