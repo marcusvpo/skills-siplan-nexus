@@ -426,7 +426,12 @@ export const ContentManagerFixed: React.FC = () => {
             {sistemasData?.map((sistema: any) => (
               <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-foreground mb-3">{sistema.nome}</h3>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-xl font-bold text-foreground">{sistema.nome}</h3>
+                    <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
+                      {sistema.produtos?.length || 0} produto{(sistema.produtos?.length || 0) !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
                   <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{sistema.descricao || 'Sem descrição'}</p>
                   
                   <div className="flex items-center justify-between">
@@ -587,7 +592,12 @@ export const ContentManagerFixed: React.FC = () => {
             {selectedSistema.produtos?.map((produto: any) => (
               <Card key={produto.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-foreground mb-3">{produto.nome}</h3>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-xl font-bold text-foreground">{produto.nome}</h3>
+                    <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
+                      {(produto.video_aulas?.length || 0)} aula{(produto.video_aulas?.length || 0) !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
                   <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{produto.descricao || 'Sem descrição'}</p>
                   
                   <div className="flex items-center justify-between">
@@ -736,7 +746,12 @@ export const ContentManagerFixed: React.FC = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar aos Produtos
             </Button>
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
+              <Badge variant="secondary" className="bg-secondary/70 text-muted-foreground">
+                {sortedAulas.length} aula{sortedAulas.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
             </p>
