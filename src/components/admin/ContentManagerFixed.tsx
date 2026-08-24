@@ -746,7 +746,12 @@ export const ContentManagerFixed: React.FC = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar aos Produtos
             </Button>
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
+              <Badge variant="secondary" className="bg-secondary/70 text-muted-foreground">
+                {sortedAulas.length} aula{sortedAulas.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
             </p>
