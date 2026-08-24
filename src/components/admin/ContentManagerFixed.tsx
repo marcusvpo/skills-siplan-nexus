@@ -8,6 +8,8 @@ import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, L
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
+
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSistemasWithVideoAulas } from '@/hooks/useSupabaseDataRefactored';
@@ -775,11 +777,19 @@ export const ContentManagerFixed: React.FC = () => {
                   <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border-border/50 bg-card/70 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80">
                     {/* thumbnail / header */}
                     <div className="relative h-28 overflow-hidden bg-gradient-to-br from-secondary/60 to-muted/40 sm:h-32">
+                      <BunnyThumbnail
+                        videoId={videoAula.id_video_bunny}
+                        fallbackUrl={videoAula.url_thumbnail}
+                        alt={videoAula.titulo}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/30 text-primary backdrop-blur-sm transition-transform group-hover:scale-110">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/40 text-primary backdrop-blur-sm transition-transform group-hover:scale-110">
                           {hasVideo ? <Play className="h-5 w-5 fill-current" /> : <Video className="h-5 w-5" />}
                         </div>
                       </div>
+
                       <div className="absolute left-3 top-3 flex items-center gap-1.5">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black/50 text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
                           {String(videoAula.ordem || 0).padStart(2, '0')}
