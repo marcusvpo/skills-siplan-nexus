@@ -320,13 +320,18 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
+      <DialogContent
+        className="notranslate max-h-[88vh] max-w-3xl overflow-y-auto"
+        translate="no"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building className="h-5 w-5 text-primary" />
             {result ? 'Cartório criado com sucesso' : 'Criar Novo Cartório'}
           </DialogTitle>
         </DialogHeader>
+
 
         {result ? (
           <div className="space-y-5">
