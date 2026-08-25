@@ -420,7 +420,11 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
               })}
             </div>
 
+            {/* Conteúdo da etapa (chave por etapa: remonta a árvore inteira em vez
+                de remover nós individualmente) */}
+            <div key={`step-${step}`}>
             {/* Etapa 1 */}
+
             {step === 1 && (
               <div className="space-y-4">
                 <div>
