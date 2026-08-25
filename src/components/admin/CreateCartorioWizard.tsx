@@ -636,6 +636,9 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
                 </div>
               </div>
             )}
+            </div>
+
+
 
             {/* Navegação */}
             <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
