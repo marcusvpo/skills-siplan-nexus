@@ -188,8 +188,13 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
 
   const handleNext = () => {
     if (step === 2) commitDraft();
-    goNext();
+    // Defer a troca de etapa para o próximo frame: garante que portais do Radix
+    // (Select) já tenham finalizado o desmonte antes de trocar a árvore,
+    // evitando o erro "removeChild" quando extensões do navegador (ex.: Google
+    // Tradutor) modificam o DOM da página.
+    requestAnimationFrame(() => goNext());
   };
+
 
   const handleFinish = async () => {
     if (!canAdvanceStep1) {
@@ -315,13 +320,18 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
+      <DialogContent
+        className="notranslate max-h-[88vh] max-w-3xl overflow-y-auto"
+        translate="no"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building className="h-5 w-5 text-primary" />
             {result ? 'Cartório criado com sucesso' : 'Criar Novo Cartório'}
           </DialogTitle>
         </DialogHeader>
+
 
         {result ? (
           <div className="space-y-5">
@@ -410,7 +420,11 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
               })}
             </div>
 
+            {/* Conteúdo da etapa (chave por etapa: remonta a árvore inteira em vez
+                de remover nós individualmente) */}
+            <div key={`step-${step}`}>
             {/* Etapa 1 */}
+
             {step === 1 && (
               <div className="space-y-4">
                 <div>
@@ -622,6 +636,9 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
                 </div>
               </div>
             )}
+            </div>
+
+
 
             {/* Navegação */}
             <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
