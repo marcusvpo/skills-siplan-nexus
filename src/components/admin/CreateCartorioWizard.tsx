@@ -188,8 +188,13 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
 
   const handleNext = () => {
     if (step === 2) commitDraft();
-    goNext();
+    // Defer a troca de etapa para o próximo frame: garante que portais do Radix
+    // (Select) já tenham finalizado o desmonte antes de trocar a árvore,
+    // evitando o erro "removeChild" quando extensões do navegador (ex.: Google
+    // Tradutor) modificam o DOM da página.
+    requestAnimationFrame(() => goNext());
   };
+
 
   const handleFinish = async () => {
     if (!canAdvanceStep1) {
