@@ -761,15 +761,22 @@ export const ContentManagerFixed: React.FC = () => {
               {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
             </p>
           </div>
-          <Button
-            onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
-            variant="glow"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Videoaula
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
+              variant="glow"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Videoaula
+            </Button>
+            <Button onClick={() => setManualDialogOpen(true)} variant="outline" size="sm" className="border-border">
+              <FileText className="h-4 w-4 mr-2" />
+              Novo Manual
+            </Button>
+          </div>
         </div>
+
 
         {sortedAulas.length === 0 ? (
           <Card className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-md">
