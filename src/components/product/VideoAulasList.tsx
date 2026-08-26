@@ -10,6 +10,7 @@ import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import { useProgressContext } from '@/contexts/ProgressContext';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { supabase } from '@/integrations/supabase/client';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
 
 // Helper para usar o contexto de progresso de forma segura
 const useSafeProgressContext = () => {
@@ -25,6 +26,8 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   ordem: number;
+  id_video_bunny?: string | null;
+  url_thumbnail?: string | null;
 }
 
 interface VideoAulasListProps {
@@ -212,12 +215,19 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                   onClick={goToLesson}
                 >
                   <CardContent className="flex h-full flex-col gap-3 p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="relative -mx-4 -mt-4 aspect-video overflow-hidden rounded-t-xl bg-muted/20">
+                      <BunnyThumbnail
+                        videoId={aula.id_video_bunny}
+                        fallbackUrl={aula.url_thumbnail}
+                        alt={aula.titulo}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
                       <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                        className={`absolute bottom-2 left-2 flex h-9 w-9 items-center justify-center rounded-xl backdrop-blur-md transition-colors ${
                           isCompleted
-                            ? 'bg-success/20 text-success'
-                            : 'bg-primary/15 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+                            ? 'bg-success/25 text-success'
+                            : 'bg-background/60 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
                         }`}
                       >
                         {isCompleted ? (
@@ -226,7 +236,7 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
                           <Play className="h-4 w-4" />
                         )}
                       </span>
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="absolute bottom-2 right-2 rounded-md bg-background/60 px-1.5 py-0.5 font-mono text-[10px] text-foreground backdrop-blur-md">
                         {String(aula.ordem).padStart(2, '0')}
                       </span>
                     </div>
