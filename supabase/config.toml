@@ -89,6 +89,10 @@ verify_jwt = false
 [functions.get-quiz-perguntas]
 verify_jwt = false
 
+[functions.manage-produto-manuais]
+verify_jwt = false
+
+
 [studio]
 enabled = true
 port = 54323
