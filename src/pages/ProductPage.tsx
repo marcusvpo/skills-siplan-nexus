@@ -14,8 +14,11 @@ import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, BookOpen } from 'lucide-react';
+import { Play, BookOpen, FileText } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import ManuaisModal from '@/components/manuais/ManuaisModal';
+import { useProdutoManuais } from '@/hooks/useProdutoManuais';
+
 
 const ProductPage = () => {
   const { systemId, productId } = useParams<{ 
