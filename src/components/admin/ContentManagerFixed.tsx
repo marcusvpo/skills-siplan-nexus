@@ -80,6 +80,8 @@ export const ContentManagerFixed: React.FC = () => {
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+
 
   const termo = normalize(search);
   const isSearching = termo.length >= 2;
