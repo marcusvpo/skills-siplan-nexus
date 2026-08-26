@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight, Play, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight, Play, Eye, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
+import ManualUploadDialog from '@/components/admin/ManualUploadDialog';
+import ProdutoManuaisSection from '@/components/admin/ProdutoManuaisSection';
+
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
