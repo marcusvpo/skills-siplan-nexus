@@ -277,6 +277,56 @@ export type Database = {
           },
         ]
       }
+      produto_manuais: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          ordem: number
+          produto_id: string
+          storage_path: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          ordem?: number
+          produto_id: string
+          storage_path: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          ordem?: number
+          produto_id?: string
+          storage_path?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_manuais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           descricao: string | null
