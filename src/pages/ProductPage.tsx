@@ -29,6 +29,10 @@ const ProductPage = () => {
   const navigate = useNavigate();
 
   const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
+  const { data: manuais = [] } = useProdutoManuais(productId);
+  const [manuaisOpen, setManuaisOpen] = React.useState(false);
+
+
 
   // Buscar trilhas do produto
   const { data: trilhas, isLoading: isLoadingTrilhas } = useQuery({
