@@ -183,17 +183,28 @@ const ProductPage = () => {
             produtoNome={currentProduct.nome} 
           />
 
+          {manuaisOpen && (
+            <ManuaisModal
+              produtoId={currentProduct.id}
+              produtoNome={currentProduct.nome}
+              open={manuaisOpen}
+              onOpenChange={setManuaisOpen}
+            />
+          )}
+
           <div className="space-y-4 mt-8">
             {hasTrilhas ? (
               <>
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">Trilhas de Aprendizagem</h2>
                     <p className="mt-1 text-muted-foreground">
                       Escolha uma trilha estruturada para aprender no seu ritmo
                     </p>
                   </div>
+                  {manuaisButton}
                 </div>
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {trilhas.map((trilha) => (
