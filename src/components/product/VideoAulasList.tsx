@@ -10,6 +10,7 @@ import { useProgressoReativo } from '@/hooks/useProgressoReativo';
 import { useProgressContext } from '@/contexts/ProgressContext';
 import { useAuth } from '@/contexts/AuthContextFixed';
 import { supabase } from '@/integrations/supabase/client';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
 
 // Helper para usar o contexto de progresso de forma segura
 const useSafeProgressContext = () => {
@@ -25,6 +26,8 @@ interface VideoAula {
   titulo: string;
   descricao?: string;
   ordem: number;
+  id_video_bunny?: string | null;
+  url_thumbnail?: string | null;
 }
 
 interface VideoAulasListProps {
