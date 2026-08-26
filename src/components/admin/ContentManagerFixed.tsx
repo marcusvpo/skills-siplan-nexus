@@ -882,10 +882,20 @@ export const ContentManagerFixed: React.FC = () => {
             })}
           </div>
         )}
+
+        <ProdutoManuaisSection produtoId={selectedProduto.id} />
         </>
         )}
+
+        <ManualUploadDialog
+          produtoId={selectedProduto.id}
+          produtoNome={selectedProduto.nome}
+          open={manualDialogOpen}
+          onOpenChange={setManualDialogOpen}
+        />
       </div>
     );
+
   }
 
   return null;
