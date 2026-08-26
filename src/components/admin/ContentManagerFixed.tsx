@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight, Play, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, Layers, Package, ChevronRight, Play, Eye, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
+import ManualUploadDialog from '@/components/admin/ManualUploadDialog';
+import ProdutoManuaisSection from '@/components/admin/ProdutoManuaisSection';
+
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +83,8 @@ export const ContentManagerFixed: React.FC = () => {
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+
 
   const termo = normalize(search);
   const isSearching = termo.length >= 2;
@@ -756,15 +761,22 @@ export const ContentManagerFixed: React.FC = () => {
               {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
             </p>
           </div>
-          <Button
-            onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
-            variant="glow"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Videoaula
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
+              variant="glow"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Videoaula
+            </Button>
+            <Button onClick={() => setManualDialogOpen(true)} variant="outline" size="sm" className="border-border">
+              <FileText className="h-4 w-4 mr-2" />
+              Novo Manual
+            </Button>
+          </div>
         </div>
+
 
         {sortedAulas.length === 0 ? (
           <Card className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-md">
@@ -870,10 +882,20 @@ export const ContentManagerFixed: React.FC = () => {
             })}
           </div>
         )}
+
+        <ProdutoManuaisSection produtoId={selectedProduto.id} />
         </>
         )}
+
+        <ManualUploadDialog
+          produtoId={selectedProduto.id}
+          produtoNome={selectedProduto.nome}
+          open={manualDialogOpen}
+          onOpenChange={setManualDialogOpen}
+        />
       </div>
     );
+
   }
 
   return null;

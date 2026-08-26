@@ -14,8 +14,11 @@ import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, BookOpen } from 'lucide-react';
+import { Play, BookOpen, FileText } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import ManuaisModal from '@/components/manuais/ManuaisModal';
+import { useProdutoManuais } from '@/hooks/useProdutoManuais';
+
 
 const ProductPage = () => {
   const { systemId, productId } = useParams<{ 
@@ -26,6 +29,10 @@ const ProductPage = () => {
   const navigate = useNavigate();
 
   const { data: sistemas, isLoading, error, refetch } = useSistemasCartorioWithAccess();
+  const { data: manuais = [] } = useProdutoManuais(productId);
+  const [manuaisOpen, setManuaisOpen] = React.useState(false);
+
+
 
   // Buscar trilhas do produto
   const { data: trilhas, isLoading: isLoadingTrilhas } = useQuery({
@@ -151,6 +158,20 @@ const ProductPage = () => {
   const videoAulas = currentProduct.video_aulas || [];
   const hasTrilhas = trilhas && trilhas.length > 0;
 
+  const manuaisButton = manuais.length > 0 ? (
+    <Button
+      variant="outline"
+      className="border-primary/40 bg-card/60 backdrop-blur-md hover:bg-primary/10"
+      onClick={() => setManuaisOpen(true)}
+    >
+      <FileText className="mr-2 h-4 w-4 text-primary" />
+      Ver Manuais
+      <Badge variant="secondary" className="ml-2">{manuais.length}</Badge>
+    </Button>
+  ) : null;
+
+
+
   logger.info('🎯 [ProductPage] Final state', { 
     videoAulasCount: videoAulas.length,
     trilhasCount: trilhas?.length || 0,
@@ -176,17 +197,28 @@ const ProductPage = () => {
             produtoNome={currentProduct.nome} 
           />
 
+          {manuaisOpen && (
+            <ManuaisModal
+              produtoId={currentProduct.id}
+              produtoNome={currentProduct.nome}
+              open={manuaisOpen}
+              onOpenChange={setManuaisOpen}
+            />
+          )}
+
           <div className="space-y-4 mt-8">
             {hasTrilhas ? (
               <>
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">Trilhas de Aprendizagem</h2>
                     <p className="mt-1 text-muted-foreground">
                       Escolha uma trilha estruturada para aprender no seu ritmo
                     </p>
                   </div>
+                  {manuaisButton}
                 </div>
+
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {trilhas.map((trilha) => (
@@ -235,9 +267,11 @@ const ProductPage = () => {
                   videoAulas={videoAulas} 
                   systemId={systemId!} 
                   productId={productId!} 
+                  headerAction={manuaisButton}
                 />
               </>
             )}
+
           </div>
         </div>
       </div>
