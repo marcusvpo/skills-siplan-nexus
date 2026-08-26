@@ -31,9 +31,11 @@ interface VideoAulasListProps {
   videoAulas: VideoAula[];
   systemId: string;
   productId: string;
+  headerAction?: React.ReactNode;
 }
 
-const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId }) => {
+const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId, headerAction }) => {
+
   console.log('🔵 [VideoAulasList] Componente renderizado:', {
     videoAulasCount: videoAulas.length,
     systemId,
@@ -120,20 +122,23 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
 
   if (videoAulas.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-12 text-center">
-          <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Video className="h-8 w-8" />
-          </span>
-          <h3 className="mb-2 text-xl font-semibold text-foreground">Nenhuma videoaula disponível</h3>
-          <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-            As videoaulas para este produto serão disponibilizadas em breve.
-          </p>
-          <Button onClick={() => navigate(`/system/${systemId}`)} variant="outline">
-            Voltar aos produtos
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {headerAction && <div className="flex flex-wrap items-center gap-3">{headerAction}</div>}
+        <Card>
+          <CardContent className="p-12 text-center">
+            <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Video className="h-8 w-8" />
+            </span>
+            <h3 className="mb-2 text-xl font-semibold text-foreground">Nenhuma videoaula disponível</h3>
+            <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
+              As videoaulas para este produto serão disponibilizadas em breve.
+            </p>
+            <Button onClick={() => navigate(`/system/${systemId}`)} variant="outline">
+              Voltar aos produtos
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -166,7 +171,9 @@ const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, p
             {filteredVideoAulas.length} resultado{filteredVideoAulas.length !== 1 ? 's' : ''}
           </Badge>
         )}
+        {headerAction}
       </div>
+
 
       {/* Grade de Cards Compactos */}
       {sortedVideoAulas.length === 0 ? (
