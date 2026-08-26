@@ -253,9 +253,11 @@ const ProductPage = () => {
                   videoAulas={videoAulas} 
                   systemId={systemId!} 
                   productId={productId!} 
+                  headerAction={manuaisButton}
                 />
               </>
             )}
+
           </div>
         </div>
       </div>
