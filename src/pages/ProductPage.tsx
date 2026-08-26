@@ -158,6 +158,20 @@ const ProductPage = () => {
   const videoAulas = currentProduct.video_aulas || [];
   const hasTrilhas = trilhas && trilhas.length > 0;
 
+  const manuaisButton = manuais.length > 0 ? (
+    <Button
+      variant="outline"
+      className="border-primary/40 bg-card/60 backdrop-blur-md hover:bg-primary/10"
+      onClick={() => setManuaisOpen(true)}
+    >
+      <FileText className="mr-2 h-4 w-4 text-primary" />
+      Ver Manuais
+      <Badge variant="secondary" className="ml-2">{manuais.length}</Badge>
+    </Button>
+  ) : null;
+
+
+
   logger.info('🎯 [ProductPage] Final state', { 
     videoAulasCount: videoAulas.length,
     trilhasCount: trilhas?.length || 0,
