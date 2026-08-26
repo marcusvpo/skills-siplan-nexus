@@ -31,9 +31,11 @@ interface VideoAulasListProps {
   videoAulas: VideoAula[];
   systemId: string;
   productId: string;
+  headerAction?: React.ReactNode;
 }
 
-const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId }) => {
+const VideoAulasList: React.FC<VideoAulasListProps> = ({ videoAulas, systemId, productId, headerAction }) => {
+
   console.log('🔵 [VideoAulasList] Componente renderizado:', {
     videoAulasCount: videoAulas.length,
     systemId,
