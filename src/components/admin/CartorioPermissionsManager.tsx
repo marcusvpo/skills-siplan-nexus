@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Save, RefreshCw, AlertCircle } from 'lucide-react';
+import { Shield, Save, RefreshCw, AlertCircle, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
@@ -31,17 +31,21 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
   const [isSaving, setIsSaving] = useState(false);
   const [todosOsSistemas, setTodosOsSistemas] = useState<any[]>([]);
   const [permissoesSelecionadas, setPermissoesSelecionadas] = useState<Set<string>>(new Set());
+  const [sistemasExpandidos, setSistemasExpandidos] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
       
-      // Buscar todos os sistemas
+      // Buscar todos os sistemas com produtos e videoaulas para contagem
       const { data: sistemas, error: sistemasError } = await supabase
         .from('sistemas')
         .select(`
           *,
-          produtos (*)
+          produtos (
+            *,
+            video_aulas (*)
+          )
         `)
         .order('ordem');
 
@@ -66,16 +70,25 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
 
       // Configurar seleções baseado nas permissões existentes
       const selected = new Set<string>();
+      const expandidos = new Set<string>();
       permissoes?.forEach((p: any) => {
         if (p.sistema_id && !p.produto_id) {
           selected.add(`sistema-${p.sistema_id}`);
+          expandidos.add(p.sistema_id);
         } else if (p.produto_id) {
           selected.add(`produto-${p.produto_id}`);
+          const sistemaDoProduto = (sistemas || []).find((s: any) =>
+            s.produtos?.some((prod: any) => prod.id === p.produto_id)
+          );
+          if (sistemaDoProduto) {
+            expandidos.add(sistemaDoProduto.id);
+          }
         }
       });
       
       logger.info('🔐 [CartorioPermissionsManager] Seleções configuradas:', { selected: Array.from(selected) });
       setPermissoesSelecionadas(selected);
+      setSistemasExpandidos(expandidos);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -218,6 +231,26 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
     setPermissoesSelecionadas(newSelected);
   };
 
+  const toggleExpandirSistema = (sistemaId: string) => {
+    const novoExpandidos = new Set(sistemasExpandidos);
+    if (novoExpandidos.has(sistemaId)) {
+      novoExpandidos.delete(sistemaId);
+    } else {
+      novoExpandidos.add(sistemaId);
+    }
+    setSistemasExpandidos(novoExpandidos);
+  };
+
+  const contarAulasProduto = (produto: any) => {
+    return produto?.video_aulas?.length || 0;
+  };
+
+  const contarAulasSistema = (sistema: any) => {
+    return sistema?.produtos?.reduce((total: number, produto: any) => {
+      return total + (produto?.video_aulas?.length || 0);
+    }, 0) || 0;
+  };
+
   useEffect(() => {
     if (isOpen && cartorio) {
       fetchData();
@@ -252,56 +285,87 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                   <h4 className="text-sm font-medium text-destructive">Como funciona:</h4>
                   <ul className="text-sm text-destructive/90 mt-1 space-y-1">
                     <li>• Marque um <strong>Sistema</strong> para dar acesso completo a todos os produtos</li>
-                    <li>• Marque <strong>Produtos</strong> específicos para acesso granular</li>
+                    <li>• Clique em um sistema para expandir e marcar <strong>Produtos</strong> específicos</li>
                     <li>• Se nenhuma permissão for marcada, o cartório terá acesso a tudo</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {todosOsSistemas.map((sistema) => {
                 const sistemaKey = `sistema-${sistema.id}`;
                 const sistemaSelected = permissoesSelecionadas.has(sistemaKey);
+                const expandido = sistemasExpandidos.has(sistema.id);
+                const aulasSistema = contarAulasSistema(sistema);
+                const produtosCount = sistema?.produtos?.length || 0;
                 
                 return (
-                  <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl">
+                  <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 rounded-xl overflow-hidden">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={sistemaSelected}
-                          onCheckedChange={() => toggleSistema(sistema.id)}
-                        />
-                        <CardTitle className="text-lg">
-                          {sistema.nome}
-                        </CardTitle>
+                      <div
+                        className="flex items-center gap-3 cursor-pointer select-none"
+                        onClick={() => toggleExpandirSistema(sistema.id)}
+                      >
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={sistemaSelected}
+                            onCheckedChange={() => toggleSistema(sistema.id)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/10 text-primary shrink-0">
+                          {expandido ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CardTitle className="text-base font-semibold truncate">
+                              {sistema.nome}
+                            </CardTitle>
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              <BookOpen className="h-3 w-3" />
+                              {aulasSistema} {aulasSistema === 1 ? 'aula' : 'aulas'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              ({produtosCount} {produtosCount === 1 ? 'produto' : 'produtos'})
+                            </span>
+                          </div>
+                        </div>
                         {sistemaSelected && (
-                          <span className="text-sm text-success font-medium">
-                            (Acesso Completo)
+                          <span className="text-xs px-2 py-1 rounded-full bg-success/15 text-success font-medium whitespace-nowrap shrink-0">
+                            Acesso Completo
                           </span>
                         )}
                       </div>
                     </CardHeader>
                     
-                    {sistema.produtos && sistema.produtos.length > 0 && (
-                      <CardContent className="pt-0">
-                        <div className="ml-6 space-y-2">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {expandido && sistema.produtos && sistema.produtos.length > 0 && (
+                      <CardContent className="pt-0 border-t border-border/30">
+                        <div className="py-3 space-y-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {sistema.produtos.map((produto: any) => {
                               const produtoKey = `produto-${produto.id}`;
                               const produtoSelected = permissoesSelecionadas.has(produtoKey);
+                              const aulasProduto = contarAulasProduto(produto);
                               
                               return (
-                                <div key={produto.id} className="flex items-center space-x-2">
+                                <div key={produto.id} className="flex items-start space-x-2 p-2 rounded-lg bg-background/40 hover:bg-background/60 transition-colors">
                                   <Checkbox
                                     checked={produtoSelected || sistemaSelected}
                                     disabled={sistemaSelected}
                                     onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
+                                    className="mt-0.5"
                                   />
-                                  <label className={`text-sm cursor-pointer ${
+                                  <label className={`text-sm cursor-pointer flex-1 leading-tight ${
                                     sistemaSelected ? 'text-success' : 'text-muted-foreground'
                                   }`}>
-                                    {produto.nome}
+                                    <span className="font-medium text-foreground">{produto.nome}</span>
+                                    <span className="block text-xs mt-0.5">
+                                      {aulasProduto} {aulasProduto === 1 ? 'aula' : 'aulas'}
+                                    </span>
                                   </label>
                                 </div>
                               );
