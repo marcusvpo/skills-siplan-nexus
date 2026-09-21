@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileText, Download, ExternalLink, Edit, Trash2, Loader2 } from 'lucide-react';
+import { FileText, Download, ExternalLink, Edit, Trash2, Loader2, CalendarDays } from 'lucide-react';
 import {
   useProdutoManuais,
   useManualMutations,
   getManualUrl,
   formatFileSize,
+  formatManualDate,
   type ProdutoManual,
 } from '@/hooks/useProdutoManuais';
 import { manualIcon } from '@/components/manuais/ManuaisModal';
@@ -134,7 +135,11 @@ const ProdutoManuaisSection: React.FC<ProdutoManuaisSectionProps> = ({ produtoId
                       {manual.descricao && (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{manual.descricao}</p>
                       )}
-                      <div className="mt-1.5 flex items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Badge className="gap-1.5 border-primary/30 bg-primary/15 text-[11px] font-semibold text-primary hover:bg-primary/20">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Cadastrado em {formatManualDate(manual.created_at)}
+                        </Badge>
                         <Badge variant="outline" className="text-[10px]">{formatFileSize(manual.file_size)}</Badge>
                         <span className="truncate text-[10px] text-muted-foreground/70">{manual.file_name}</span>
                       </div>

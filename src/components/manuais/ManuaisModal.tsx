@@ -2,8 +2,8 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, Loader2, FileArchive, FileSpreadsheet, FileImage, File } from 'lucide-react';
-import { useProdutoManuais, getManualUrl, formatFileSize, type ProdutoManual } from '@/hooks/useProdutoManuais';
+import { FileText, Download, ExternalLink, Loader2, FileArchive, FileSpreadsheet, FileImage, File, CalendarDays } from 'lucide-react';
+import { useProdutoManuais, getManualUrl, formatFileSize, formatManualDate, type ProdutoManual } from '@/hooks/useProdutoManuais';
 import { useToast } from '@/hooks/use-toast';
 
 export const manualIcon = (mime?: string | null) => {
@@ -92,7 +92,11 @@ const ManuaisModal: React.FC<ManuaisModalProps> = ({ produtoId, produtoNome, ope
                       {manual.descricao && (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{manual.descricao}</p>
                       )}
-                      <div className="mt-1.5 flex items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Badge className="gap-1.5 border-primary/30 bg-primary/15 text-[11px] font-semibold text-primary hover:bg-primary/20">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Publicado em {formatManualDate(manual.created_at)}
+                        </Badge>
                         <Badge variant="outline" className="text-[10px]">
                           {formatFileSize(manual.file_size)}
                         </Badge>
