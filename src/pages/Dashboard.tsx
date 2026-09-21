@@ -11,6 +11,7 @@ import { LearnerHero } from '@/components/user/LearnerHero';
 import { LearnerStats } from '@/components/user/LearnerStats';
 import { ContinueWatchingBanner } from '@/components/user/ContinueWatchingBanner';
 import { WebinarAccessBanner } from '@/components/user/WebinarAccessBanner';
+import { useWebinarOnlyAccess } from '@/hooks/useWebinars';
 
 import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 
