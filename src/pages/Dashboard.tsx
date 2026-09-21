@@ -95,7 +95,7 @@ const Dashboard = () => {
   };
 
   // Loading state - mostrar apenas se realmente carregando
-  if (isLoading || !user) {
+  if (isLoading || !user || webinarCheckLoading || isWebinarOnly) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="bg-card/70 backdrop-blur-md border-border/50">
