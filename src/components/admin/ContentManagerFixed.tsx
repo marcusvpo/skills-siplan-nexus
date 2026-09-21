@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, FolderOpen, Video, Edit, Trash2, Loader2, Search, X, L
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { WebinarCountdown } from '@/components/webinar/WebinarCountdown';
 import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
 import ManualUploadDialog from '@/components/admin/ManualUploadDialog';
 import ProdutoManuaisSection from '@/components/admin/ProdutoManuaisSection';
@@ -83,6 +84,7 @@ export const ContentManagerFixed: React.FC = () => {
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
+  const [produtoTipo, setProdutoTipo] = useState<'treinamento' | 'webinar'>('treinamento');
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
 
@@ -333,7 +335,8 @@ export const ContentManagerFixed: React.FC = () => {
         nome: formData.nome.trim(),
         descricao: formData.descricao?.trim() || null,
         sistema_id: selectedSistema.id,
-        ordem: (selectedSistema.produtos?.length || 0) + 1
+        ordem: (selectedSistema.produtos?.length || 0) + 1,
+        tipo: produtoTipo
       });
       if (error) throw error;
       toast({ title: "Produto criado com sucesso!" });
@@ -353,7 +356,8 @@ export const ContentManagerFixed: React.FC = () => {
     try {
       const { error } = await supabase.from('produtos').update({
         nome: formData.nome.trim(),
-        descricao: formData.descricao?.trim() || null
+        descricao: formData.descricao?.trim() || null,
+        tipo: produtoTipo
       }).eq('id', selectedProduto.id);
       if (error) throw error;
       toast({ title: "Produto atualizado com sucesso!" });
@@ -587,7 +591,7 @@ export const ContentManagerFixed: React.FC = () => {
               <h2 className="text-3xl font-bold text-foreground">Produtos</h2>
               <p className="text-muted-foreground mt-1">Categoria: {selectedSistema.nome}</p>
             </div>
-            <Button onClick={() => setCreateProdutoOpen(true)} variant="glow">
+            <Button onClick={() => { setProdutoTipo('treinamento'); setCreateProdutoOpen(true); }} variant="glow">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Novo Produto
             </Button>
@@ -598,7 +602,12 @@ export const ContentManagerFixed: React.FC = () => {
               <Card key={produto.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-xl font-bold text-foreground">{produto.nome}</h3>
+                    <h3 className="text-xl font-bold text-foreground">
+                      {produto.nome}
+                      {produto.tipo === 'webinar' && (
+                        <Badge className="ml-2 align-middle bg-primary/15 text-primary">Webinar</Badge>
+                      )}
+                    </h3>
                     <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
                       {(produto.video_aulas?.length || 0)} aula{(produto.video_aulas?.length || 0) !== 1 ? 's' : ''}
                     </Badge>
@@ -625,6 +634,7 @@ export const ContentManagerFixed: React.FC = () => {
                         onClick={() => {
                           setProdutoId(produto.id);
                           setFormData({ nome: produto.nome, descricao: produto.descricao || '' });
+                          setProdutoTipo(produto.tipo === 'webinar' ? 'webinar' : 'treinamento');
                           setEditProdutoOpen(true);
                         }}
                         className="border-border text-muted-foreground hover:bg-secondary"
@@ -674,6 +684,25 @@ export const ContentManagerFixed: React.FC = () => {
                   placeholder="Descrição breve do produto"
                   rows={3}
                 />
+              </div>
+              <div>
+                <Label>Tipo de conteúdo</Label>
+                <div className="mt-2 flex gap-2">
+                  {([['treinamento', 'Treinamento'], ['webinar', 'Webinar']] as const).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={produtoTipo === value ? 'glow' : 'outline'}
+                      onClick={() => setProdutoTipo(value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Produtos de webinar aparecem na área exclusiva de webinars, com prazo de validade por vídeo.
+                </p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setCreateProdutoOpen(false)} className="border-border">
@@ -822,10 +851,13 @@ export const ContentManagerFixed: React.FC = () => {
                           {String(videoAula.ordem || 0).padStart(2, '0')}
                         </span>
                       </div>
-                      <div className="absolute right-3 top-3">
+                      <div className="absolute right-3 top-3 flex flex-col items-end gap-1">
                         <Badge variant={hasVideo ? 'default' : 'secondary'} className="h-6 px-2 text-[10px] font-medium backdrop-blur-sm">
                           {hasVideo ? 'Vídeo' : 'Rascunho'}
                         </Badge>
+                        {selectedProduto.tipo === 'webinar' && (
+                          <WebinarCountdown video={videoAula} />
+                        )}
                       </div>
                     </div>
 

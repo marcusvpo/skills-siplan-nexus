@@ -389,6 +389,10 @@ export const useCreateVideoAula = () => {
       ordem: number;
       id_video_bunny?: string;
       url_thumbnail?: string;
+      disponivel_em?: string | null;
+      dias_disponibilidade?: number | null;
+      disponivel_ate?: string | null;
+      webinar_ativo?: boolean | null;
     }) => {
       logger.info('🏗️ [useCreateVideoAula] Creating video aula:', { titulo: videoAulaData.titulo });
       const { data, error } = await supabase
@@ -424,6 +428,10 @@ export const useUpdateVideoAula = () => {
       ordem?: number;
       id_video_bunny?: string;
       url_thumbnail?: string;
+      disponivel_em?: string | null;
+      dias_disponibilidade?: number | null;
+      disponivel_ate?: string | null;
+      webinar_ativo?: boolean | null;
     }) => {
       logger.info('🔄 [useUpdateVideoAula] Updating video aula:', { id, updates });
       
