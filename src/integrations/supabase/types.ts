@@ -334,6 +334,7 @@ export type Database = {
           nome: string
           ordem: number
           sistema_id: string
+          tipo: Database["public"]["Enums"]["produto_tipo"]
         }
         Insert: {
           descricao?: string | null
@@ -341,6 +342,7 @@ export type Database = {
           nome: string
           ordem?: number
           sistema_id: string
+          tipo?: Database["public"]["Enums"]["produto_tipo"]
         }
         Update: {
           descricao?: string | null
@@ -348,6 +350,7 @@ export type Database = {
           nome?: string
           ordem?: number
           sistema_id?: string
+          tipo?: Database["public"]["Enums"]["produto_tipo"]
         }
         Relationships: [
           {
@@ -670,6 +673,9 @@ export type Database = {
       video_aulas: {
         Row: {
           descricao: string | null
+          dias_disponibilidade: number | null
+          disponivel_ate: string | null
+          disponivel_em: string | null
           id: string
           id_video_bunny: string | null
           ordem: number
@@ -678,9 +684,13 @@ export type Database = {
           transcricao_completa_texto: string | null
           url_thumbnail: string | null
           url_video: string
+          webinar_ativo: boolean
         }
         Insert: {
           descricao?: string | null
+          dias_disponibilidade?: number | null
+          disponivel_ate?: string | null
+          disponivel_em?: string | null
           id?: string
           id_video_bunny?: string | null
           ordem?: number
@@ -689,9 +699,13 @@ export type Database = {
           transcricao_completa_texto?: string | null
           url_thumbnail?: string | null
           url_video?: string
+          webinar_ativo?: boolean
         }
         Update: {
           descricao?: string | null
+          dias_disponibilidade?: number | null
+          disponivel_ate?: string | null
+          disponivel_em?: string | null
           id?: string
           id_video_bunny?: string | null
           ordem?: number
@@ -700,6 +714,7 @@ export type Database = {
           transcricao_completa_texto?: string | null
           url_thumbnail?: string | null
           url_video?: string
+          webinar_ativo?: boolean
         }
         Relationships: [
           {
@@ -876,7 +891,7 @@ export type Database = {
       validate_custom_jwt: { Args: { token: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      produto_tipo: "treinamento" | "webinar"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1003,6 +1018,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      produto_tipo: ["treinamento", "webinar"],
+    },
   },
 } as const
