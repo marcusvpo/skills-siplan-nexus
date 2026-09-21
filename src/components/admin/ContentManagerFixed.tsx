@@ -25,6 +25,10 @@ type ViewMode = 'sistemas' | 'produtos' | 'videoaulas';
 const normalize = (value: string) =>
   (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
+// Uma categoria é tratada como "Webinars" quando possui produtos do tipo webinar
+const isSistemaWebinar = (sistema: any) =>
+  Array.isArray(sistema?.produtos) && sistema.produtos.some((p: any) => p?.tipo === 'webinar');
+
 type TipoFiltro = 'todos' | 'sistema' | 'produto' | 'videoaula';
 
 interface NavState {
