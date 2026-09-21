@@ -502,7 +502,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {videoAula ? 'Atualizar' : 'Publicar'} {isWebinar ? 'Webinar' : 'Videoaula'}
+                  {videoAula ? 'Atualizar' : isWebinar ? 'Publicar' : 'Salvar'} {isWebinar ? 'Webinar' : 'Videoaula'}
                 </>
               )}
             </Button>
