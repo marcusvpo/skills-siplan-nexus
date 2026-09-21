@@ -179,7 +179,7 @@ serve(async (req) => {
       }
       
       return new Response(JSON.stringify({
-        sistemas: allSystems || [],
+        sistemas: stripWebinarUrls(allSystems),
         hasPermissions: false
       }), {
         status: 200,
@@ -278,7 +278,7 @@ serve(async (req) => {
     console.log('Final filtered systems count:', filteredSystems?.length || 0);
     
     return new Response(JSON.stringify({
-      sistemas: filteredSystems || [],
+      sistemas: stripWebinarUrls(filteredSystems),
       hasPermissions: true,
       permissions: permissions
     }), {
