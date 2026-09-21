@@ -870,6 +870,7 @@ export const ContentManagerFixed: React.FC = () => {
   if (viewMode === 'videoaulas' && selectedProduto) {
     const aulas = selectedProduto.video_aulas || [];
     const sortedAulas = [...aulas].sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0));
+    const isWebinar = selectedProduto.tipo === 'webinar';
 
     return (
       <div className="space-y-6">
