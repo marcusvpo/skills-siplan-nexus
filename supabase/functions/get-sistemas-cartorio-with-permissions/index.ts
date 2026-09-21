@@ -138,9 +138,28 @@ serve(async (req) => {
     }
     
     console.log('Cartorio permissions:', permissions?.length || 0);
-    
+
+    // Webinars: nunca devolver a URL do vídeo no listamento.
+    // A URL só é entregue pela edge function get-webinar-video, após validar a janela de prazo.
+    const stripWebinarUrls = (systems: any[] | null) =>
+      (systems || []).map((system) => ({
+        ...system,
+        produtos: (system.produtos || []).map((produto: any) =>
+          produto?.tipo === 'webinar'
+            ? {
+                ...produto,
+                video_aulas: (produto.video_aulas || []).map((aula: any) => {
+                  const { url_video, transcricao_completa_texto, ...rest } = aula;
+                  return rest;
+                }),
+              }
+            : produto
+        ),
+      }));
+
     // If no specific permissions are set, return all systems
     if (!permissions || permissions.length === 0) {
+
       console.log('No specific permissions found, returning all systems');
       
       const { data: allSystems, error: systemsError } = await supabase
