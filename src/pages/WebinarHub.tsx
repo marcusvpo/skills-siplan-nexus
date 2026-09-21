@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, Radio, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContextFixed';
-import { useWebinars } from '@/hooks/useWebinars';
+import { useWebinars, useWebinarOnlyAccess } from '@/hooks/useWebinars';
 import { WebinarSpotlight } from '@/components/webinar/WebinarSpotlight';
 import { WebinarCard } from '@/components/webinar/WebinarCard';
 import { cn } from '@/lib/utils';
