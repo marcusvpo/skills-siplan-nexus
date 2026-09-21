@@ -13,6 +13,7 @@ const WebinarHub: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { tracks, isLoading, error, refetch } = useWebinars();
+  const { isWebinarOnly } = useWebinarOnlyAccess();
   const [activeTrack, setActiveTrack] = React.useState<string | null>(null);
 
   React.useEffect(() => {
