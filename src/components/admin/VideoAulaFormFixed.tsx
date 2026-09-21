@@ -483,11 +483,16 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
           )}
 
 
-          <div className="flex space-x-4">
+          <div className={isWebinar ? 'flex space-x-4 border-t border-webinar/20 pt-4' : 'flex space-x-4'}>
             <Button
               type="submit"
               disabled={isLoading || !formData.titulo.trim()}
-              variant="glow"
+              variant={isWebinar ? 'default' : 'glow'}
+              className={
+                isWebinar
+                  ? 'bg-webinar text-background hover:bg-webinar/90 shadow-[var(--shadow-webinar)]'
+                  : undefined
+              }
             >
               {isLoading ? (
                 <>
@@ -497,7 +502,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {videoAula ? 'Atualizar' : 'Salvar'} Videoaula
+                  {videoAula ? 'Atualizar' : 'Publicar'} {isWebinar ? 'Webinar' : 'Videoaula'}
                 </>
               )}
             </Button>
