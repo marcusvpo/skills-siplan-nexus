@@ -19,6 +19,14 @@ import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 const Dashboard = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isWebinarOnly, isLoading: webinarCheckLoading } = useWebinarOnlyAccess();
+
+  // Acesso exclusivo de webinar: vai direto para a área de Webinars
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && isWebinarOnly) {
+      navigate('/webinars', { replace: true });
+    }
+  }, [isLoading, isAuthenticated, isWebinarOnly, navigate]);
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
