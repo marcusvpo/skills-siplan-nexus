@@ -33,16 +33,20 @@ const WebinarHub: React.FC = () => {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="rounded-none text-muted-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Treinamentos
-            </Button>
-            <div className="h-6 w-px bg-border/60" />
+            {!isWebinarOnly && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                  className="rounded-none text-muted-foreground"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Treinamentos
+                </Button>
+                <div className="h-6 w-px bg-border/60" />
+              </>
+            )}
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center border border-primary/50 bg-primary/10 text-primary">
                 <Radio className="h-4 w-4" />
