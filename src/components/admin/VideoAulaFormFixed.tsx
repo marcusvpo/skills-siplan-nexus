@@ -466,19 +466,22 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
             </div>
           )}
 
-          <div>
-            <Label htmlFor="url_thumbnail" className="text-muted-foreground">
-              URL Thumbnail
-            </Label>
-            <Input
-              id="url_thumbnail"
-              value={formData.url_thumbnail}
-              onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
-              className="bg-background/50 border-border text-foreground"
-              placeholder="https://..."
-              disabled={isLoading}
-            />
-          </div>
+          {!isWebinar && (
+            <div>
+              <Label htmlFor="url_thumbnail" className="text-muted-foreground">
+                URL Thumbnail
+              </Label>
+              <Input
+                id="url_thumbnail"
+                value={formData.url_thumbnail}
+                onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
+                className="bg-background/50 border-border text-foreground"
+                placeholder="https://..."
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
 
           <div className="flex space-x-4">
             <Button
