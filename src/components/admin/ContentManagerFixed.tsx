@@ -451,7 +451,7 @@ export const ContentManagerFixed: React.FC = () => {
                 {webinar && (
                   <>
                     <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'var(--gradient-webinar)' }} />
-                    <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/10 blur-3xl" />
                   </>
                 )}
                 <CardContent className={webinar ? 'relative p-6 pt-7' : 'p-6'}>
@@ -672,7 +672,7 @@ export const ContentManagerFixed: React.FC = () => {
                 {webinar && (
                   <>
                     <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'var(--gradient-webinar)' }} />
-                    <div className="pointer-events-none absolute -right-14 -bottom-14 h-36 w-36 rounded-full bg-webinar-glow/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-14 -bottom-14 h-36 w-36 rounded-full bg-webinar-glow/10 blur-3xl" />
                   </>
                 )}
                 <CardContent className={webinar ? 'relative p-6 pl-7' : 'p-6'}>
