@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Lock, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BunnyThumbnail } from '@/components/BunnyThumbnail';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
 import { WebinarCountdown } from '@/components/webinar/WebinarCountdown';
 import { formatWebinarDate } from '@/lib/webinar';
 import type { WebinarVideo } from '@/hooks/useWebinars';
