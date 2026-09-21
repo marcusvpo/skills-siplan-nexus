@@ -891,25 +891,42 @@ export const ContentManagerFixed: React.FC = () => {
               Voltar aos Produtos
             </Button>
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Videoaulas</h2>
-              <Badge variant="secondary" className="bg-secondary/70 text-muted-foreground">
-                {sortedAulas.length} aula{sortedAulas.length !== 1 ? 's' : ''}
+              {isWebinar && (
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-webinar/40 bg-webinar/10 text-webinar">
+                  <Radio className="h-4 w-4" />
+                </span>
+              )}
+              <h2 className={isWebinar ? 'text-2xl font-bold uppercase tracking-tight text-webinar-foreground sm:text-3xl' : 'text-2xl font-bold text-foreground sm:text-3xl'}>
+                {isWebinar ? 'Gravações do Webinar' : 'Videoaulas'}
+              </h2>
+              <Badge
+                variant="secondary"
+                className={isWebinar ? 'border border-webinar/30 bg-webinar/10 font-mono text-webinar' : 'bg-secondary/70 text-muted-foreground'}
+              >
+                {sortedAulas.length} {isWebinar ? `gravaç${sortedAulas.length !== 1 ? 'ões' : 'ão'}` : `aula${sortedAulas.length !== 1 ? 's' : ''}`}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className={isWebinar ? 'mt-1 text-sm text-webinar-foreground/70' : 'text-sm text-muted-foreground mt-1'}>
               {selectedSistema?.nome} <ChevronRight className="inline h-3 w-3" /> {selectedProduto.nome}
+              {isWebinar && ' · prazo de visualização controlado por gravação'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => navigate(`/admin/videoaula/nova?sistema_id=${selectedSistema?.id}&produto_id=${selectedProduto.id}`)}
-              variant="glow"
+              variant={isWebinar ? 'outline' : 'glow'}
               size="sm"
+              className={isWebinar ? 'border-webinar/50 bg-webinar/15 text-webinar hover:bg-webinar/25' : undefined}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Nova Videoaula
+              {isWebinar ? 'Novo Webinar' : 'Nova Videoaula'}
             </Button>
-            <Button onClick={() => setManualDialogOpen(true)} variant="outline" size="sm" className="border-border">
+            <Button
+              onClick={() => setManualDialogOpen(true)}
+              variant="outline"
+              size="sm"
+              className={isWebinar ? 'border-webinar/30 text-webinar hover:bg-webinar/10' : 'border-border'}
+            >
               <FileText className="h-4 w-4 mr-2" />
               Novo Manual
             </Button>
