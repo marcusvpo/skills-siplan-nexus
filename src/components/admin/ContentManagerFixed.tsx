@@ -935,19 +935,23 @@ export const ContentManagerFixed: React.FC = () => {
 
 
         {sortedAulas.length === 0 ? (
-          <Card className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-md">
+          <Card className={isWebinar ? 'rounded-[1.75rem] border-webinar/30 bg-webinar-surface/70 backdrop-blur-md' : 'rounded-2xl border-border/50 bg-card/60 backdrop-blur-md'}>
             <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-              <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Video className="h-7 w-7" />
+              <span className={isWebinar ? 'mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-webinar/40 bg-webinar/10 text-webinar' : 'mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary'}>
+                {isWebinar ? <Radio className="h-7 w-7" /> : <Video className="h-7 w-7" />}
               </span>
-              <h3 className="text-lg font-semibold text-foreground">Nenhuma videoaula cadastrada</h3>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Cadastre a primeira videoaula deste produto para começar.
+              <h3 className={isWebinar ? 'text-lg font-semibold text-webinar-foreground' : 'text-lg font-semibold text-foreground'}>
+                {isWebinar ? 'Nenhuma gravação publicada' : 'Nenhuma videoaula cadastrada'}
+              </h3>
+              <p className={isWebinar ? 'mt-1 max-w-sm text-sm text-webinar-foreground/70' : 'mt-1 max-w-sm text-sm text-muted-foreground'}>
+                {isWebinar
+                  ? 'Publique a primeira gravação deste webinar e defina o prazo de visualização.'
+                  : 'Cadastre a primeira videoaula deste produto para começar.'}
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className={isWebinar ? 'grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3' : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
             {sortedAulas.map((videoAula: any, index: number) => {
               const hasVideo = !!videoAula.id_video_bunny;
               return (
@@ -957,9 +961,18 @@ export const ContentManagerFixed: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.35) }}
                 >
-                  <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border-border/50 bg-card/70 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80">
+                  <Card
+                    className={
+                      isWebinar
+                        ? 'group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md transition-all hover:border-webinar/60 hover:shadow-[var(--shadow-webinar)]'
+                        : 'group flex h-full flex-col overflow-hidden rounded-2xl border-border/50 bg-card/70 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/80'
+                    }
+                  >
+                    {isWebinar && (
+                      <div className="absolute inset-x-0 top-0 z-10 h-1" style={{ background: 'var(--gradient-webinar)' }} />
+                    )}
                     {/* thumbnail / header */}
-                    <div className="relative h-28 overflow-hidden bg-gradient-to-br from-secondary/60 to-muted/40 sm:h-32">
+                    <div className={isWebinar ? 'relative h-40 overflow-hidden bg-gradient-to-br from-webinar/20 to-webinar-glow/10' : 'relative h-28 overflow-hidden bg-gradient-to-br from-secondary/60 to-muted/40 sm:h-32'}>
                       <BunnyThumbnail
                         videoId={videoAula.id_video_bunny}
                         fallbackUrl={videoAula.url_thumbnail}
@@ -968,25 +981,44 @@ export const ContentManagerFixed: React.FC = () => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/40 text-primary backdrop-blur-sm transition-transform group-hover:scale-110">
+                        <div
+                          className={
+                            isWebinar
+                              ? 'flex h-14 w-14 items-center justify-center rounded-2xl border border-webinar/50 bg-black/45 text-webinar backdrop-blur-sm transition-transform group-hover:scale-110'
+                              : 'flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/40 text-primary backdrop-blur-sm transition-transform group-hover:scale-110'
+                          }
+                        >
                           {hasVideo ? <Play className="h-5 w-5 fill-current" /> : <Video className="h-5 w-5" />}
                         </div>
                       </div>
 
                       <div className="absolute left-3 top-3 flex items-center gap-1.5">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black/50 text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
-                          {String(videoAula.ordem || 0).padStart(2, '0')}
-                        </span>
-                      </div>
-                      <div className="absolute right-3 top-3 flex flex-col items-end gap-1">
-                        <Badge variant={hasVideo ? 'default' : 'secondary'} className="h-6 px-2 text-[10px] font-medium backdrop-blur-sm">
-                          {hasVideo ? 'Vídeo' : 'Rascunho'}
-                        </Badge>
-                        {selectedProduto.tipo === 'webinar' && (
-                          <WebinarCountdown video={videoAula} />
+                        {isWebinar ? (
+                          <span className="flex items-center gap-1 rounded-full border border-webinar/50 bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-webinar backdrop-blur-sm">
+                            <Radio className="h-2.5 w-2.5" />
+                            Webinar
+                          </span>
+                        ) : (
+                          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black/50 text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
+                            {String(videoAula.ordem || 0).padStart(2, '0')}
+                          </span>
                         )}
                       </div>
+                      <div className="absolute right-3 top-3 flex flex-col items-end gap-1">
+                        <Badge
+                          variant={hasVideo ? 'default' : 'secondary'}
+                          className={
+                            isWebinar
+                              ? 'h-6 border border-webinar/40 bg-black/55 px-2 text-[10px] font-medium text-webinar backdrop-blur-sm'
+                              : 'h-6 px-2 text-[10px] font-medium backdrop-blur-sm'
+                          }
+                        >
+                          {hasVideo ? 'Gravação' : 'Rascunho'}
+                        </Badge>
+                        {isWebinar && <WebinarCountdown video={videoAula} />}
+                      </div>
                     </div>
+
 
                     <CardContent className="flex flex-1 flex-col p-4">
                       <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground" title={videoAula.titulo}>
