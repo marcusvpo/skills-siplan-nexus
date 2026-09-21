@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2, Search, ChevronRight, ChevronDown, Copy, ClipboardCheck, Filter, ArrowUpDown, X, MapPin, CalendarClock, Clock } from 'lucide-react';
+import { Building, Plus, Edit, Trash2, Users, Key, Shield, Loader2, Search, ChevronRight, ChevronDown, Copy, ClipboardCheck, Filter, ArrowUpDown, X, MapPin, CalendarClock, Clock, Radio } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCartoriosWithAcessos } from '@/hooks/useSupabaseDataRefactored';
 import { CartorioUserManager } from './CartorioUserManager';
@@ -73,6 +73,10 @@ export const CartorioManagementComplete: React.FC = () => {
     cartorio.cartorio_usuarios?.find((u: any) => u.is_active !== false)?.username ||
     cartorio.cartorio_usuarios?.[0]?.username ||
     cartorio.nome;
+
+  const isWebinarAccount = (cartorio: any) =>
+    String(getUsuario(cartorio)).toLowerCase() === 'siplan.webinar' ||
+    String(cartorio.nome || '').toLowerCase() === 'siplan webinars';
 
   const handleCopyModeloAcesso = (cartorio: any) => {
     const modelo = `https://skills.siplan.com.br/\n\nUsuário: ${getUsuario(cartorio)}\nToken de Acesso: ${getToken(cartorio)}`;
@@ -328,25 +332,47 @@ export const CartorioManagementComplete: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {filteredCartorios.map((cartorio: any, index: number) => {
                 const isExpanded = expandedCartorioId === cartorio.id;
+                const isWebinar = isWebinarAccount(cartorio);
 
                 return (
                   <Card
                     key={cartorio.id}
-                    className={`bg-card/70 backdrop-blur-md border border-border/50 hover:border-primary/60 transition-colors rounded-xl ${
-                      isExpanded ? 'col-span-full border-primary/50 shadow-lg shadow-primary/20' : ''
+                    className={`relative overflow-hidden backdrop-blur-md transition-colors rounded-xl ${
+                      isWebinar
+                        ? 'col-span-full border border-webinar/35 bg-webinar-surface/70 shadow-webinar hover:border-webinar/55'
+                        : 'border border-border/50 bg-card/70 hover:border-primary/60'
+                    } ${
+                      isExpanded && !isWebinar ? 'col-span-full border-primary/50 shadow-lg shadow-primary/20' : ''
                     }`}
                   >
+                    {isWebinar && <div className="absolute inset-y-0 left-0 w-1 bg-gradient-webinar" />}
                     <CardContent className={isExpanded ? 'p-6' : 'p-4'}>
                       <button
                         type="button"
                         onClick={() => setExpandedCartorioId(isExpanded ? null : cartorio.id)}
-                        className="flex w-full items-center justify-between gap-4"
+                        className={`flex w-full items-center justify-between gap-4 ${isWebinar ? 'pl-2' : ''}`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <span className="text-xs font-mono text-muted-foreground">#{index + 1}</span>
+                          {isWebinar ? (
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-webinar/30 bg-webinar/10 text-webinar">
+                              <Radio className="h-5 w-5" />
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono text-muted-foreground">#{index + 1}</span>
+                          )}
                           <div className="min-w-0">
-                            <p className="truncate text-left text-sm font-semibold text-foreground">{cartorio.nome}</p>
-                            {cartorio.cidade && cartorio.estado && (
+                            {isWebinar && (
+                              <div className="mb-1 flex flex-wrap items-center gap-2">
+                                <Badge className="border border-webinar/25 bg-webinar/10 text-[10px] font-semibold uppercase text-webinar hover:bg-webinar/10">
+                                  Acesso exclusivo · Webinars
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">Conta compartilhada com clientes</span>
+                              </div>
+                            )}
+                            <p className={`truncate text-left font-semibold text-foreground ${isWebinar ? 'text-base' : 'text-sm'}`}>{cartorio.nome}</p>
+                            {isWebinar ? (
+                              <p className="truncate text-left font-mono text-xs text-muted-foreground">{getUsuario(cartorio)}</p>
+                            ) : cartorio.cidade && cartorio.estado && (
                               <p className="truncate text-left text-xs text-muted-foreground">
                                 {cartorio.cidade} - {cartorio.estado}
                               </p>
@@ -372,10 +398,10 @@ export const CartorioManagementComplete: React.FC = () => {
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-6 space-y-6 border-t border-border/50 pt-6">
+                        <div className={`mt-6 space-y-6 border-t pt-6 ${isWebinar ? 'border-webinar/20' : 'border-border/50'}`}>
                           <div className="grid gap-4 lg:grid-cols-3">
                             {/* Bloco: credenciais de acesso */}
-                            <div className="rounded-lg border border-border/50 bg-card/70 backdrop-blur-md p-4 lg:col-span-2">
+                            <div className={`rounded-lg border backdrop-blur-md p-4 lg:col-span-2 ${isWebinar ? 'border-webinar/20 bg-webinar/5' : 'border-border/50 bg-card/70'}`}>
                               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                 Credenciais de acesso
                               </p>
@@ -445,8 +471,8 @@ export const CartorioManagementComplete: React.FC = () => {
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                   <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                   <span>
-                                    {getLastActivity(cartorio)
-                                      ? `Último acesso: ${getLastActivity(cartorio)!.toLocaleString('pt-BR')}`
+                                    {getLastActivity(cartorio)?.toLocaleString('pt-BR')
+                                      ? `Último acesso: ${getLastActivity(cartorio)?.toLocaleString('pt-BR')}`
                                       : 'Nunca acessou'}
                                   </span>
                                 </div>
