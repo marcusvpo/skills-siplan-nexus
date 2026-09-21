@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
-import { useSistemasTreinamento } from '@/hooks/useWebinars';
+import { AlertCircle, RefreshCw, BookOpen, Radio } from 'lucide-react';
+import { useSistemasTreinamento, useWebinars } from '@/hooks/useWebinars';
 import { useProgressoGeral } from '@/hooks/useProgressoGeral';
 import { SistemaCard } from '@/components/user/SistemaCard';
 import { logger } from '@/utils/logger';
@@ -18,6 +18,7 @@ export const TreinamentosSection: React.FC = () => {
   const { user } = useAuth();
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasTreinamento();
   const { progressos } = useProgressoGeral();
+  const { hasWebinars } = useWebinars();
 
   React.useEffect(() => {
     logger.info('📚 [TreinamentosSection] Component state:', {
@@ -58,6 +59,31 @@ export const TreinamentosSection: React.FC = () => {
             <p className="mt-3 text-xs text-muted-foreground">
               Se o problema persistir, contate o administrador.
             </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (sistemas.length === 0 && hasWebinars) {
+    return (
+      <div className="py-16 text-center">
+        <Card className="mx-auto max-w-lg border-webinar/40 bg-webinar-surface/60">
+          <CardContent className="p-10 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-webinar/40 bg-webinar/10 text-webinar">
+              <Radio className="h-8 w-8" />
+            </div>
+            <h3 className="mb-3 text-2xl font-semibold text-foreground">Acesso aos Webinars</h3>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Este acesso é dedicado às gravações dos webinars. Abra a área de Webinars para
+              assistir às sessões disponíveis.
+            </p>
+            <Button
+              onClick={() => navigate('/webinars')}
+              className="w-full bg-webinar text-webinar-foreground hover:bg-webinar/90"
+            >
+              Ver webinars
+            </Button>
           </CardContent>
         </Card>
       </div>
