@@ -588,34 +588,76 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
                   <div className="space-y-3">
                     {sistemas.map((sistema) => {
                       const sistemaSelected = selecoes.has(`sistema-${sistema.id}`);
+                      const isWebinarSistema = Array.isArray(sistema?.produtos)
+                        && sistema.produtos.some((p: any) => p?.tipo === 'webinar');
                       return (
-                        <Card key={sistema.id}>
-                          <CardContent className="space-y-3 p-4">
-                            <div className="flex items-center gap-3">
+                        <Card
+                          key={sistema.id}
+                          className={
+                            isWebinarSistema
+                              ? 'relative overflow-hidden rounded-[1.5rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md'
+                              : undefined
+                          }
+                        >
+                          {isWebinarSistema && (
+                            <>
+                              <div
+                                className="absolute inset-y-0 left-0 w-1"
+                                style={{ background: 'var(--gradient-webinar)' }}
+                              />
+                              <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-webinar/20 blur-3xl" />
+                            </>
+                          )}
+                          <CardContent className={isWebinarSistema ? 'relative space-y-3 p-4 pl-6' : 'space-y-3 p-4'}>
+                            <div className="flex flex-wrap items-center gap-3">
                               <Checkbox
                                 checked={sistemaSelected}
                                 onCheckedChange={() => toggleSistema(sistema.id)}
                               />
-                              <span className="font-medium">{sistema.nome}</span>
+                              <span className={
+                                isWebinarSistema
+                                  ? 'font-bold uppercase tracking-tight text-webinar-foreground'
+                                  : 'font-medium'
+                              }>
+                                {sistema.nome}
+                              </span>
+                              {isWebinarSistema && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-webinar/40 bg-webinar/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-webinar">
+                                  <Radio className="h-3 w-3" />
+                                  Módulo Webinar
+                                </span>
+                              )}
                               {sistemaSelected && (
-                                <Badge variant="default">Acesso completo</Badge>
+                                <Badge
+                                  variant={isWebinarSistema ? 'outline' : 'default'}
+                                  className={isWebinarSistema ? 'border-webinar/40 bg-webinar/10 text-webinar' : undefined}
+                                >
+                                  Acesso completo
+                                </Badge>
                               )}
                             </div>
                             {sistema.produtos?.length > 0 && (
                               <div className="ml-7 grid gap-2 sm:grid-cols-2">
-                                {sistema.produtos.map((produto: any) => (
-                                  <label
-                                    key={produto.id}
-                                    className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
-                                  >
-                                    <Checkbox
-                                      checked={sistemaSelected || selecoes.has(`produto-${produto.id}`)}
-                                      disabled={sistemaSelected}
-                                      onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
-                                    />
-                                    {produto.nome}
-                                  </label>
-                                ))}
+                                {sistema.produtos.map((produto: any) => {
+                                  const isWebinarProd = produto?.tipo === 'webinar';
+                                  return (
+                                    <label
+                                      key={produto.id}
+                                      className={
+                                        isWebinarProd
+                                          ? 'flex cursor-pointer items-center gap-2 rounded-xl border border-webinar/25 bg-webinar/5 px-2 py-1.5 text-sm font-semibold uppercase tracking-tight text-webinar-foreground transition-colors hover:bg-webinar/10'
+                                          : 'flex cursor-pointer items-center gap-2 text-sm text-muted-foreground'
+                                      }
+                                    >
+                                      <Checkbox
+                                        checked={sistemaSelected || selecoes.has(`produto-${produto.id}`)}
+                                        disabled={sistemaSelected}
+                                        onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
+                                      />
+                                      {produto.nome}
+                                    </label>
+                                  );
+                                })}
                               </div>
                             )}
                           </CardContent>
