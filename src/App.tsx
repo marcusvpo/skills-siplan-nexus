@@ -15,6 +15,9 @@ import NovaVideoaulaBunny from '@/pages/NovaVideoaulaBunny';
 import EditarVideoaula from '@/pages/EditarVideoaula';
 import Debug from '@/pages/Debug';
 import VideoDirectView from '@/pages/VideoDirectView';
+import WebinarHub from '@/pages/WebinarHub';
+import WebinarPlayerPage from '@/pages/WebinarPlayerPage';
+
 import NotFound from '@/pages/NotFound';
 import { TrilhaDetailPage } from '@/pages/TrilhaDetailPage';
 import { QuizPage } from '@/pages/QuizPage';
@@ -55,6 +58,9 @@ function App() {
               <Route path="/system/:systemId/product/:productId/trilha/:trilhaId" element={<TrilhaDetailPage />} />
               <Route path="/quiz/:quiz_id" element={<QuizPage />} />
               <Route path="/video/:videoId" element={<VideoDirectView />} />
+              <Route path="/webinars" element={<WebinarHub />} />
+              <Route path="/webinars/:produtoId/:videoId" element={<WebinarPlayerPage />} />
+
               <Route path="/certificacoes" element={<CertificacoesPage />} />
               <Route path="/debug" element={<Debug />} />
               <Route path="*" element={<NotFound />} />
