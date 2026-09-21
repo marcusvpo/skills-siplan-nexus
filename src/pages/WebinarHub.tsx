@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, Radio, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContextFixed';
-import { useWebinars } from '@/hooks/useWebinars';
+import { useWebinars, useWebinarOnlyAccess } from '@/hooks/useWebinars';
 import { WebinarSpotlight } from '@/components/webinar/WebinarSpotlight';
 import { WebinarCard } from '@/components/webinar/WebinarCard';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ const WebinarHub: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { tracks, isLoading, error, refetch } = useWebinars();
+  const { isWebinarOnly } = useWebinarOnlyAccess();
   const [activeTrack, setActiveTrack] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -33,16 +34,20 @@ const WebinarHub: React.FC = () => {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="rounded-none text-muted-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Treinamentos
-            </Button>
-            <div className="h-6 w-px bg-border/60" />
+            {!isWebinarOnly && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                  className="rounded-none text-muted-foreground"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Treinamentos
+                </Button>
+                <div className="h-6 w-px bg-border/60" />
+              </>
+            )}
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center border border-primary/50 bg-primary/10 text-primary">
                 <Radio className="h-4 w-4" />

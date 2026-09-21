@@ -11,6 +11,7 @@ import { LearnerHero } from '@/components/user/LearnerHero';
 import { LearnerStats } from '@/components/user/LearnerStats';
 import { ContinueWatchingBanner } from '@/components/user/ContinueWatchingBanner';
 import { WebinarAccessBanner } from '@/components/user/WebinarAccessBanner';
+import { useWebinarOnlyAccess } from '@/hooks/useWebinars';
 
 import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 
@@ -18,6 +19,14 @@ import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 const Dashboard = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isWebinarOnly, isLoading: webinarCheckLoading } = useWebinarOnlyAccess();
+
+  // Acesso exclusivo de webinar: vai direto para a área de Webinars
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && isWebinarOnly) {
+      navigate('/webinars', { replace: true });
+    }
+  }, [isLoading, isAuthenticated, isWebinarOnly, navigate]);
 
   // Verificações de segurança críticas para usuário cartório
   React.useEffect(() => {
@@ -86,7 +95,7 @@ const Dashboard = () => {
   };
 
   // Loading state - mostrar apenas se realmente carregando
-  if (isLoading || !user) {
+  if (isLoading || !user || webinarCheckLoading || isWebinarOnly) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="bg-card/70 backdrop-blur-md border-border/50">
