@@ -633,8 +633,23 @@ export const ContentManagerFixed: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar às Categorias
               </Button>
-              <h2 className="text-3xl font-bold text-foreground">Produtos</h2>
-              <p className="text-muted-foreground mt-1">Categoria: {selectedSistema.nome}</p>
+              {isSistemaWebinar(selectedSistema) ? (
+                <>
+                  <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-webinar/40 bg-webinar/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-webinar">
+                    <Radio className="h-3 w-3" />
+                    Módulo Webinar
+                  </span>
+                  <h2 className="text-3xl font-bold uppercase tracking-tight text-webinar-foreground">Webinars</h2>
+                  <p className="mt-1 text-sm text-webinar-foreground/70">
+                    Cada webinar tem prazo próprio de visualização · {selectedSistema.nome}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-3xl font-bold text-foreground">Produtos</h2>
+                  <p className="text-muted-foreground mt-1">Categoria: {selectedSistema.nome}</p>
+                </>
+              )}
             </div>
             <Button onClick={() => { setProdutoTipo('treinamento'); setCreateProdutoOpen(true); }} variant="glow">
               <Plus className="h-4 w-4 mr-2" />
