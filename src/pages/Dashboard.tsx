@@ -10,6 +10,8 @@ import { TreinamentosSection } from '@/components/user/TreinamentosSection';
 import { LearnerHero } from '@/components/user/LearnerHero';
 import { LearnerStats } from '@/components/user/LearnerStats';
 import { ContinueWatchingBanner } from '@/components/user/ContinueWatchingBanner';
+import { WebinarAccessBanner } from '@/components/user/WebinarAccessBanner';
+
 import { CartorioSessionManager } from '@/components/CartorioSessionManager';
 
 
@@ -154,7 +156,9 @@ const Dashboard = () => {
         />
         <LearnerStats />
         <ContinueWatchingBanner />
+        <WebinarAccessBanner />
         <TreinamentosSection />
+
       </main>
     </div>
   );
