@@ -437,15 +437,50 @@ export const ContentManagerFixed: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sistemasData?.map((sistema: any) => (
-              <Card key={sistema.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
-                <CardContent className="p-6">
+              (() => {
+              const webinar = isSistemaWebinar(sistema);
+              return (
+              <Card
+                key={sistema.id}
+                className={
+                  webinar
+                    ? 'relative overflow-hidden rounded-[1.75rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md transition-all hover:border-webinar/60 hover:shadow-[var(--shadow-webinar)]'
+                    : 'bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl'
+                }
+              >
+                {webinar && (
+                  <>
+                    <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'var(--gradient-webinar)' }} />
+                    <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/20 blur-3xl" />
+                  </>
+                )}
+                <CardContent className={webinar ? 'relative p-6 pt-7' : 'p-6'}>
+                  {webinar && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 rounded-full border border-webinar/40 bg-webinar/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-webinar">
+                        <Radio className="h-3 w-3" />
+                        Módulo Webinar
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-xl font-bold text-foreground">{sistema.nome}</h3>
-                    <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
+                    <h3 className={webinar ? 'text-xl font-bold uppercase tracking-tight text-webinar-foreground' : 'text-xl font-bold text-foreground'}>
+                      {sistema.nome}
+                    </h3>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        webinar
+                          ? 'shrink-0 border border-webinar/30 bg-webinar/10 font-mono text-webinar'
+                          : 'shrink-0 bg-secondary/70 text-muted-foreground'
+                      }
+                    >
                       {sistema.produtos?.length || 0} produto{(sistema.produtos?.length || 0) !== 1 ? 's' : ''}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{sistema.descricao || 'Sem descrição'}</p>
+                  <p className={webinar ? 'mb-6 min-h-[40px] text-sm text-webinar-foreground/70' : 'text-muted-foreground text-sm mb-6 min-h-[40px]'}>
+                    {sistema.descricao || (webinar ? 'Gravações ao vivo com prazo de visualização controlado.' : 'Sem descrição')}
+                  </p>
                   
                   <div className="flex items-center justify-between">
                     <Button
@@ -454,10 +489,14 @@ export const ContentManagerFixed: React.FC = () => {
                         setViewMode('produtos');
                       }}
                       variant="outline"
-                      className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
+                      className={
+                        webinar
+                          ? 'border-webinar/40 bg-webinar/10 text-webinar hover:bg-webinar/20'
+                          : 'bg-secondary/70 border-border text-foreground hover:bg-secondary'
+                      }
                     >
-                      <FolderOpen className="h-4 w-4 mr-2" />
-                      Ver Produtos
+                      {webinar ? <Radio className="h-4 w-4 mr-2" /> : <FolderOpen className="h-4 w-4 mr-2" />}
+                      {webinar ? 'Ver Webinars' : 'Ver Produtos'}
                     </Button>
                     
                     <div className="flex gap-2">
@@ -469,7 +508,7 @@ export const ContentManagerFixed: React.FC = () => {
                           setFormData({ nome: sistema.nome, descricao: sistema.descricao || '' });
                           setEditSistemaOpen(true);
                         }}
-                        className="border-border text-muted-foreground hover:bg-secondary"
+                        className={webinar ? 'border-webinar/30 text-webinar hover:bg-webinar/10' : 'border-border text-muted-foreground hover:bg-secondary'}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -485,6 +524,8 @@ export const ContentManagerFixed: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+              );
+              })()
             ))}
           </div>
           </>
