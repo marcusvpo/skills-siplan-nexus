@@ -2,8 +2,8 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, Loader2, FileArchive, FileSpreadsheet, FileImage, File } from 'lucide-react';
-import { useProdutoManuais, getManualUrl, formatFileSize, type ProdutoManual } from '@/hooks/useProdutoManuais';
+import { FileText, Download, ExternalLink, Loader2, FileArchive, FileSpreadsheet, FileImage, File, CalendarDays } from 'lucide-react';
+import { useProdutoManuais, getManualUrl, formatFileSize, formatManualDate, type ProdutoManual } from '@/hooks/useProdutoManuais';
 import { useToast } from '@/hooks/use-toast';
 
 export const manualIcon = (mime?: string | null) => {
