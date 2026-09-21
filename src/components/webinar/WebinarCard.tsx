@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Lock } from 'lucide-react';
-import { BunnyThumbnail } from '@/components/BunnyThumbnail';
+import { BunnyThumbnail } from '@/components/admin/BunnyThumbnail';
 import { WebinarCountdown } from '@/components/webinar/WebinarCountdown';
 import { formatWebinarDateShort } from '@/lib/webinar';
 import type { WebinarVideo } from '@/hooks/useWebinars';
