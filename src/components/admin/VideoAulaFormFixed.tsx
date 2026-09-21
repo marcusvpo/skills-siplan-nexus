@@ -222,97 +222,159 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
   };
 
   return (
-    <Card className="bg-card/70 backdrop-blur-md border-border/50 rounded-2xl">
-      <CardHeader>
-        <CardTitle className="text-foreground">
-          {videoAula ? 'Editar Videoaula' : 'Nova Videoaula'}
+    <Card
+      className={
+        isWebinar
+          ? 'relative overflow-hidden rounded-[1.75rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md'
+          : 'bg-card/70 backdrop-blur-md border-border/50 rounded-2xl'
+      }
+    >
+      {isWebinar && (
+        <>
+          <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'var(--gradient-webinar)' }} />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/20 blur-3xl" />
+        </>
+      )}
+      <CardHeader className={isWebinar ? 'relative pt-7' : undefined}>
+        {isWebinar && (
+          <span className="mb-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-webinar/40 bg-webinar/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-webinar">
+            <Radio className="h-3 w-3" />
+            Módulo Webinar
+          </span>
+        )}
+        <CardTitle
+          className={
+            isWebinar
+              ? 'text-2xl font-bold uppercase tracking-tight text-webinar-foreground'
+              : 'text-foreground'
+          }
+        >
+          {isWebinar
+            ? videoAula
+              ? 'Editar Webinar'
+              : 'Nova Gravação de Webinar'
+            : videoAula
+              ? 'Editar Videoaula'
+              : 'Nova Videoaula'}
         </CardTitle>
-        <div className="text-sm text-muted-foreground">
-          <p><strong>Sistema:</strong> {sistema.nome}</p>
+        <div className={isWebinar ? 'text-sm text-webinar-foreground/70' : 'text-sm text-muted-foreground'}>
+          <p><strong>{isWebinar ? 'Categoria:' : 'Sistema:'}</strong> {sistema.nome}</p>
           <p><strong>Produto:</strong> {produto.nome}</p>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className={isWebinar ? 'relative' : undefined}>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isWebinar && (
+            <div className="space-y-2">
+              <Label className="font-mono text-[11px] uppercase tracking-[0.18em] text-webinar">
+                1 · Vídeo no Bunny.net
+              </Label>
+              <BunnyVideoFetcher
+                onVideoSelect={handleBunnyVideoSelect}
+                initialVideoId={formData.id_video_bunny}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-webinar-foreground/60">
+                Ao informar o ID, o título, o link e a capa são preenchidos automaticamente.
+              </p>
+            </div>
+          )}
+
           <div>
-            <Label htmlFor="titulo" className="text-muted-foreground">
-              Título da Videoaula *
+            <Label
+              htmlFor="titulo"
+              className={
+                isWebinar
+                  ? 'font-mono text-[11px] uppercase tracking-[0.18em] text-webinar'
+                  : 'text-muted-foreground'
+              }
+            >
+              {isWebinar ? '2 · Título do webinar *' : 'Título da Videoaula *'}
             </Label>
             <Input
               id="titulo"
               value={formData.titulo}
               onChange={(e) => handleInputChange('titulo', e.target.value)}
               className="bg-background/50 border-border text-foreground"
-              placeholder="Digite o título da videoaula"
+              placeholder={isWebinar ? 'Ex.: Novidades Orion PRO — Setembro' : 'Digite o título da videoaula'}
               disabled={isLoading}
               required
             />
           </div>
 
-          <div>
-            <Label htmlFor="descricao" className="text-muted-foreground">
-              Descrição
-            </Label>
-            <Textarea
-              id="descricao"
-              value={formData.descricao}
-              onChange={(e) => handleInputChange('descricao', e.target.value)}
-              className="bg-background/50 border-border text-foreground"
-              placeholder="Descrição da videoaula (opcional)"
-              rows={3}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">
-              Buscar vídeo no Bunny.net
-            </Label>
-            <BunnyVideoFetcher
-              onVideoSelect={handleBunnyVideoSelect}
-              initialVideoId={formData.id_video_bunny}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="url_video" className="text-muted-foreground">
-              URL do Vídeo
-            </Label>
-            <Input
-              id="url_video"
-              value={formData.url_video}
-              onChange={(e) => handleInputChange('url_video', e.target.value)}
-              className="bg-background/50 border-border text-foreground"
-              placeholder="https://..."
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {!isWebinar && (
             <div>
-              <Label htmlFor="ordem" className="text-muted-foreground">
-                Ordem
+              <Label htmlFor="descricao" className="text-muted-foreground">
+                Descrição
               </Label>
-              <Input
-                id="ordem"
-                type="number"
-                value={formData.ordem}
-                onChange={(e) => handleInputChange('ordem', parseInt(e.target.value) || 1)}
+              <Textarea
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => handleInputChange('descricao', e.target.value)}
                 className="bg-background/50 border-border text-foreground"
-                min="1"
+                placeholder="Descrição da videoaula (opcional)"
+                rows={3}
                 disabled={isLoading}
               />
             </div>
-          </div>
+          )}
+
+          {!isWebinar && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">
+                Buscar vídeo no Bunny.net
+              </Label>
+              <BunnyVideoFetcher
+                onVideoSelect={handleBunnyVideoSelect}
+                initialVideoId={formData.id_video_bunny}
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {!isWebinar && (
+            <div>
+              <Label htmlFor="url_video" className="text-muted-foreground">
+                URL do Vídeo
+              </Label>
+              <Input
+                id="url_video"
+                value={formData.url_video}
+                onChange={(e) => handleInputChange('url_video', e.target.value)}
+                className="bg-background/50 border-border text-foreground"
+                placeholder="https://..."
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {!isWebinar && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="ordem" className="text-muted-foreground">
+                  Ordem
+                </Label>
+                <Input
+                  id="ordem"
+                  type="number"
+                  value={formData.ordem}
+                  onChange={(e) => handleInputChange('ordem', parseInt(e.target.value) || 1)}
+                  className="bg-background/50 border-border text-foreground"
+                  min="1"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
+
 
           {isWebinar && (
-            <div className="space-y-4 border border-primary/40 bg-primary/5 p-4">
+            <div className="space-y-4 rounded-2xl border border-webinar/30 bg-webinar/5 p-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-primary">
+                <div className="flex items-center gap-2 text-webinar">
                   <Radio className="h-4 w-4" />
                   <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
-                    Disponibilidade do webinar
+                    3 · Prazo de visualização
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -404,25 +466,33 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
             </div>
           )}
 
-          <div>
-            <Label htmlFor="url_thumbnail" className="text-muted-foreground">
-              URL Thumbnail
-            </Label>
-            <Input
-              id="url_thumbnail"
-              value={formData.url_thumbnail}
-              onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
-              className="bg-background/50 border-border text-foreground"
-              placeholder="https://..."
-              disabled={isLoading}
-            />
-          </div>
+          {!isWebinar && (
+            <div>
+              <Label htmlFor="url_thumbnail" className="text-muted-foreground">
+                URL Thumbnail
+              </Label>
+              <Input
+                id="url_thumbnail"
+                value={formData.url_thumbnail}
+                onChange={(e) => handleInputChange('url_thumbnail', e.target.value)}
+                className="bg-background/50 border-border text-foreground"
+                placeholder="https://..."
+                disabled={isLoading}
+              />
+            </div>
+          )}
 
-          <div className="flex space-x-4">
+
+          <div className={isWebinar ? 'flex space-x-4 border-t border-webinar/20 pt-4' : 'flex space-x-4'}>
             <Button
               type="submit"
               disabled={isLoading || !formData.titulo.trim()}
-              variant="glow"
+              variant={isWebinar ? 'default' : 'glow'}
+              className={
+                isWebinar
+                  ? 'bg-webinar text-background hover:bg-webinar/90 shadow-[var(--shadow-webinar)]'
+                  : undefined
+              }
             >
               {isLoading ? (
                 <>
@@ -432,7 +502,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {videoAula ? 'Atualizar' : 'Salvar'} Videoaula
+                  {videoAula ? 'Atualizar' : isWebinar ? 'Publicar' : 'Salvar'} {isWebinar ? 'Webinar' : 'Videoaula'}
                 </>
               )}
             </Button>
