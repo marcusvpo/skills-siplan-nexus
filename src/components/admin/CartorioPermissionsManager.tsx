@@ -314,7 +314,7 @@ export const CartorioPermissionsManager: React.FC<CartorioPermissionsManagerProp
                     {isWebinarSistema && (
                       <>
                         <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'var(--gradient-webinar)' }} />
-                        <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-webinar/20 blur-3xl" />
+                        <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-webinar/10 blur-3xl" />
                       </>
                     )}
                     <CardHeader className={isWebinarSistema ? 'relative pb-3 pl-6' : 'pb-3'}>
