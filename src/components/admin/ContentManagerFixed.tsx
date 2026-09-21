@@ -1020,20 +1020,29 @@ export const ContentManagerFixed: React.FC = () => {
                     </div>
 
 
-                    <CardContent className="flex flex-1 flex-col p-4">
-                      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground" title={videoAula.titulo}>
+                    <CardContent className={isWebinar ? 'flex flex-1 flex-col p-5' : 'flex flex-1 flex-col p-4'}>
+                      <h3
+                        className={isWebinar ? 'line-clamp-2 text-base font-semibold leading-snug text-webinar-foreground' : 'line-clamp-2 text-sm font-semibold leading-snug text-foreground'}
+                        title={videoAula.titulo}
+                      >
                         {videoAula.titulo}
                       </h3>
 
                       {videoAula.descricao && (
-                        <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground" title={videoAula.descricao}>
+                        <p
+                          className={isWebinar ? 'mt-2 line-clamp-2 text-xs text-webinar-foreground/70' : 'mt-1.5 line-clamp-2 text-xs text-muted-foreground'}
+                          title={videoAula.descricao}
+                        >
                           {videoAula.descricao}
                         </p>
                       )}
 
-                      <div className="mt-auto pt-3">
+                      <div className={isWebinar ? 'mt-auto pt-4' : 'mt-auto pt-3'}>
                         {hasVideo && (
-                          <p className="mb-3 truncate font-mono text-[10px] text-muted-foreground/70" title={videoAula.id_video_bunny}>
+                          <p
+                            className={isWebinar ? 'mb-3 truncate font-mono text-[10px] text-webinar/70' : 'mb-3 truncate font-mono text-[10px] text-muted-foreground/70'}
+                            title={videoAula.id_video_bunny}
+                          >
                             {videoAula.id_video_bunny}
                           </p>
                         )}
@@ -1042,7 +1051,11 @@ export const ContentManagerFixed: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 flex-1 border-border/60 bg-secondary/40 text-xs hover:bg-secondary"
+                            className={
+                              isWebinar
+                                ? 'h-9 flex-1 border-webinar/40 bg-webinar/10 text-xs text-webinar hover:bg-webinar/20'
+                                : 'h-8 flex-1 border-border/60 bg-secondary/40 text-xs hover:bg-secondary'
+                            }
                             onClick={() => window.location.href = `/video/${videoAula.id}`}
                           >
                             <Eye className="mr-1.5 h-3.5 w-3.5" />
@@ -1051,7 +1064,7 @@ export const ContentManagerFixed: React.FC = () => {
                           <Button
                             size="icon"
                             variant="outline"
-                            className="h-8 w-8 border-border/60 hover:bg-secondary"
+                            className={isWebinar ? 'h-9 w-9 border-webinar/30 text-webinar hover:bg-webinar/10' : 'h-8 w-8 border-border/60 hover:bg-secondary'}
                             onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
                           >
                             <Edit className="h-3.5 w-3.5" />
