@@ -40,6 +40,15 @@
     --warning: 27 96% 61%;
     --warning-foreground: 0 0% 100%;
 
+    /* Identidade exclusiva do módulo de Webinars (ciano/violeta) */
+    --webinar: 187 92% 48%;
+    --webinar-glow: 265 85% 65%;
+    --webinar-foreground: 210 40% 98%;
+    --webinar-surface: 222 34% 13%;
+    --gradient-webinar: linear-gradient(135deg, hsl(var(--webinar)), hsl(var(--webinar-glow)));
+    --shadow-webinar: 0 18px 44px -20px hsl(var(--webinar) / 0.55);
+
+
 
     --border: 217 19% 25%;
     --input: 217 19% 20%;
