@@ -76,6 +76,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				webinar: {
+					DEFAULT: 'hsl(var(--webinar))',
+					glow: 'hsl(var(--webinar-glow))',
+					foreground: 'hsl(var(--webinar-foreground))',
+					surface: 'hsl(var(--webinar-surface))'
+				},
 				// Cores carmesim personalizadas
 				crimson: {
 					50: 'hsl(0, 95%, 97%)',
