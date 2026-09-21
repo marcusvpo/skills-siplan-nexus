@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, BookOpen } from 'lucide-react';
-import { useSistemasCartorioWithAccess } from '@/hooks/useSistemasCartorioWithAccess';
+import { useSistemasTreinamento } from '@/hooks/useWebinars';
 import { useProgressoGeral } from '@/hooks/useProgressoGeral';
 import { SistemaCard } from '@/components/user/SistemaCard';
 import { logger } from '@/utils/logger';
@@ -16,7 +16,7 @@ const SkeletonCard = () => (
 export const TreinamentosSection: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
+  const { data: sistemas = [], isLoading, error, refetch } = useSistemasTreinamento();
   const { progressos } = useProgressoGeral();
 
   React.useEffect(() => {
