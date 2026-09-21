@@ -71,6 +71,21 @@ export const useWebinars = () => {
   return { tracks, hasWebinars, isLoading, error, refetch };
 };
 
+/**
+ * Acesso exclusivo de webinar: o cartório só tem produtos de webinar liberados
+ * (caso do usuário único compartilhado siplan.webinar).
+ */
+export const useWebinarOnlyAccess = () => {
+  const { data: sistemas = [], isLoading } = useSistemasCartorioWithAccess();
+
+  const produtos = (sistemas as any[]).flatMap((s) => s.produtos || []);
+  const webinarProdutos = produtos.filter((p: any) => p?.tipo === 'webinar');
+  const isWebinarOnly =
+    !isLoading && webinarProdutos.length > 0 && webinarProdutos.length === produtos.length;
+
+  return { isWebinarOnly, isLoading };
+};
+
 /** Sistemas que NÃO são de webinar (usado na área de treinamentos). */
 export const useSistemasTreinamento = () => {
   const query = useSistemasCartorioWithAccess();
