@@ -146,13 +146,13 @@ const WebinarPlayerPage: React.FC = () => {
               </p>
               <div className="flex flex-col gap-4">
                 {outros.map((video, index) => (
-                  <div key={video.id} className="[&>button]:w-full">
-                    <WebinarCard
-                      video={video}
-                      index={index}
-                      onOpen={() => navigate(`/webinars/${track?.id}/${video.id}`)}
-                    />
-                  </div>
+                  <WebinarCard
+                    key={video.id}
+                    video={video}
+                    index={index}
+                    layout="list"
+                    onOpen={() => navigate(`/webinars/${track?.id}/${video.id}`)}
+                  />
                 ))}
               </div>
             </div>

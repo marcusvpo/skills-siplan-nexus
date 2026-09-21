@@ -11,9 +11,11 @@ interface Props {
   video: WebinarVideo;
   index?: number;
   onOpen: () => void;
+  /** 'shelf' = carrossel horizontal (largura fixa), 'list' = ocupa a largura disponível */
+  layout?: 'shelf' | 'list';
 }
 
-export const WebinarCard: React.FC<Props> = ({ video, index = 0, onOpen }) => {
+export const WebinarCard: React.FC<Props> = ({ video, index = 0, onOpen, layout = 'shelf' }) => {
   const blocked = video.window.status !== 'available';
 
   return (
@@ -25,7 +27,8 @@ export const WebinarCard: React.FC<Props> = ({ video, index = 0, onOpen }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3) }}
       className={cn(
-        'group relative w-[300px] shrink-0 overflow-hidden border border-border/60 bg-card/40 text-left transition-colors',
+        'group relative overflow-hidden border border-border/60 bg-card/40 text-left transition-colors',
+        layout === 'shelf' ? 'w-[300px] shrink-0' : 'w-full',
         blocked ? 'cursor-not-allowed opacity-60' : 'hover:border-primary/60 hover:bg-card/70'
       )}
     >
