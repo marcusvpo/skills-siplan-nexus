@@ -369,12 +369,12 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
 
 
           {isWebinar && (
-            <div className="space-y-4 border border-primary/40 bg-primary/5 p-4">
+            <div className="space-y-4 rounded-2xl border border-webinar/30 bg-webinar/5 p-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-primary">
+                <div className="flex items-center gap-2 text-webinar">
                   <Radio className="h-4 w-4" />
                   <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
-                    Disponibilidade do webinar
+                    3 · Prazo de visualização
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
