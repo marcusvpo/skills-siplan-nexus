@@ -232,7 +232,7 @@ export const VideoAulaFormFixed: React.FC<VideoAulaFormFixedProps> = ({
       {isWebinar && (
         <>
           <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'var(--gradient-webinar)' }} />
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-webinar/10 blur-3xl" />
         </>
       )}
       <CardHeader className={isWebinar ? 'relative pt-7' : undefined}>
