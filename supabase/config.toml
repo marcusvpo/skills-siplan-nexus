@@ -92,6 +92,11 @@ verify_jwt = false
 [functions.manage-produto-manuais]
 verify_jwt = false
 
+[functions.get-webinar-video]
+verify_jwt = false
+
+
+
 
 [studio]
 enabled = true
