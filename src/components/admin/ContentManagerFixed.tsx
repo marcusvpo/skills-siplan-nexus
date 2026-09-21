@@ -741,7 +741,24 @@ export const ContentManagerFixed: React.FC = () => {
                   rows={3}
                 />
               </div>
+              <div>
+                <Label>Tipo de conteúdo</Label>
+                <div className="mt-2 flex gap-2">
+                  {([['treinamento', 'Treinamento'], ['webinar', 'Webinar']] as const).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={produtoTipo === value ? 'glow' : 'outline'}
+                      onClick={() => setProdutoTipo(value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
+
                 <Button variant="outline" onClick={() => setEditProdutoOpen(false)} className="border-border">
                   Cancelar
                 </Button>
