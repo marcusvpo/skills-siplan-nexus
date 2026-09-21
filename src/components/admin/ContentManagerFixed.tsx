@@ -658,21 +658,48 @@ export const ContentManagerFixed: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {selectedSistema.produtos?.map((produto: any) => (
-              <Card key={produto.id} className="bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl">
-                <CardContent className="p-6">
+            {selectedSistema.produtos?.map((produto: any) => {
+              const webinar = produto.tipo === 'webinar';
+              return (
+              <Card
+                key={produto.id}
+                className={
+                  webinar
+                    ? 'relative overflow-hidden rounded-[1.75rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md transition-all hover:border-webinar/60 hover:shadow-[var(--shadow-webinar)]'
+                    : 'bg-card/70 backdrop-blur-md border-border/50 hover:border-primary/40 transition-colors rounded-2xl'
+                }
+              >
+                {webinar && (
+                  <>
+                    <div className="absolute inset-y-0 left-0 w-1" style={{ background: 'var(--gradient-webinar)' }} />
+                    <div className="pointer-events-none absolute -right-14 -bottom-14 h-36 w-36 rounded-full bg-webinar-glow/20 blur-3xl" />
+                  </>
+                )}
+                <CardContent className={webinar ? 'relative p-6 pl-7' : 'p-6'}>
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-xl font-bold text-foreground">
+                    <h3 className={webinar ? 'text-xl font-bold uppercase tracking-tight text-webinar-foreground' : 'text-xl font-bold text-foreground'}>
                       {produto.nome}
-                      {produto.tipo === 'webinar' && (
-                        <Badge className="ml-2 align-middle bg-primary/15 text-primary">Webinar</Badge>
+                      {webinar && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-webinar/40 bg-webinar/10 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-[0.16em] text-webinar">
+                          <Radio className="h-2.5 w-2.5" />
+                          Webinar
+                        </span>
                       )}
                     </h3>
-                    <Badge variant="secondary" className="shrink-0 bg-secondary/70 text-muted-foreground">
-                      {(produto.video_aulas?.length || 0)} aula{(produto.video_aulas?.length || 0) !== 1 ? 's' : ''}
+                    <Badge
+                      variant="secondary"
+                      className={
+                        webinar
+                          ? 'shrink-0 border border-webinar/30 bg-webinar/10 font-mono text-webinar'
+                          : 'shrink-0 bg-secondary/70 text-muted-foreground'
+                      }
+                    >
+                      {(produto.video_aulas?.length || 0)} {webinar ? 'gravaç' : 'aula'}{webinar ? ((produto.video_aulas?.length || 0) !== 1 ? 'ões' : 'ão') : ((produto.video_aulas?.length || 0) !== 1 ? 's' : '')}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-sm mb-6 min-h-[40px]">{produto.descricao || 'Sem descrição'}</p>
+                  <p className={webinar ? 'mb-6 min-h-[40px] text-sm text-webinar-foreground/70' : 'text-muted-foreground text-sm mb-6 min-h-[40px]'}>
+                    {produto.descricao || (webinar ? 'Webinars com prazo de visualização por gravação.' : 'Sem descrição')}
+                  </p>
                   
                   <div className="flex items-center justify-between">
                     <Button
@@ -681,10 +708,14 @@ export const ContentManagerFixed: React.FC = () => {
                         setViewMode('videoaulas');
                       }}
                       variant="outline"
-                      className="bg-secondary/70 border-border text-foreground hover:bg-secondary"
+                      className={
+                        webinar
+                          ? 'border-webinar/40 bg-webinar/10 text-webinar hover:bg-webinar/20'
+                          : 'bg-secondary/70 border-border text-foreground hover:bg-secondary'
+                      }
                     >
                       <Video className="h-4 w-4 mr-2" />
-                      Ver Video Aulas
+                      {webinar ? 'Ver Gravações' : 'Ver Video Aulas'}
                     </Button>
                     
                     <div className="flex gap-2">
@@ -694,10 +725,10 @@ export const ContentManagerFixed: React.FC = () => {
                         onClick={() => {
                           setProdutoId(produto.id);
                           setFormData({ nome: produto.nome, descricao: produto.descricao || '' });
-                          setProdutoTipo(produto.tipo === 'webinar' ? 'webinar' : 'treinamento');
+                          setProdutoTipo(webinar ? 'webinar' : 'treinamento');
                           setEditProdutoOpen(true);
                         }}
-                        className="border-border text-muted-foreground hover:bg-secondary"
+                        className={webinar ? 'border-webinar/30 text-webinar hover:bg-webinar/10' : 'border-border text-muted-foreground hover:bg-secondary'}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -713,7 +744,8 @@ export const ContentManagerFixed: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
           </>
           )}
