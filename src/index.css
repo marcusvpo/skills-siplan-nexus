@@ -40,13 +40,13 @@
     --warning: 27 96% 61%;
     --warning-foreground: 0 0% 100%;
 
-    /* Identidade exclusiva do módulo de Webinars (ciano/violeta) */
-    --webinar: 357 88% 52%;
-    --webinar-glow: 12 92% 58%;
+    /* Identidade exclusiva do módulo de Webinars (vermelho sóbrio, discreto) */
+    --webinar: 357 72% 47%;
+    --webinar-glow: 12 55% 50%;
     --webinar-foreground: 0 0% 100%;
-    --webinar-surface: 357 30% 11%;
+    --webinar-surface: 357 20% 10%;
     --gradient-webinar: linear-gradient(135deg, hsl(var(--webinar)), hsl(var(--webinar-glow)));
-    --shadow-webinar: 0 18px 44px -20px hsl(var(--webinar) / 0.55);
+    --shadow-webinar: 0 14px 34px -18px hsl(var(--webinar) / 0.28);
 
 
 
