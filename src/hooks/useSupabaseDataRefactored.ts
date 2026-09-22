@@ -82,9 +82,78 @@ export const useCartoriosWithAcessos = () => {
         logger.error('❌ [useCartoriosWithAcessos] Error:', error);
         throw error;
       }
+
+      const cartorioIds = (data || []).map((cartorio: any) => cartorio.id).filter(Boolean);
+
+      if (cartorioIds.length === 0) {
+        logger.info('✅ [useCartoriosWithAcessos] Success:', { count: 0 });
+        return [];
+      }
+
+      const [permissoesResult, sistemasResult] = await Promise.all([
+        supabase
+          .from('cartorio_acesso_conteudo')
+          .select('cartorio_id, sistema_id, produto_id, ativo')
+          .in('cartorio_id', cartorioIds)
+          .eq('ativo', true),
+        supabase
+          .from('sistemas')
+          .select(`
+            id,
+            produtos (id, tipo)
+          `),
+      ]);
+
+      if (permissoesResult.error) {
+        logger.error('❌ [useCartoriosWithAcessos] Error fetching permissions:', permissoesResult.error);
+        throw permissoesResult.error;
+      }
+
+      if (sistemasResult.error) {
+        logger.error('❌ [useCartoriosWithAcessos] Error fetching sistemas/produtos:', sistemasResult.error);
+        throw sistemasResult.error;
+      }
+
+      const webinarSistemaIds = new Set<string>();
+      const webinarProdutoIds = new Set<string>();
+
+      (sistemasResult.data || []).forEach((sistema: any) => {
+        const produtos = sistema?.produtos || [];
+        const hasWebinarProduct = produtos.some((produto: any) => produto?.tipo === 'webinar');
+
+        if (hasWebinarProduct && sistema?.id) {
+          webinarSistemaIds.add(sistema.id);
+        }
+
+        produtos.forEach((produto: any) => {
+          if (produto?.tipo === 'webinar' && produto?.id) {
+            webinarProdutoIds.add(produto.id);
+          }
+        });
+      });
+
+      const cartoriosComWebinar = new Set<string>();
+
+      (permissoesResult.data || []).forEach((permissao: any) => {
+        const hasWebinarPermission =
+          (permissao?.sistema_id && webinarSistemaIds.has(permissao.sistema_id)) ||
+          (permissao?.produto_id && webinarProdutoIds.has(permissao.produto_id));
+
+        if (hasWebinarPermission && permissao?.cartorio_id) {
+          cartoriosComWebinar.add(permissao.cartorio_id);
+        }
+      });
       
-      logger.info('✅ [useCartoriosWithAcessos] Success:', { count: data?.length });
-      return data || [];
+      const cartoriosDecorados = (data || []).map((cartorio: any) => ({
+        ...cartorio,
+        has_webinar_access: cartoriosComWebinar.has(cartorio.id),
+      }));
+      
+      logger.info('✅ [useCartoriosWithAcessos] Success:', {
+        count: cartoriosDecorados.length,
+        webinarAccessCount: cartoriosComWebinar.size,
+      });
+      return cartoriosDecorados;
     },
     retry: 3,
     retryDelay: 1000
