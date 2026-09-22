@@ -74,9 +74,12 @@ export const CartorioManagementComplete: React.FC = () => {
     cartorio.cartorio_usuarios?.[0]?.username ||
     cartorio.nome;
 
-  const isWebinarAccount = (cartorio: any) =>
+  const isDedicatedWebinarAccount = (cartorio: any) =>
     String(getUsuario(cartorio)).toLowerCase() === 'siplan.webinar' ||
     String(cartorio.nome || '').toLowerCase() === 'siplan webinars';
+
+  const hasWebinarAccess = (cartorio: any) =>
+    Boolean(cartorio?.has_webinar_access) || isDedicatedWebinarAccount(cartorio);
 
   const handleCopyModeloAcesso = (cartorio: any) => {
     const modelo = `https://skills.siplan.com.br/\n\nUsuário: ${getUsuario(cartorio)}\nToken de Acesso: ${getToken(cartorio)}`;
@@ -332,7 +335,8 @@ export const CartorioManagementComplete: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {filteredCartorios.map((cartorio: any, index: number) => {
                 const isExpanded = expandedCartorioId === cartorio.id;
-                const isWebinar = isWebinarAccount(cartorio);
+                const isWebinar = hasWebinarAccess(cartorio);
+                const isDedicatedWebinar = isDedicatedWebinarAccount(cartorio);
 
                 return (
                   <Card
@@ -364,9 +368,13 @@ export const CartorioManagementComplete: React.FC = () => {
                             {isWebinar && (
                               <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <Badge className="border border-webinar/25 bg-webinar/10 text-[10px] font-semibold uppercase text-webinar hover:bg-webinar/10">
-                                  Acesso exclusivo · Webinars
+                                  {isDedicatedWebinar ? 'Acesso exclusivo · Webinars' : 'Webinars liberados'}
                                 </Badge>
-                                <span className="text-xs text-muted-foreground">Conta compartilhada com clientes</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {isDedicatedWebinar
+                                    ? 'Conta compartilhada com clientes'
+                                    : 'Este cartório tem acesso a webinars'}
+                                </span>
                               </div>
                             )}
                             <p className={`truncate text-left font-semibold text-foreground ${isWebinar ? 'text-base' : 'text-sm'}`}>{cartorio.nome}</p>
