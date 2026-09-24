@@ -368,11 +368,18 @@ export const CartorioManagementComplete: React.FC = () => {
                           )}
                           <div className="min-w-0">
                             {isWebinar && !isExpanded ? (
-                              <div className="flex min-w-0 items-center gap-2">
-                                <p className="truncate text-left text-sm font-semibold text-foreground">{cartorio.nome}</p>
-                                <Badge className="shrink-0 whitespace-nowrap border border-webinar/25 bg-webinar/10 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-webinar hover:bg-webinar/10">
-                                  Webinars
-                                </Badge>
+                              <div className="min-w-0 text-left">
+                                <p className="truncate text-sm font-semibold text-foreground" title={cartorio.nome}>
+                                  {cartorio.nome}
+                                </p>
+                                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                                  <p className="min-w-0 truncate font-mono text-xs text-muted-foreground">
+                                    {getUsuario(cartorio)}
+                                  </p>
+                                  <Badge className="shrink-0 whitespace-nowrap border border-webinar/25 bg-webinar/10 px-1.5 py-0 text-[9px] font-semibold uppercase text-webinar hover:bg-webinar/10">
+                                    Webinars
+                                  </Badge>
+                                </div>
                               </div>
                             ) : (
                               <>
@@ -391,7 +398,7 @@ export const CartorioManagementComplete: React.FC = () => {
                                 <p className={`truncate text-left font-semibold text-foreground ${isWebinar ? 'text-base' : 'text-sm'}`}>{cartorio.nome}</p>
                               </>
                             )}
-                            {isWebinar ? (
+                            {isWebinar && !isExpanded ? null : isWebinar ? (
                               <p className="truncate text-left font-mono text-xs text-muted-foreground">{getUsuario(cartorio)}</p>
                             ) : cartorio.cidade && cartorio.estado && (
                               <p className="truncate text-left text-xs text-muted-foreground">
@@ -406,7 +413,7 @@ export const CartorioManagementComplete: React.FC = () => {
                             lastActivity={sessions.get(cartorio.id)?.last_activity || null}
                           />
                           {cartorio.acessos_cartorio?.[0]?.data_expiracao && (
-                            <span className="hidden whitespace-nowrap text-xs text-muted-foreground xl:inline-flex">
+                            <span className="hidden whitespace-nowrap text-xs text-muted-foreground 2xl:inline-flex">
                               Expira em {new Date(cartorio.acessos_cartorio[0].data_expiracao).toLocaleDateString('pt-BR')}
                             </span>
                           )}
