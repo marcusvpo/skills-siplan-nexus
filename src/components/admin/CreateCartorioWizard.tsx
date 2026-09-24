@@ -252,24 +252,30 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       });
       if (acessoError) throw acessoError;
 
-      let createdUsernames: string[] = [];
-      if (usersToCreate.length > 0) {
-        const { data: createdUsers, error: usersError } = await supabase
-          .from('cartorio_usuarios')
-          .insert(
-            usersToCreate.map((u) => ({
+      const { error: usersError } = await supabase
+        .from('cartorio_usuarios')
+        .insert(
+          usersToCreate.map((u) => ({
             cartorio_id: cartorio.id,
             username: sanitizeUsername(u.username),
             is_active: u.is_active,
             active_trilha_id: u.active_trilha_id || null,
-            }))
-          )
-          .select('username');
-        if (usersError) throw usersError;
-        createdUsernames = (createdUsers || []).map((u: any) => u.username);
-        if (createdUsernames.length !== usersToCreate.length) {
-          throw new Error('Os usuários não foram gravados corretamente. Tente novamente.');
-        }
+          }))
+        );
+      if (usersError) throw usersError;
+
+      // Confirma no banco que os usuários realmente foram gravados
+      const { data: savedUsers, error: verifyError } = await supabase
+        .from('cartorio_usuarios')
+        .select('username')
+        .eq('cartorio_id', cartorio.id);
+      if (verifyError) throw verifyError;
+      const createdUsernames = (savedUsers || []).map((u: any) => u.username);
+      const missing = usersToCreate.filter(
+        (u) => !createdUsernames.some((n) => n.toLowerCase() === sanitizeUsername(u.username).toLowerCase())
+      );
+      if (createdUsernames.length === 0 || missing.length > 0) {
+        throw new Error('O usuário de acesso não foi gravado. O cadastro foi cancelado — tente novamente.');
       }
 
       const permissoes = Array.from(selecoes)
@@ -298,7 +304,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       setResult({
         nome: form.nome.trim(),
         token: login_token,
-        usuario: createdUsernames[0] || usersToCreate[0]?.username || form.nome.trim(),
+        usuario: sanitizeUsername(usersToCreate[0].username),
       });
       onCreated();
     } catch (error: any) {
