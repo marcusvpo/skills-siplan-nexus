@@ -188,11 +188,18 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
   };
 
   const handleNext = () => {
-    if (step === 2) commitDraft();
-    // Defer a troca de etapa para o próximo frame: garante que portais do Radix
-    // (Select) já tenham finalizado o desmonte antes de trocar a árvore,
-    // evitando o erro "removeChild" quando extensões do navegador (ex.: Google
-    // Tradutor) modificam o DOM da página.
+    if (step === 2) {
+      commitDraft();
+      if (getEffectiveUsers().length === 0) {
+        toast({
+          title: 'Usuário obrigatório',
+          description: 'Cadastre ao menos um usuário de acesso antes de continuar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    // Defer para o próximo frame (evita erro "removeChild" com portais Radix).
     requestAnimationFrame(() => goNext());
   };
 
@@ -203,9 +210,19 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       return;
     }
 
+    const usersToCreate = getEffectiveUsers();
+    if (usersToCreate.length === 0) {
+      toast({
+        title: 'Usuário obrigatório',
+        description: 'Nenhum usuário foi cadastrado. Volte à etapa 2 e adicione ao menos um usuário.',
+        variant: 'destructive',
+      });
+      setStep(2);
+      return;
+    }
+
     setIsSubmitting(true);
     let cartorioId: string | null = null;
-    const usersToCreate = getEffectiveUsers();
 
     try {
       const { data: cartorio, error: cartorioError } = await supabase
