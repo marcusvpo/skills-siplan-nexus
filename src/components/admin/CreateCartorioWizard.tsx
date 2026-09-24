@@ -188,11 +188,18 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
   };
 
   const handleNext = () => {
-    if (step === 2) commitDraft();
-    // Defer a troca de etapa para o próximo frame: garante que portais do Radix
-    // (Select) já tenham finalizado o desmonte antes de trocar a árvore,
-    // evitando o erro "removeChild" quando extensões do navegador (ex.: Google
-    // Tradutor) modificam o DOM da página.
+    if (step === 2) {
+      commitDraft();
+      if (getEffectiveUsers().length === 0) {
+        toast({
+          title: 'Usuário obrigatório',
+          description: 'Cadastre ao menos um usuário de acesso antes de continuar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    // Defer para o próximo frame (evita erro "removeChild" com portais Radix).
     requestAnimationFrame(() => goNext());
   };
 
@@ -203,9 +210,19 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       return;
     }
 
+    const usersToCreate = getEffectiveUsers();
+    if (usersToCreate.length === 0) {
+      toast({
+        title: 'Usuário obrigatório',
+        description: 'Nenhum usuário foi cadastrado. Volte à etapa 2 e adicione ao menos um usuário.',
+        variant: 'destructive',
+      });
+      setStep(2);
+      return;
+    }
+
     setIsSubmitting(true);
     let cartorioId: string | null = null;
-    const usersToCreate = getEffectiveUsers();
 
     try {
       const { data: cartorio, error: cartorioError } = await supabase
@@ -235,24 +252,30 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       });
       if (acessoError) throw acessoError;
 
-      let createdUsernames: string[] = [];
-      if (usersToCreate.length > 0) {
-        const { data: createdUsers, error: usersError } = await supabase
-          .from('cartorio_usuarios')
-          .insert(
-            usersToCreate.map((u) => ({
+      const { error: usersError } = await supabase
+        .from('cartorio_usuarios')
+        .insert(
+          usersToCreate.map((u) => ({
             cartorio_id: cartorio.id,
             username: sanitizeUsername(u.username),
             is_active: u.is_active,
             active_trilha_id: u.active_trilha_id || null,
-            }))
-          )
-          .select('username');
-        if (usersError) throw usersError;
-        createdUsernames = (createdUsers || []).map((u: any) => u.username);
-        if (createdUsernames.length !== usersToCreate.length) {
-          throw new Error('Os usuários não foram gravados corretamente. Tente novamente.');
-        }
+          }))
+        );
+      if (usersError) throw usersError;
+
+      // Confirma no banco que os usuários realmente foram gravados
+      const { data: savedUsers, error: verifyError } = await supabase
+        .from('cartorio_usuarios')
+        .select('username')
+        .eq('cartorio_id', cartorio.id);
+      if (verifyError) throw verifyError;
+      const createdUsernames = (savedUsers || []).map((u: any) => u.username);
+      const missing = usersToCreate.filter(
+        (u) => !createdUsernames.some((n) => n.toLowerCase() === sanitizeUsername(u.username).toLowerCase())
+      );
+      if (createdUsernames.length === 0 || missing.length > 0) {
+        throw new Error('O usuário de acesso não foi gravado. O cadastro foi cancelado — tente novamente.');
       }
 
       const permissoes = Array.from(selecoes)
@@ -281,12 +304,15 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       setResult({
         nome: form.nome.trim(),
         token: login_token,
-        usuario: createdUsernames[0] || usersToCreate[0]?.username || form.nome.trim(),
+        usuario: sanitizeUsername(usersToCreate[0].username),
       });
       onCreated();
     } catch (error: any) {
       // Rollback do cartório para não deixar registro parcial
       if (cartorioId) {
+        await supabase.from('cartorio_acesso_conteudo').delete().eq('cartorio_id', cartorioId);
+        await supabase.from('cartorio_usuarios').delete().eq('cartorio_id', cartorioId);
+        await supabase.from('acessos_cartorio').delete().eq('cartorio_id', cartorioId);
         await supabase.from('cartorios').delete().eq('id', cartorioId);
       }
       toast({
