@@ -367,19 +367,30 @@ export const CartorioManagementComplete: React.FC = () => {
                             <span className="text-xs font-mono text-muted-foreground">#{index + 1}</span>
                           )}
                           <div className="min-w-0">
-                            {isWebinar && (
-                              <div className="mb-1 flex flex-wrap items-center gap-2">
-                                <Badge className="border border-webinar/25 bg-webinar/10 text-[10px] font-semibold uppercase text-webinar hover:bg-webinar/10">
-                                  {isDedicatedWebinar ? 'Acesso exclusivo · Webinars' : 'Webinars liberados'}
+                            {isWebinar && !isExpanded ? (
+                              <div className="flex min-w-0 items-center gap-2">
+                                <p className="truncate text-left text-sm font-semibold text-foreground">{cartorio.nome}</p>
+                                <Badge className="shrink-0 whitespace-nowrap border border-webinar/25 bg-webinar/10 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-webinar hover:bg-webinar/10">
+                                  Webinars
                                 </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {isDedicatedWebinar
-                                    ? 'Conta compartilhada com clientes'
-                                    : 'Este cartório tem acesso a webinars'}
-                                </span>
                               </div>
+                            ) : (
+                              <>
+                                {isWebinar && (
+                                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                                    <Badge className="whitespace-nowrap border border-webinar/25 bg-webinar/10 text-[10px] font-semibold uppercase text-webinar hover:bg-webinar/10">
+                                      {isDedicatedWebinar ? 'Acesso exclusivo · Webinars' : 'Webinars liberados'}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {isDedicatedWebinar
+                                        ? 'Conta compartilhada com clientes'
+                                        : 'Este cartório tem acesso a webinars'}
+                                    </span>
+                                  </div>
+                                )}
+                                <p className={`truncate text-left font-semibold text-foreground ${isWebinar ? 'text-base' : 'text-sm'}`}>{cartorio.nome}</p>
+                              </>
                             )}
-                            <p className={`truncate text-left font-semibold text-foreground ${isWebinar ? 'text-base' : 'text-sm'}`}>{cartorio.nome}</p>
                             {isWebinar ? (
                               <p className="truncate text-left font-mono text-xs text-muted-foreground">{getUsuario(cartorio)}</p>
                             ) : cartorio.cidade && cartorio.estado && (
