@@ -310,6 +310,9 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
     } catch (error: any) {
       // Rollback do cartório para não deixar registro parcial
       if (cartorioId) {
+        await supabase.from('cartorio_acesso_conteudo').delete().eq('cartorio_id', cartorioId);
+        await supabase.from('cartorio_usuarios').delete().eq('cartorio_id', cartorioId);
+        await supabase.from('acessos_cartorio').delete().eq('cartorio_id', cartorioId);
         await supabase.from('cartorios').delete().eq('id', cartorioId);
       }
       toast({
