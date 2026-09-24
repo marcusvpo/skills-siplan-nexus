@@ -343,10 +343,10 @@ export const CartorioManagementComplete: React.FC = () => {
                     key={cartorio.id}
                     className={`relative overflow-hidden backdrop-blur-md transition-colors rounded-xl ${
                       isWebinar
-                        ? 'col-span-full border border-webinar/35 bg-webinar-surface/70 shadow-webinar hover:border-webinar/55'
+                        ? 'border border-webinar/35 bg-webinar-surface/70 shadow-webinar hover:border-webinar/55'
                         : 'border border-border/50 bg-card/70 hover:border-primary/60'
                     } ${
-                      isExpanded && !isWebinar ? 'col-span-full border-primary/50 shadow-lg shadow-primary/20' : ''
+                      isExpanded ? 'col-span-full border-primary/50 shadow-lg shadow-primary/20' : ''
                     }`}
                   >
                     {isWebinar && <div className="absolute inset-y-0 left-0 w-1 bg-gradient-webinar" />}
