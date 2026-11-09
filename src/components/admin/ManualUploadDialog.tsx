@@ -95,6 +95,7 @@ const ManualUploadDialog: React.FC<ManualUploadDialogProps> = ({ produtoId, prod
     let erro = 0;
     for (const file of files) {
       const key = `${file.name}-${file.size}`;
+      if (status[key] === 'ok') continue;
       setStatus((s) => ({ ...s, [key]: 'enviando' }));
       try {
         await upload.mutateAsync({
@@ -188,7 +189,7 @@ const ManualUploadDialog: React.FC<ManualUploadDialogProps> = ({ produtoId, prod
           )}
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+            <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }} disabled={sending}>
               Cancelar
             </Button>
             <Button variant="glow" onClick={handleSubmit} disabled={sending || files.length === 0}>
