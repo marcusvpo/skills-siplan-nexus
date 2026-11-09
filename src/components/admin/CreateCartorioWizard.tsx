@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { PermissionsTree } from './PermissionsTree';
 
 interface CreateCartorioWizardProps {
   isOpen: boolean;
@@ -85,6 +86,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
   const [sistemas, setSistemas] = useState<any[]>([]);
   const [loadingSistemas, setLoadingSistemas] = useState(false);
   const [selecoes, setSelecoes] = useState<Set<string>>(new Set());
+  const [sistemasExpandidos, setSistemasExpandidos] = useState<Set<string>>(new Set());
 
   const resetAll = () => {
     setStep(1);
@@ -93,6 +95,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
     setUsers([]);
     setUserDraft({ username: '', is_active: true, active_trilha_id: '' });
     setSelecoes(new Set());
+    setSistemasExpandidos(new Set());
   };
 
   useEffect(() => {
@@ -103,7 +106,7 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       setLoadingSistemas(true);
       const [trilhasRes, sistemasRes] = await Promise.all([
         supabase.from('trilhas').select('id, nome').order('nome'),
-        supabase.from('sistemas').select('*, produtos (*)').order('ordem'),
+        supabase.from('sistemas').select('*, produtos (*, video_aulas (id))').order('ordem'),
       ]);
       if (!trilhasRes.error) setTrilhas(trilhasRes.data || []);
       if (!sistemasRes.error) setSistemas(sistemasRes.data || []);
@@ -597,101 +600,26 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
             {/* Etapa 3 */}
             {step === 3 && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/10 p-4 text-sm">
-                  <AlertCircle className="mt-0.5 h-5 w-5 text-primary" />
-                  <ul className="space-y-1 text-muted-foreground">
-                    <li>• Marque um <strong className="text-foreground">Sistema</strong> para liberar todos os produtos dele.</li>
-                    <li>• Marque <strong className="text-foreground">Produtos</strong> para acesso granular.</li>
-                    <li>• Sem nenhuma marcação, o cartório terá acesso a todo o conteúdo.</li>
-                  </ul>
-                </div>
-
                 {loadingSistemas ? (
                   <div className="flex items-center justify-center py-10 text-muted-foreground">
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Carregando conteúdo...
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {sistemas.map((sistema) => {
-                      const sistemaSelected = selecoes.has(`sistema-${sistema.id}`);
-                      const isWebinarSistema = Array.isArray(sistema?.produtos)
-                        && sistema.produtos.some((p: any) => p?.tipo === 'webinar');
-                      return (
-                        <Card
-                          key={sistema.id}
-                          className={
-                            isWebinarSistema
-                              ? 'relative overflow-hidden rounded-[1.5rem] border-webinar/30 bg-webinar-surface/80 backdrop-blur-md'
-                              : undefined
-                          }
-                        >
-                          {isWebinarSistema && (
-                            <>
-                              <div
-                                className="absolute inset-y-0 left-0 w-1"
-                                style={{ background: 'var(--gradient-webinar)' }}
-                              />
-                              <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-webinar/10 blur-3xl" />
-                            </>
-                          )}
-                          <CardContent className={isWebinarSistema ? 'relative space-y-3 p-4 pl-6' : 'space-y-3 p-4'}>
-                            <div className="flex flex-wrap items-center gap-3">
-                              <Checkbox
-                                checked={sistemaSelected}
-                                onCheckedChange={() => toggleSistema(sistema.id)}
-                              />
-                              <span className={
-                                isWebinarSistema
-                                  ? 'font-bold uppercase tracking-tight text-webinar-foreground'
-                                  : 'font-medium'
-                              }>
-                                {sistema.nome}
-                              </span>
-                              {isWebinarSistema && (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-webinar/40 bg-webinar/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-webinar">
-                                  <Radio className="h-3 w-3" />
-                                  Módulo Webinar
-                                </span>
-                              )}
-                              {sistemaSelected && (
-                                <Badge
-                                  variant={isWebinarSistema ? 'outline' : 'default'}
-                                  className={isWebinarSistema ? 'border-webinar/40 bg-webinar/10 text-webinar' : undefined}
-                                >
-                                  Acesso completo
-                                </Badge>
-                              )}
-                            </div>
-                            {sistema.produtos?.length > 0 && (
-                              <div className="ml-7 grid gap-2 sm:grid-cols-2">
-                                {sistema.produtos.map((produto: any) => {
-                                  const isWebinarProd = produto?.tipo === 'webinar';
-                                  return (
-                                    <label
-                                      key={produto.id}
-                                      className={
-                                        isWebinarProd
-                                          ? 'flex cursor-pointer items-center gap-2 rounded-xl border border-webinar/25 bg-webinar/5 px-2 py-1.5 text-sm font-semibold uppercase tracking-tight text-webinar-foreground transition-colors hover:bg-webinar/10'
-                                          : 'flex cursor-pointer items-center gap-2 text-sm text-muted-foreground'
-                                      }
-                                    >
-                                      <Checkbox
-                                        checked={sistemaSelected || selecoes.has(`produto-${produto.id}`)}
-                                        disabled={sistemaSelected}
-                                        onCheckedChange={() => toggleProduto(produto.id, sistema.id)}
-                                      />
-                                      {produto.nome}
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                  <PermissionsTree
+                    todosOsSistemas={sistemas}
+                    permissoesSelecionadas={selecoes}
+                    sistemasExpandidos={sistemasExpandidos}
+                    toggleSistema={toggleSistema}
+                    toggleProduto={toggleProduto}
+                    toggleExpandirSistema={(id) =>
+                      setSistemasExpandidos((prev) => {
+                        const n = new Set(prev);
+                        n.has(id) ? n.delete(id) : n.add(id);
+                        return n;
+                      })
+                    }
+                  />
                 )}
 
                 <div className="rounded-lg border border-border/60 bg-card/50 p-4 text-sm">
