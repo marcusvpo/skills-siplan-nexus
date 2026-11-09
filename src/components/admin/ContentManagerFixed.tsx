@@ -174,6 +174,11 @@ export const ContentManagerFixed: React.FC = () => {
     } else if (hit.tipo === 'produto') {
       setNav({ viewMode: 'produtos', sistemaId: hit.sistema?.id ?? null, produtoId: hit.id });
       setFormData({ nome: hit.titulo, descricao: hit.descricao || '' });
+      const real = (sistemasData || [])
+        .flatMap((s: any) => s.produtos || [])
+        .find((p: any) => p.id === hit.id);
+      setProdutoId(hit.id);
+      setProdutoTipo(real?.tipo === 'webinar' ? 'webinar' : 'treinamento');
       setSearch('');
       setEditProdutoOpen(true);
     } else {
