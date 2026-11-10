@@ -277,6 +277,24 @@ export type Database = {
           },
         ]
       }
+      hub_integration_secrets: {
+        Row: {
+          created_at: string
+          key_name: string
+          secret_value: string
+        }
+        Insert: {
+          created_at?: string
+          key_name: string
+          secret_value: string
+        }
+        Update: {
+          created_at?: string
+          key_name?: string
+          secret_value?: string
+        }
+        Relationships: []
+      }
       produto_manuais: {
         Row: {
           created_at: string
@@ -839,6 +857,45 @@ export type Database = {
       }
       get_visualizacao_cartorio: {
         Args: { p_cartorio_id: string; p_video_aula_id: string }
+        Returns: Json
+      }
+      hub_build_skills_observacoes: {
+        Args: { p_systems: string[] }
+        Returns: string
+      }
+      hub_get_all_cartorios_activity: {
+        Args: { p_hub_secret: string }
+        Returns: Json
+      }
+      hub_get_cartorio_skills_status: {
+        Args: {
+          p_candidate_usernames?: string[]
+          p_cartorio_id?: string
+          p_cartorio_nome?: string
+          p_hub_secret: string
+        }
+        Returns: Json
+      }
+      hub_normalize_text: { Args: { p_input: string }; Returns: string }
+      hub_provision_cartorio_skills: {
+        Args: {
+          p_candidate_usernames?: string[]
+          p_cartorio_nome: string
+          p_existing_cartorio_id?: string
+          p_hub_secret: string
+          p_orion_systems?: string[]
+          p_suggested_username: string
+        }
+        Returns: Json
+      }
+      hub_sanitize_username: { Args: { p_username: string }; Returns: string }
+      hub_update_cartorio_username: {
+        Args: {
+          p_cartorio_id: string
+          p_hub_secret: string
+          p_new_username: string
+          p_user_id?: string
+        }
         Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }

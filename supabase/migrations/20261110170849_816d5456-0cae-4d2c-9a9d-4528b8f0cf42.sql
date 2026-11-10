@@ -1,0 +1,2 @@
+ALTER TABLE public.user_video_progress DROP CONSTRAINT user_video_progress_video_aula_id_fkey;
+ALTER TABLE public.user_video_progress ADD CONSTRAINT user_video_progress_video_aula_id_fkey FOREIGN KEY (video_aula_id) REFERENCES public.video_aulas(id) ON DELETE CASCADE;
