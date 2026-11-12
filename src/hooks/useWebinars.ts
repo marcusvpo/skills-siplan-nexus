@@ -32,6 +32,24 @@ export interface WebinarTrack {
   videos: WebinarVideo[];
 }
 
+/**
+ * Ordem das abas de webinar: os produtos listados aqui vêm sempre primeiro
+ * (na ordem em que foram listados) e os demais entram em ordem alfabética.
+ */
+const WEBINAR_TRACK_PRIORITY = ['siplan ia'];
+
+const normalizeTrackName = (nome: string) =>
+  nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const trackPriority = (nome: string) => {
+  const index = WEBINAR_TRACK_PRIORITY.indexOf(normalizeTrackName(nome));
+  return index === -1 ? WEBINAR_TRACK_PRIORITY.length : index;
+};
+
 /** Produtos de webinar liberados para o cartório, com a janela de prazo já calculada. */
 export const useWebinars = () => {
   const { data: sistemas = [], isLoading, error, refetch } = useSistemasCartorioWithAccess();
@@ -63,7 +81,10 @@ export const useWebinars = () => {
         });
     });
 
-    return result.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    return result.sort(
+      (a, b) =>
+        trackPriority(a.nome) - trackPriority(b.nome) || a.nome.localeCompare(b.nome, 'pt-BR')
+    );
   }, [sistemas]);
 
   const hasWebinars = tracks.some((t) => t.videos.length > 0);
