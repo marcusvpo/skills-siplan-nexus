@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User, MessageCircle, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFunctionAuthHeaders } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import ReactMarkdown from 'react-markdown';
 
@@ -72,6 +72,7 @@ const AIChat: React.FC<AIChatProps> = ({ lessonTitle, systemName }) => {
       });
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke('chat-ai', {
+        headers: await getFunctionAuthHeaders(),
         body: {
           message: currentMessage,
           previousResponseId,

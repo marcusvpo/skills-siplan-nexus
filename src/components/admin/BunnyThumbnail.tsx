@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getFunctionAuthHeaders } from '@/integrations/supabase/client';
 
 const FUNCTION_URL = 'https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/get-bunny-video-details';
 const CDN_HOSTNAME = 'vz-f849dcb4-55a.b-cdn.net';
@@ -11,11 +12,14 @@ const fetchThumb = (videoId: string): Promise<string | null> => {
   if (thumbCache.has(videoId)) return Promise.resolve(thumbCache.get(videoId) ?? null);
   if (inflight.has(videoId)) return inflight.get(videoId)!;
 
-  const promise = fetch(FUNCTION_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ videoId }),
-  })
+  const promise = getFunctionAuthHeaders()
+    .then((authHeaders) =>
+      fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ videoId }),
+      }),
+    )
     .then((res) => (res.ok ? res.json() : null))
     .then((data: any) => {
       const url =

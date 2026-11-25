@@ -202,10 +202,11 @@ export const useCreateCartorio = () => {
 
         logger.info('✅ [useCreateCartorio] Cartorio created:', { id: cartorio.id });
 
-        // 2. Gerar token único (formato simples e seguro)
-        const timestamp = Date.now().toString();
-        const randomNum = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-        const login_token = `CART${timestamp.slice(-8)}${randomNum}`;
+        // 2. Gerar token único criptograficamente seguro (CSPRNG 64 bits)
+        const randomBytes = new Uint8Array(8);
+        crypto.getRandomValues(randomBytes);
+        const hexEntropy = Array.from(randomBytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        const login_token = `CART${hexEntropy}`;
 
         logger.info('🔑 [useCreateCartorio] Generated token:', { login_token });
 

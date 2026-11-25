@@ -243,9 +243,10 @@ export const CreateCartorioWizard: React.FC<CreateCartorioWizardProps> = ({
       if (cartorioError) throw cartorioError;
       cartorioId = cartorio.id;
 
-      const timestamp = Date.now().toString();
-      const randomNum = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-      const login_token = `CART${timestamp.slice(-8)}${randomNum}`;
+      const randomBytes = new Uint8Array(8);
+      crypto.getRandomValues(randomBytes);
+      const hexEntropy = Array.from(randomBytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const login_token = `CART${hexEntropy}`;
 
       const { error: acessoError } = await supabase.from('acessos_cartorio').insert({
         login_token,

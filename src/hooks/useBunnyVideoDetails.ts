@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getFunctionAuthHeaders } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
@@ -52,11 +52,12 @@ export const useBunnyVideoDetails = (videoId?: string): UseBunnyVideoDetailsRetu
     logger.info('🎥 [useBunnyVideoDetails] Fetching video details', { videoId: id });
 
     try {
-      // Chamada direta sem autenticação para função pública
+      // Função protegida: exige JWT de cartório ou sessão de administrador
       const response = await fetch(`https://bnulocsnxiffavvabfdj.supabase.co/functions/v1/get-bunny-video-details`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await getFunctionAuthHeaders()),
         },
         body: JSON.stringify({ videoId: id.trim() })
       });

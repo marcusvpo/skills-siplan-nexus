@@ -25,17 +25,26 @@ const configureRequestInterceptor = () => {
                 input instanceof URL ? input.toString() : 
                 (input as any).url;
 
-    // Intercepta chamadas somente para sua instância Supabase (API REST e Functions)
+    // Intercepta chamadas para REST, Functions e Storage (anexando JWT do cartório ou sessão Admin)
     if (url.includes('bnulocsnxiffavvabfdj.supabase.co/rest/') || 
-        url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
+        url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/') ||
+        url.includes('bnulocsnxiffavvabfdj.supabase.co/storage/')) {
 
       const headers = new Headers(init?.headers);
 
-      // Para Edge Functions e REST API, usar token do cartório se disponível
       const token = localStorage.getItem('siplan-auth-token');
       if (token && !headers.has('Authorization')) {
         headers.set('Authorization', `Bearer ${token}`);
-        console.log(`🔐 [Supabase] Cartório JWT aplicado para: ${url.substring(0, 80)}...`);
+      } else if (!headers.has('Authorization') && url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
+        try {
+          const rawAdminSession = localStorage.getItem('supabase.auth.token');
+          const parsedAdmin = rawAdminSession ? JSON.parse(rawAdminSession) : null;
+          if (parsedAdmin?.access_token) {
+            headers.set('Authorization', `Bearer ${parsedAdmin.access_token}`);
+          }
+        } catch {
+          // Ignora falha de leitura de sessão local
+        }
       }
 
       return originalFetch(input, { ...init, headers });
@@ -100,6 +109,24 @@ export const clearAdminToken = () => {
 
 export const getAuthToken = (): string | null => {
   return localStorage.getItem('siplan-auth-token');
+};
+
+/**
+ * Cabeçalho Authorization para Edge Functions protegidas:
+ * JWT do cartório (login-cartorio) ou, na falta dele, sessão do administrador (Supabase Auth).
+ */
+export const getFunctionAuthHeaders = async (): Promise<Record<string, string>> => {
+  const cartorioToken = localStorage.getItem('siplan-auth-token');
+  if (cartorioToken) return { Authorization: `Bearer ${cartorioToken}` };
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      return { Authorization: `Bearer ${data.session.access_token}` };
+    }
+  } catch {
+    // sem sessão administrativa
+  }
+  return {};
 };
 
 // Funções aliases para compatibilidade
