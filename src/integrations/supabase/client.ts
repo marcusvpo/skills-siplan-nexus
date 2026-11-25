@@ -26,24 +26,31 @@ const configureRequestInterceptor = () => {
                 (input as any).url;
 
     // Intercepta chamadas para REST, Functions e Storage (anexando JWT do cartório ou sessão Admin)
-    if (url.includes('bnulocsnxiffavvabfdj.supabase.co/rest/') || 
-        url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/') ||
-        url.includes('bnulocsnxiffavvabfdj.supabase.co/storage/')) {
-
+    if (
+      url.includes('bnulocsnxiffavvabfdj.supabase.co/rest/') ||
+      url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/') ||
+      url.includes('bnulocsnxiffavvabfdj.supabase.co/storage/')
+    ) {
       const headers = new Headers(init?.headers);
-
       const token = localStorage.getItem('siplan-auth-token');
-      if (token && !headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${token}`);
-      } else if (!headers.has('Authorization') && url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
-        try {
-          const rawAdminSession = localStorage.getItem('supabase.auth.token');
-          const parsedAdmin = rawAdminSession ? JSON.parse(rawAdminSession) : null;
-          if (parsedAdmin?.access_token) {
-            headers.set('Authorization', `Bearer ${parsedAdmin.access_token}`);
+
+      if (token) {
+        // Sempre envia o JWT do cartório em x-custom-auth sem conflitar com o Authorization publishable do PostgREST/Storage
+        headers.set('x-custom-auth', `Bearer ${token}`);
+      } else if (url.includes('bnulocsnxiffavvabfdj.supabase.co/functions/')) {
+        const currentAuth = headers.get('Authorization') || '';
+        const isMissingOrPublishable =
+          !currentAuth || currentAuth === `Bearer ${SUPABASE_PUBLISHABLE_KEY}`;
+        if (isMissingOrPublishable) {
+          try {
+            const rawAdminSession = localStorage.getItem('supabase.auth.token');
+            const parsedAdmin = rawAdminSession ? JSON.parse(rawAdminSession) : null;
+            if (parsedAdmin?.access_token) {
+              headers.set('Authorization', `Bearer ${parsedAdmin.access_token}`);
+            }
+          } catch {
+            // Ignora falha de leitura de sessão local
           }
-        } catch {
-          // Ignora falha de leitura de sessão local
         }
       }
 
@@ -117,11 +124,21 @@ export const getAuthToken = (): string | null => {
  */
 export const getFunctionAuthHeaders = async (): Promise<Record<string, string>> => {
   const cartorioToken = localStorage.getItem('siplan-auth-token');
-  if (cartorioToken) return { Authorization: `Bearer ${cartorioToken}` };
+  if (cartorioToken) {
+    return {
+      'x-custom-auth': `Bearer ${cartorioToken}`,
+      Authorization: `Bearer ${cartorioToken}`,
+    };
+  }
   try {
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
       return { Authorization: `Bearer ${data.session.access_token}` };
+    }
+    const rawAdminSession = localStorage.getItem('supabase.auth.token');
+    const parsedAdmin = rawAdminSession ? JSON.parse(rawAdminSession) : null;
+    if (parsedAdmin?.access_token) {
+      return { Authorization: `Bearer ${parsedAdmin.access_token}` };
     }
   } catch {
     // sem sessão administrativa
