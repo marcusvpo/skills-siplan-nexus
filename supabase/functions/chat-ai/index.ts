@@ -1,71 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { jwtVerify } from "https://deno.land/x/jose@v4.14.6/index.ts";
+import {
+  corsHeaders,
+  enforceRateLimit,
+  getClientIp,
+  getServiceSupabase,
+  jsonResponse,
+  requireCartorioOrAdmin,
+} from "./security.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
-};
+const openAIApiKey = Deno.env.get("openai_api_key") ?? Deno.env.get("OPENAI_API_KEY");
 
-const openAIApiKey = Deno.env.get('openai_api_key') ?? Deno.env.get('OPENAI_API_KEY');
-
-async function isAuthorizedCaller(req: Request): Promise<boolean> {
-  const customHeader = req.headers.get('x-custom-auth');
-  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
-  const candidate = customHeader || authHeader;
-  if (!candidate) return false;
-
-  const rawToken = candidate.replace(/^Bearer\s+/i, '').trim();
-  if (!rawToken || rawToken.startsWith('sb_publishable_')) return false;
-
-  if (rawToken.startsWith('CART-')) {
-    try {
-      const decoded = JSON.parse(atob(rawToken.replace('CART-', '')));
-      if (decoded?.cartorio_id) return true;
-    } catch {
-      return false;
-    }
-  }
-
-  const jwtSecret = Deno.env.get('JWT_SECRET');
-  if (jwtSecret) {
-    try {
-      const { payload } = await jwtVerify(rawToken, new TextEncoder().encode(jwtSecret));
-      if (payload?.cartorio_id) return true;
-    } catch {
-      // Fallback para sessão administrativa Supabase Auth
-    }
-  }
-
-  if (authHeader?.startsWith('Bearer ')) {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    if (supabaseUrl && serviceKey) {
-      const supabase = createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user?.email) {
-        const { data: admin } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('email', user.email)
-          .maybeSingle();
-        if (admin) return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * Migração Assistants API -> Responses API.
- * Assistants -> Prompts (versionados no dashboard)
- * Threads    -> encadeamento via previous_response_id
- * Runs       -> Responses
- */
 type AssistantConfig = {
   name: string;
   promptId: string;
@@ -76,125 +20,132 @@ type AssistantConfig = {
 };
 
 const ORION_PRO: AssistantConfig = {
-  name: 'Orion PRO',
-  promptId: Deno.env.get('PROMPT_ID_ORION_PRO') ?? 'pmpt_6a2c55e4969c8194ae9f66de2eefeca00e0cef6be4891706',
-  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_PRO') ?? '2',
-  vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_PRO') ?? 'vs_6a2c550854f88191af5edf3b43984b37',
+  name: "Orion PRO",
+  promptId: Deno.env.get("PROMPT_ID_ORION_PRO") ?? "pmpt_6a2c55e4969c8194ae9f66de2eefeca00e0cef6be4891706",
+  promptVersion: Deno.env.get("PROMPT_VERSION_ORION_PRO") ?? "2",
+  vectorStoreId: Deno.env.get("VECTOR_STORE_ID_ORION_PRO") ?? "vs_6a2c550854f88191af5edf3b43984b37",
   allowedDomains: [
-    'cenprot.com.br',
-    'cenprotsp.com.br',
-    'ieptb.com.br',
-    'protestobr.com.br',
-    'cnj.jus.br',
-    'planalto.gov.br',
-    'siplan.com.br',
+    "cenprot.com.br",
+    "cenprotsp.com.br",
+    "ieptb.com.br",
+    "protestobr.com.br",
+    "cnj.jus.br",
+    "planalto.gov.br",
+    "siplan.com.br",
   ],
   country: null,
 };
 
 const ORION_TN: AssistantConfig = {
-  name: 'Orion TN',
-  promptId: Deno.env.get('PROMPT_ID_ORION_TN') ?? 'pmpt_6a2abdbe2da08197bfb29aaa958492800bdd6be9f0df3ecf',
-  promptVersion: Deno.env.get('PROMPT_VERSION_ORION_TN') ?? '8',
-  vectorStoreId: Deno.env.get('VECTOR_STORE_ID_ORION_TN') ?? 'vs_6a2ab8c56ae881918fc9c2a8fb24748d',
+  name: "Orion TN",
+  promptId: Deno.env.get("PROMPT_ID_ORION_TN") ?? "pmpt_6a2abdbe2da08197bfb29aaa958492800bdd6be9f0df3ecf",
+  promptVersion: Deno.env.get("PROMPT_VERSION_ORION_TN") ?? "8",
+  vectorStoreId: Deno.env.get("VECTOR_STORE_ID_ORION_TN") ?? "vs_6a2ab8c56ae881918fc9c2a8fb24748d",
   allowedDomains: [
-    'e-notariado.org.br',
-    'notariado.org.br',
-    'cnj.jus.br',
-    'anoreg.org.br',
-    'cnbsp.org.br',
-    'siplan.com.br',
+    "e-notariado.org.br",
+    "notariado.org.br",
+    "cnj.jus.br",
+    "anoreg.org.br",
+    "cnbsp.org.br",
+    "siplan.com.br",
   ],
-  country: 'BR',
+  country: "BR",
 };
 
 function extractOutputText(data: any): string {
-  if (typeof data?.output_text === 'string' && data.output_text.trim()) {
+  if (typeof data?.output_text === "string" && data.output_text.trim()) {
     return data.output_text;
   }
   const parts: string[] = [];
   for (const item of data?.output ?? []) {
-    if (item?.type !== 'message') continue;
+    if (item?.type !== "message") continue;
     for (const content of item?.content ?? []) {
-      if (content?.type === 'output_text' && typeof content.text === 'string') {
+      if (content?.type === "output_text" && typeof content.text === "string") {
         parts.push(content.text);
       }
     }
   }
-  return parts.join('\n\n').trim();
+  return parts.join("\n\n").trim();
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Método não permitido" }, 405);
+  }
+
   try {
-    const authorized = await isAuthorizedCaller(req);
-    if (!authorized) {
-      return new Response(JSON.stringify({
-        error: 'Não autorizado',
-        fallback_response: 'Sua sessão expirou ou não está autenticada. Faça login novamente para usar o assistente.',
-        timestamp: new Date().toISOString(),
-      }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    const supabase = getServiceSupabase();
+    const actor = await requireCartorioOrAdmin(req, supabase);
+    if (actor instanceof Response) return actor;
+
+    const burstLimit = await enforceRateLimit(supabase, "chat_ai_burst", actor.subjectKey, 20, 600);
+    if (burstLimit) return burstLimit;
+
+    const hourlyKey = actor.cartorioId || `${actor.subjectKey}:${getClientIp(req)}`;
+    const hourlyLimit = await enforceRateLimit(supabase, "chat_ai_hourly", hourlyKey, 60, 3600);
+    if (hourlyLimit) return hourlyLimit;
 
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error("OpenAI API key not configured");
     }
 
     const body = await req.json();
-    const message: string = body?.message;
-    const lessonTitle: string = body?.lessonTitle ?? '';
-    // `threadId` mantido por compatibilidade com o cliente: agora é o id da última response.
+    const message: string = typeof body?.message === "string" ? body.message.trim() : "";
+    const lessonTitle: string = typeof body?.lessonTitle === "string" ? body.lessonTitle : "";
     const previousResponseId: string | null =
       body?.previousResponseId ?? body?.responseId ?? body?.threadId ?? null;
 
-    if (!message || !message.trim()) {
-      throw new Error('Message is required');
+    if (!message) {
+      return jsonResponse({ error: "Mensagem obrigatória" }, 400);
     }
 
-    const assistant = lessonTitle.toLowerCase().includes('orion pro') ? ORION_PRO : ORION_TN;
+    if (message.length > 4000) {
+      return jsonResponse(
+        {
+          error: "Mensagem excede o limite de 4.000 caracteres.",
+          fallback_response: "Sua pergunta é muito longa. Por favor, resuma em até 4.000 caracteres.",
+        },
+        400,
+      );
+    }
 
-    console.log('🤖 [chat-ai] Responses API', {
-      assistant: assistant.name,
-      promptId: assistant.promptId,
-      promptVersion: assistant.promptVersion,
-      hasPrevious: !!previousResponseId,
-      lessonTitle,
-    });
+    const assistant = lessonTitle.toLowerCase().includes("orion pro") ? ORION_PRO : ORION_TN;
 
     const payload: Record<string, unknown> = {
       prompt: { id: assistant.promptId, version: assistant.promptVersion },
       input: [
         {
-          role: 'user',
-          content: [{ type: 'input_text', text: message }],
+          role: "user",
+          content: [{ type: "input_text", text: message }],
         },
       ],
       tools: [
         {
-          type: 'file_search',
+          type: "file_search",
           vector_store_ids: [assistant.vectorStoreId],
         },
         {
-          type: 'web_search',
+          type: "web_search",
           filters: { allowed_domains: assistant.allowedDomains },
-          search_context_size: 'medium',
+          search_context_size: "medium",
           user_location: {
-            type: 'approximate',
+            type: "approximate",
             country: assistant.country,
           },
         },
       ],
       store: true,
       metadata: {
-        platform: 'siplan-skills',
-        lesson_title: (lessonTitle || 'Unknown Lesson').slice(0, 500),
+        platform: "siplan-skills",
+        lesson_title: (lessonTitle || "Unknown Lesson").slice(0, 500),
       },
     };
 
-    if (previousResponseId && String(previousResponseId).startsWith('resp_')) {
+    if (previousResponseId && String(previousResponseId).startsWith("resp_")) {
       payload.previous_response_id = previousResponseId;
     }
 
@@ -203,24 +154,25 @@ serve(async (req) => {
 
     let response: Response;
     try {
-      response = await fetch('https://api.openai.com/v1/responses', {
-        method: 'POST',
+      response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openAIApiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
     } catch (err) {
       clearTimeout(timeoutId);
-      if ((err as Error).name === 'AbortError') {
-        return new Response(JSON.stringify({
+      if ((err as Error).name === "AbortError") {
+        return jsonResponse({
           timeout: true,
-          fallback_response: 'O assistente está demorando mais que o esperado. Reformule sua pergunta de forma mais simples ou tente novamente.',
+          fallback_response:
+            "O assistente está demorando mais que o esperado. Reformule sua pergunta de forma mais simples ou tente novamente.",
           threadId: previousResponseId,
           timestamp: new Date().toISOString(),
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        });
       }
       throw err;
     }
@@ -229,44 +181,41 @@ serve(async (req) => {
     const raw = await response.text();
 
     if (!response.ok) {
-      console.error('❌ [chat-ai] OpenAI error', response.status, raw.slice(0, 1000));
-      return new Response(JSON.stringify({
-        error: `OpenAI Responses API retornou ${response.status}`,
-        fallback_response: 'Desculpe, o assistente está indisponível neste momento. Tente novamente em alguns instantes.',
-        timestamp: new Date().toISOString(),
-      }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.error("[chat-ai] OpenAI error", response.status, raw.slice(0, 500));
+      return jsonResponse(
+        {
+          error: `OpenAI Responses API retornou ${response.status}`,
+          fallback_response:
+            "Desculpe, o assistente está indisponível neste momento. Tente novamente em alguns instantes.",
+          timestamp: new Date().toISOString(),
+        },
+        502,
+      );
     }
 
     const data = JSON.parse(raw);
-
-    if (data.status === 'incomplete') {
-      console.warn('⚠️ [chat-ai] Response incomplete', data.incomplete_details);
-    }
-
     const responseText = extractOutputText(data);
 
     if (!responseText) {
-      console.error('❌ [chat-ai] Empty output', JSON.stringify(data).slice(0, 1000));
-      throw new Error('No response from assistant');
+      throw new Error("No response from assistant");
     }
 
-    console.log('✅ [chat-ai] Response ok', { id: data.id, length: responseText.length });
-
-    return new Response(JSON.stringify({
+    return jsonResponse({
       response: responseText,
       responseId: data.id,
-      // compat: o cliente antigo guarda isso como "threadId"
       threadId: data.id,
       assistant: assistant.name,
       timestamp: new Date().toISOString(),
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
+    });
   } catch (error) {
-    console.error('❌ [chat-ai] Error:', error);
-    return new Response(JSON.stringify({
-      error: (error as Error).message || 'Erro interno do servidor',
-      fallback_response: 'Desculpe, ocorreu um erro. Tente novamente em alguns instantes.',
-      timestamp: new Date().toISOString(),
-    }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error("[chat-ai] Error:", error);
+    return jsonResponse(
+      {
+        error: (error as Error).message || "Erro interno do servidor",
+        fallback_response: "Desculpe, ocorreu um erro. Tente novamente em alguns instantes.",
+        timestamp: new Date().toISOString(),
+      },
+      500,
+    );
   }
 });
