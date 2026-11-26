@@ -12,6 +12,25 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (never track real env files)
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/.env.*
+!supabase/.env.example
+supabase/functions/.env
+supabase/functions/.env.*
+!supabase/functions/.env.example
+supabase/functions/*/.env*
+supabase/.temp
+
+# Session, auth state, and private keys
+*session*.json
+*auth*.json
+*.pem
+*.key
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

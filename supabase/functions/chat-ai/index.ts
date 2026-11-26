@@ -1,11 +1,64 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jwtVerify } from "https://deno.land/x/jose@v4.14.6/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 };
 
 const openAIApiKey = Deno.env.get('openai_api_key') ?? Deno.env.get('OPENAI_API_KEY');
+
+async function isAuthorizedCaller(req: Request): Promise<boolean> {
+  const customHeader = req.headers.get('x-custom-auth');
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+  const candidate = customHeader || authHeader;
+  if (!candidate) return false;
+
+  const rawToken = candidate.replace(/^Bearer\s+/i, '').trim();
+  if (!rawToken || rawToken.startsWith('sb_publishable_')) return false;
+
+  if (rawToken.startsWith('CART-')) {
+    try {
+      const decoded = JSON.parse(atob(rawToken.replace('CART-', '')));
+      if (decoded?.cartorio_id) return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const jwtSecret = Deno.env.get('JWT_SECRET');
+  if (jwtSecret) {
+    try {
+      const { payload } = await jwtVerify(rawToken, new TextEncoder().encode(jwtSecret));
+      if (payload?.cartorio_id) return true;
+    } catch {
+      // Fallback para sessão administrativa Supabase Auth
+    }
+  }
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (supabaseUrl && serviceKey) {
+      const supabase = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user?.email) {
+        const { data: admin } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle();
+        if (admin) return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 /**
  * Migração Assistants API -> Responses API.
@@ -77,6 +130,15 @@ serve(async (req) => {
   }
 
   try {
+    const authorized = await isAuthorizedCaller(req);
+    if (!authorized) {
+      return new Response(JSON.stringify({
+        error: 'Não autorizado',
+        fallback_response: 'Sua sessão expirou ou não está autenticada. Faça login novamente para usar o assistente.',
+        timestamp: new Date().toISOString(),
+      }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }

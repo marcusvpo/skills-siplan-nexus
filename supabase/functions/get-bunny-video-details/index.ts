@@ -1,9 +1,64 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { jwtVerify } from "https://deno.land/x/jose@v4.14.6/index.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
+}
+
+async function isAuthorizedCaller(req: Request): Promise<boolean> {
+  const customHeader = req.headers.get('x-custom-auth');
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+  const candidate = customHeader || authHeader;
+  if (!candidate) return false;
+
+  const rawToken = candidate.replace(/^Bearer\s+/i, '').trim();
+  if (!rawToken || rawToken.startsWith('sb_publishable_')) return false;
+
+  // 1. Token legado CART- ou JWT customizado de cartório
+  if (rawToken.startsWith('CART-')) {
+    try {
+      const decoded = JSON.parse(atob(rawToken.replace('CART-', '')));
+      if (decoded?.cartorio_id) return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const jwtSecret = Deno.env.get('JWT_SECRET');
+  if (jwtSecret) {
+    try {
+      const { payload } = await jwtVerify(rawToken, new TextEncoder().encode(jwtSecret));
+      if (payload?.cartorio_id) return true;
+    } catch {
+      // Pode ser um JWT do Supabase Auth (administrador); segue para verificação abaixo
+    }
+  }
+
+  // 2. Fallback: sessão de administrador via Supabase Auth
+  if (authHeader?.startsWith('Bearer ')) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceKey = Deno.env.get('CUSTOM_SERVICE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (supabaseUrl && serviceKey) {
+      const supabase = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user?.email) {
+        const { data: admin } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle();
+        if (admin) return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 interface BunnyVideoResponse {
@@ -56,6 +111,21 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 405,
+        }
+      );
+    }
+
+    // Require authenticated cartório or admin caller
+    const authorized = await isAuthorizedCaller(req);
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({
+          error: 'Não autorizado. Faça login para acessar os detalhes do vídeo.',
+          success: false,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
         }
       );
     }
@@ -122,7 +192,6 @@ serve(async (req) => {
     const bunnyApiUrl = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos/${videoId}`;
     
     console.log('📡 [get-bunny-video-details] Making request to:', bunnyApiUrl);
-    console.log('🔐 [get-bunny-video-details] Using API Key (first 10 chars):', BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...');
 
     const response = await fetch(bunnyApiUrl, {
       method: 'GET',
@@ -140,9 +209,7 @@ serve(async (req) => {
       console.error('❌ [get-bunny-video-details] Bunny.net API error:', { 
         status: response.status, 
         statusText: response.statusText,
-        errorText,
-        url: bunnyApiUrl,
-        apiKeyPrefix: BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...'
+        url: bunnyApiUrl
       });
 
       if (response.status === 404) {
@@ -161,13 +228,8 @@ serve(async (req) => {
       if (response.status === 401 || response.status === 403) {
         return new Response(
           JSON.stringify({ 
-            error: 'Erro de autenticação com a API da Bunny.net. Verifique se a API Key da Video Library está configurada corretamente no secret BUNNY_API_KEY.',
-            success: false,
-            debug: {
-              status: response.status,
-              apiKeyPrefix: BUNNY_VIDEO_LIBRARY_API_KEY.substring(0, 10) + '...',
-              expectedKey: 'REDACTED_BUNNY_API_KEY___________________'
-            }
+            error: 'Erro de autenticação com a API da Bunny.net. Verifique se o secret BUNNY_API_KEY está configurado corretamente.',
+            success: false
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
