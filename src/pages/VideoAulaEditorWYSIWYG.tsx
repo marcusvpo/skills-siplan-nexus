@@ -172,6 +172,12 @@ const VideoAulaEditorWYSIWYG: React.FC = () => {
             return;
           }
 
+          if (produtoData && (produtoData as any).tipo === 'webinar') {
+            // Webinars usam o formulário próprio, com prazo de visualização
+            navigate(`/admin/video-aulas/editar/${videoAulaData.id}`, { replace: true });
+            return;
+          }
+
           if (produtoData) {
             setSelectedProduto(produtoData.id);
             

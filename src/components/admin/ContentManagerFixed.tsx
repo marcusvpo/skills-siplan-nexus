@@ -1070,7 +1070,7 @@ export const ContentManagerFixed: React.FC = () => {
                             size="icon"
                             variant="outline"
                             className={isWebinar ? 'h-9 w-9 border-webinar/30 text-webinar hover:bg-webinar/10' : 'h-8 w-8 border-border/60 hover:bg-secondary'}
-                            onClick={() => navigate(`/admin/videoaula-editor/${videoAula.id}`)}
+                            onClick={() => navigate(isWebinar ? `/admin/video-aulas/editar/${videoAula.id}` : `/admin/videoaula-editor/${videoAula.id}`)}
                           >
                             <Edit className="h-3.5 w-3.5" />
                           </Button>
