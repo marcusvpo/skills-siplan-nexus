@@ -122,6 +122,45 @@ export type Database = {
           },
         ]
       }
+      cartorio_auth_sessions: {
+        Row: {
+          cartorio_id: string
+          created_at: string
+          expires_at: string
+          token_hash: string
+          user_id: string | null
+        }
+        Insert: {
+          cartorio_id: string
+          created_at?: string
+          expires_at: string
+          token_hash: string
+          user_id?: string | null
+        }
+        Update: {
+          cartorio_id?: string
+          created_at?: string
+          expires_at?: string
+          token_hash?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_auth_sessions_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_auth_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartorio_sessions: {
         Row: {
           cartorio_id: string
@@ -484,6 +523,27 @@ export type Database = {
         }
         Relationships: []
       }
+      skills_rate_limits: {
+        Row: {
+          bucket: string
+          hit_count: number
+          subject_key: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hit_count?: number
+          subject_key: string
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          hit_count?: number
+          subject_key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       trilha_aulas: {
         Row: {
           id: string
@@ -794,6 +854,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_skills_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_max_hits: number
+          p_subject_key: string
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
       deactivate_old_sessions: { Args: never; Returns: undefined }
       debug_auth_cartorio_context: { Args: never; Returns: Json }
       debug_auth_context: { Args: never; Returns: Json }
@@ -809,6 +878,7 @@ export type Database = {
           usuarios_count: number
         }[]
       }
+      extract_cartorio_session_token: { Args: never; Returns: string }
       get_current_cartorio_id: { Args: never; Returns: string }
       get_current_cartorio_id_from_jwt: { Args: never; Returns: string }
       get_current_cartorio_user_id: { Args: never; Returns: string }
